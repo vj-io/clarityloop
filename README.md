@@ -35,7 +35,7 @@ Live app: https://clarityloop-theta.vercel.app
 - **Accounts and data:** Supabase Auth (email one-time code for supervisors, PIN for workers) and Postgres with row-level security, so each table is limited to the user's own crew.
 - **Chat:** each supervisor–worker pair has one Nexconn group channel. The browser uses `@nexconn/engine` and `@nexconn/chat` for live messages. The server uses `@nexconn/server-sdk` and Nexconn's REST API, with signed headers, to create channels, add members and post cards.
 - **Cards:** task, result and state cards are plain text with a prefix (`[[CL:TASK]]`, `[[CL:CHECK]]`, `[[CL:STATE]]`). Only the server posts them. A card typed by a user is ignored.
-- **AI:** called through the Vercel AI Gateway for three narrow jobs: translate chat messages, translate task text, and extract fields from the worker's restatement into a JSON contract checked with zod.
+- **AI:** Gemini (`google/gemini-3.5-flash-lite`), called through the Vercel AI SDK either directly with a Google AI Studio key or through the Vercel AI Gateway, for three narrow jobs: translate chat messages, translate task text, and extract fields from the worker's restatement into a JSON contract checked with zod.
 - **Comparison:** the match, mismatch and unclear marks are produced by plain code in `src/lib/compare.ts`. The AI never decides whether a restatement matches, and never confirms a task.
 - **Work-hours rule:** a bare hour from 1 to 6 with no morning or evening word is read as afternoon (13:00 to 18:00). The card shows that reading so either person can correct it.
 - **Local development fallback:** when Nexconn keys are not configured, the app uses a local transport for development. It is labelled as such in the interface and is not used in a deployed app.
@@ -68,6 +68,7 @@ Copy `.env.example` to `.env.local`. Never commit `.env.local`.
 | `NEXCONN_APP_SECRET` | Server only | Nexconn App Secret |
 | `NEXCONN_AREA` | Server only | `SG`, `NA` or `SA` (default `SG`); must match the data center chosen for the app in the Nexconn Console |
 | `AI_MODEL` | Server only | AI Gateway model id (default `google/gemini-3.5-flash-lite`) |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Server only, optional | Google AI Studio key; when set, `google/...` models are called directly |
 | `AI_GATEWAY_API_KEY` | Server only, optional | AI Gateway key; on Vercel the project's OIDC token is used instead |
 
 ## Security and privacy

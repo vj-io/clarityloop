@@ -67,7 +67,7 @@ export default function ResultsPage() {
                 {data.ran_at && <p className="font-hand text-base text-muted">{t("res.ran")}: {new Date(data.ran_at).toLocaleString()}</p>}
                 <ul className="mt-2 divide-y-2 divide-dashed divide-ink/30">
                   {tr && isNum(tr.total) && isNum(tr.kept_ok) && tr.total > 0 && (
-                    <Metric t={t} label={t("res.trans")} value={`${tr.kept_ok} / ${tr.total}`} target="18 / 20" pass={tr.kept_ok / tr.total >= 0.9} />
+                    <Metric t={t} label={t("res.trans")} value={`${tr.kept_ok} / ${tr.total}`} target={t("res.all")} pass={tr.kept_ok === tr.total} />
                   )}
                   {tr && isNum(tr.median_ms) && (
                     <Metric t={t} label={t("res.transMs")} value={`${Math.round(tr.median_ms)} ms`} target="< 1500 ms" pass={tr.median_ms < 1500} />

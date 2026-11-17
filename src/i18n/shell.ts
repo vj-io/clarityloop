@@ -282,7 +282,7 @@ export const shell: Dict = {
   "res.target": d("target", "लक्ष्य", "இலக்கு"),
   "res.meets": d("Meets target", "लक्ष्य पूरा", "இலக்கை எட்டியது"),
   "res.below": d("Below target", "लक्ष्य से कम", "இலக்குக்குக் குறைவு"),
-  "res.trans": d("Translations passed", "अनुवाद सही", "மொழிபெயர்ப்புகள் சரி"),
+  "res.trans": d("Translations with every number and place name kept (not yet rated by a native speaker)", "अनुवाद जिनमें हर संख्या और जगह का नाम सही रहा (अभी किसी मूल भाषी ने जाँचा नहीं)", "ஒவ்வொரு எண்ணும் இடப் பெயரும் மாறாமல் இருந்த மொழிபெயர்ப்புகள் (தாய்மொழி பேசுபவர் இன்னும் மதிப்பிடவில்லை)"),
   "res.transMs": d("Translation, median time", "अनुवाद, माध्य समय", "மொழிபெயர்ப்பு, இடைநிலை நேரம்"),
   "res.caught": d("Planted mismatches caught", "डाले गए बेमेल पकड़े गए", "வைத்த பொருந்தாமைகள் பிடிபட்டன"),
   "res.all": d("all of them", "सभी", "அனைத்தும்"),

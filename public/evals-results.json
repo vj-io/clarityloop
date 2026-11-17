@@ -1,0 +1,21 @@
+{
+  "ran_at": "2026-11-17T20:54:13.394Z",
+  "models": [
+    {
+      "model": "google/gemini-3.5-flash-lite",
+      "translation": {
+        "total": 100,
+        "kept_ok": 99,
+        "median_ms": 1945,
+        "p90_ms": 5351
+      },
+      "meaning": {
+        "total": 15,
+        "planted": 6,
+        "caught": 6,
+        "false_alarms": 0,
+        "median_ms": 2253
+      }
+    }
+  ]
+}
