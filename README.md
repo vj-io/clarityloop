@@ -25,7 +25,7 @@ The worker restated it as: "40 bori cement Gate 2 pe utaarna hai, 2 baje tak." T
 
 ## Try it
 
-Live app: _added after deploy_
+Live app: https://clarityloop-theta.vercel.app
 
 **Judge mode.** Open `/judge` to sign in two seeded accounts in two tabs: an English-speaking supervisor and a Hindi-speaking worker. Judge-mode data is sandbox data and is marked as such. No sign-up is needed.
 
