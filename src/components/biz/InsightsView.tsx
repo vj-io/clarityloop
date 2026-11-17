@@ -13,6 +13,8 @@ import { LANG_NAME, type InsightsDTO, type Lang } from "@/lib/types";
 import { HBar, TrendChart } from "./Charts";
 import { when } from "./fmt";
 
+/** English/Tamil singular when the count is exactly 1 (keys end in "1"). */
+const one = (t: T, key: string, total: number, vars: Record<string, number>) => t(total === 1 ? `${key}1` : key, vars);
 const pctText = (n: number | null) => (n == null ? "" : `${n}%`);
 
 function Tile({ k, label, value, sub, tint }: { k: string; label: string; value: string; sub?: string; tint?: boolean }) {
@@ -55,7 +57,7 @@ function Fields({ d, t }: { d: InsightsDTO; t: T }) {
             <li key={f.field} data-field={f.field}>
               <div className="flex flex-wrap items-baseline justify-between gap-x-3">
                 <span className={`font-display text-lg font-extrabold ${top > 0 && miss(f) === top ? "hl" : ""}`}>{t(`b.f.${f.field}`)}</span>
-                <span className="font-mono text-sm">{t("b.in.fieldsOf", { n: miss(f), total: f.checked })}</span>
+                <span className="font-mono text-sm">{one(t, "b.in.fieldsOf", f.checked, { n: miss(f), total: f.checked })}</span>
               </div>
               <HBar hi={top > 0 && miss(f) === top} parts={[{ pct: share(f.mismatch, f.checked), color: "var(--bad)" }, { pct: share(f.unclear, f.checked), color: "var(--warn)" }]} />
               <p className="flex flex-wrap gap-x-4 text-sm font-semibold">
@@ -81,7 +83,7 @@ function Languages({ d, t }: { d: InsightsDTO; t: T }) {
             <li key={l.language} data-lang={l.language}>
               <div className="flex flex-wrap items-baseline justify-between gap-x-3">
                 <span className="font-display text-lg font-extrabold">{LANG_NAME[l.language]}</span>
-                <span className="font-mono text-sm">{t("b.in.tasksN", { n: l.tasks })} · {pctText(l.retried_pct)}</span>
+                <span className="font-mono text-sm">{one(t, "b.in.tasksN", l.tasks, { n: l.tasks })} · {pctText(l.retried_pct)}</span>
               </div>
               <HBar parts={[{ pct: l.retried_pct ?? 0, color: "var(--pen)" }]} />
               <p className="text-sm font-semibold text-pen">{t("b.in.retriedN", { n: l.retried })}</p>
@@ -185,19 +187,20 @@ export function InsightsView() {
               <h1 className="font-display text-3xl font-extrabold leading-tight">{t("b.in.title")}</h1>
               {d.crew.is_sandbox && <Pill tint="warn">{t("b.in.demo")}</Pill>}
             </div>
-            <p className="mt-1 text-base text-muted">{d.crew.site_name} · {t("b.in.sub")}</p>
+            <p className="mt-1 text-base text-muted">{d.crew.site_name} · {t(d.crew.is_sandbox ? "b.in.subDemo" : "b.in.sub")}</p>
+            <p className="text-base text-muted">{t("b.in.crewNote")}</p>
             {s.sent === 0 ? <Empty t={t} /> : (
               <>
                 <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-4">
                   <Tile k="sent" label={t("b.in.sent")} value={String(s.sent)} />
-                  <Tile k="restated" label={t("b.in.restated")} value={pctText(s.restated_pct)} sub={t("b.in.ofTasks", { n: s.restated, total: s.sent })} />
-                  <Tile k="understood" label={t("b.in.understood")} value={pctText(s.understood_pct)} sub={t("b.in.ofTasks", { n: s.understood, total: s.sent })} />
+                  <Tile k="restated" label={t("b.in.restated")} value={pctText(s.restated_pct)} sub={one(t, "b.in.ofTasks", s.sent, { n: s.restated, total: s.sent })} />
+                  <Tile k="understood" label={t("b.in.understood")} value={pctText(s.understood_pct)} sub={one(t, "b.in.ofTasks", s.sent, { n: s.understood, total: s.sent })} />
                   <Tile k="median" label={t("b.in.median")} value={s.median_minutes_to_understood == null ? "-" : t("b.in.min", { n: s.median_minutes_to_understood })} sub={s.median_minutes_to_understood == null ? t("b.in.notYet") : undefined} />
                 </div>
                 <div className="doodle mt-4 bg-hi! p-4">
                   <p className="font-display text-lg font-extrabold leading-tight">{t("b.in.caught")}</p>
                   <p data-k="caught" className="font-mono text-5xl font-bold leading-tight">{s.caught}</p>
-                  <p className="text-base leading-snug">{t("b.in.caughtSub", { n: s.caught, total: s.sent })}</p>
+                  <p className="text-base leading-snug">{one(t, "b.in.caughtSub", s.sent, { n: s.caught, total: s.sent })}</p>
                 </div>
                 <div className="md:grid md:grid-cols-2 md:gap-6">
                   <Fields d={d} t={t} />

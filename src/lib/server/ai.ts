@@ -20,15 +20,36 @@ const NAME: Record<Lang, string> = { en: "English", hi: "Hindi", ta: "Tamil" };
  * If GOOGLE_GENERATIVE_AI_API_KEY is set, "google/..." models go straight to Google instead,
  * so the app runs without a card on the gateway account.
  */
+// Models tried in order when the first one is out of quota or overloaded. Each Gemini model has its own
+// free-tier daily quota, so the chain multiplies what a free key can serve in a day.
+const FALLBACKS = (process.env.AI_FALLBACK_MODELS ?? "google/gemini-3.1-flash-lite,google/gemini-3-flash-preview")
+  .split(",").map((m) => m.trim()).filter(Boolean);
+const restingUntil = new Map<string, number>(); // model -> time it may be tried again
+const QUOTA = /quota|rate.?limit|429|resource.?exhausted/i, BUSY = /high demand|overloaded|503|unavailable/i;
+
 export function gatewayRunner(model: string = AI_MODEL): Runner {
-  const direct = process.env.GOOGLE_GENERATIVE_AI_API_KEY && model.startsWith("google/");
+  const chain = [model, ...FALLBACKS.filter((m) => m !== model)];
   return async ({ system, prompt, maxTokens }) => {
-    const r = await generateText({
-      model: direct ? google(model.slice("google/".length)) : model,
-      instructions: system || undefined, prompt, temperature: 0,
-      maxOutputTokens: maxTokens, maxRetries: 0, abortSignal: AbortSignal.timeout(10_000),
-    });
-    return r.text;
+    const now = Date.now();
+    const order = chain.filter((m) => (restingUntil.get(m) ?? 0) <= now);
+    let last: unknown = new Error("every AI model is resting after a quota error");
+    for (const m of order.length ? order : chain.slice(0, 1)) {
+      try {
+        const r = await generateText({
+          model: process.env.GOOGLE_GENERATIVE_AI_API_KEY && m.startsWith("google/") ? google(m.slice("google/".length)) : m,
+          instructions: system || undefined, prompt, temperature: 0,
+          maxOutputTokens: maxTokens, maxRetries: 0, abortSignal: AbortSignal.timeout(10_000),
+        });
+        return r.text;
+      } catch (e) {
+        last = e;
+        const msg = e instanceof Error ? e.message : String(e);
+        if (QUOTA.test(msg)) restingUntil.set(m, now + 30 * 60_000);       // daily quota: leave it alone for half an hour
+        else if (BUSY.test(msg)) restingUntil.set(m, now + 60_000);
+        else throw e;                                                     // a real error: do not hide it behind another model
+      }
+    }
+    throw last;
   };
 }
 let dflt: Runner | undefined;
@@ -104,6 +125,17 @@ export function parseJsonObject(raw: string): unknown {
   throw new Error("no json");
 }
 
+/**
+ * Is the translation actually written in the reader's language? Catches a model that hands the source
+ * back with only a place name swapped. @mentions and digits are ignored; names may stay in Latin letters.
+ */
+export function inScript(out: string, target: Lang): boolean {
+  const letters = out.replace(/@\S+/g, " ").match(/\p{L}/gu) ?? [];
+  if (letters.length < 4) return true;
+  const want = target === "hi" ? /[\u0900-\u097F]/ : target === "ta" ? /[\u0B80-\u0BFF]/ : /[A-Za-z]/;
+  return letters.filter((c) => want.test(c)).length / letters.length >= (target === "en" ? 0.6 : 0.45);
+}
+
 const TranslationOut = z.object({ source_lang: LangSchema, text: z.string().min(1) });
 
 /**
@@ -129,12 +161,36 @@ export async function translateText(text: string, target: Lang, lists: CrewLists
     try {
       const out = TranslationOut.parse(parseJsonObject(await runner({ system, prompt, maxTokens: 600 })));
       if (out.source_lang === target) return null;
+      if (!inScript(out.text, target)) throw new Error(`not in ${NAME[target]}`);
       const lost = missingNumbers(text, out.text);
       if (lost.length) throw new Error(`numbers lost: ${lost.join(",")}`);
       return { text: out.text, source_lang: out.source_lang };
     } catch (e) { last = e; }
   }
   throw new Error(`translation failed: ${last instanceof Error ? last.message : String(last)}`);
+}
+
+// ---------- other names for a task's object ----------
+/**
+ * Names a worker might use for the same thing ("steel rods": iron rods, rebar, sariya, ...). Made only from
+ * the supervisor's text, before any reply exists, so the comparison itself stays plain code.
+ * Returns [] when the AI is unavailable: the check then falls back to the literal comparison.
+ */
+export async function objectAliases(objectEn: string, runner: Runner = defaultRunner()): Promise<string[]> {
+  const system = [
+    "A construction-site supervisor names a thing in a task. List other names a worker might use for exactly the same thing.",
+    "Include: English synonyms and trade names, the usual Hindi word in Devanagari, the same Hindi word in Roman letters (Hinglish), and the usual Tamil word in Tamil script.",
+    "Also include loose everyday names workers really use for it even when technically imprecise (for steel rods: \"iron rods\", \"sariya\").",
+    "Only names for the SAME thing: never a different material, a different size class, or a broader category (not \"material\", \"stuff\", \"items\").",
+    'Answer with JSON only: {"names":["..."]} with at most 12 short names, lower-case where the script has case.',
+  ].join("\n");
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const o = z.object({ names: z.array(z.string().min(1).max(60)).max(20) }).parse(parseJsonObject(await runner({ system, prompt: `Thing: ${objectEn}`, maxTokens: 300 })));
+      return [...new Set(o.names.map((n) => n.trim()).filter(Boolean))].slice(0, 12);
+    } catch { /* retry once, then no aliases */ }
+  }
+  return [];
 }
 
 // ---------- field extraction ----------

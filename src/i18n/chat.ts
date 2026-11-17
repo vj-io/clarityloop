@@ -22,7 +22,8 @@ export const chat: Dict = {
   "c.typeMessage": { en: "Type a message", hi: "मैसेज लिखें", ta: "செய்தி எழுதுங்கள்" },
   "c.send": { en: "Send", hi: "भेजें", ta: "அனுப்பு" },
   "c.sendAsTask": { en: "Send as task", hi: "काम भेजें", ta: "வேலையாக அனுப்பு" },
-  "c.offlineReason": { en: "No connection. You can send again when it's back.", hi: "कनेक्शन नहीं है। वापस आने पर भेज सकेंगे।", ta: "இணைப்பு இல்லை. திரும்ப வந்ததும் அனுப்பலாம்." },
+  "c.offlineReason": { en: "No connection. You can still write — messages wait here and send when it's back.", hi: "कनेक्शन नहीं है। आप लिख सकते हैं — मैसेज यहीं रुकेंगे और कनेक्शन आते ही जाएँगे।", ta: "இணைப்பு இல்லை. நீங்கள் எழுதலாம் — செய்திகள் இங்கே காத்திருந்து, இணைப்பு வந்ததும் போகும்." },
+  "c.queued": { en: "Sends as soon as you're connected", hi: "कनेक्शन मिलते ही जाएगा", ta: "இணைப்பு கிடைத்ததும் அனுப்பப்படும்" },
   "c.sending": { en: "sending", hi: "जा रहा है", ta: "அனுப்புகிறது" },
   "c.notSent": { en: "Not sent — tap to retry", hi: "नहीं गया — फिर भेजने के लिए दबाएँ", ta: "அனுப்பவில்லை — மீண்டும் அனுப்ப அழுத்தவும்" },
 

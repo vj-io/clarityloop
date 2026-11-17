@@ -34,7 +34,7 @@ export const POST = route(async (req, ctx: { params: Promise<{ id: string }> }) 
   await logHealth("extract", extracted != null, extracted ? null : "unreadable", ms);
 
   const marks = compareFields({
-    action_id: task.action_id, object_en: task.object_i18n.en ?? task.object_text, place_id: task.place_id,
+    action_id: task.action_id, object_en: task.object_i18n.en ?? task.object_text, object_aliases: task.object_aliases ?? [], place_id: task.place_id,
     due_time: task.due_time, quantity: task.quantity == null ? null : Number(task.quantity), unit: task.unit,
   }, extracted);
   const overall = overallOf(marks);

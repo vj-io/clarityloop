@@ -17,7 +17,7 @@ export type TaskRow = {
   action_id: string; object_text: string; object_i18n: I18n; place_id: string; due_time: string;
   quantity: number | string | null; unit: string | null; note: string | null; note_i18n: I18n;
   state: TaskState; is_sandbox: boolean; created_at: string; understood_at: string | null; done_at: string | null;
-  broadcast_id?: string | null; seen_at?: string | null;
+  broadcast_id?: string | null; seen_at?: string | null; object_aliases?: string[];
 };
 export type CheckDbRow = {
   id: string; restatement_id: string; task_id: string; extracted: unknown; field_marks: FieldMarks;

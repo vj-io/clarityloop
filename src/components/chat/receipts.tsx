@@ -20,16 +20,16 @@ export function ReceiptLine({ r, crew, myId, names, t }: {
   const tick = <MarkIcon mark="match" size={14} />;
   if (!crew) {
     const at = lastAt(users);
-    return <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-ok">{tick}{t("v.read", { time: at ? hhmm(at) : "" }).trim()}</span>;
+    return <span className="inline-flex items-center gap-0.5 text-[13px] font-semibold text-[#0f6b31]">{tick}{t("v.read", { time: at ? hhmm(at) : "" }).trim()}</span>;
   }
   return (
     <span className="inline-flex flex-col items-end">
       <button type="button" aria-expanded={open} onClick={() => setOpen((v) => !v)}
-        className="-my-3 inline-flex min-h-12 items-center gap-0.5 text-xs font-semibold text-ok underline decoration-dotted underline-offset-2">
+        className="-my-3 inline-flex min-h-12 items-center gap-0.5 text-[13px] font-semibold text-[#0f6b31] underline decoration-dotted underline-offset-2">
         {tick}{t("v.readBy", { n: r.read, total: r.total })}
       </button>
       {open && users.length > 0 && (
-        <ul className="mt-1 text-right text-xs text-muted">
+        <ul className="mt-1 text-right text-[13px] text-muted">
           {users.map((u) => <li key={u.userId}>{names[u.userId] ?? "?"} · <span className="font-mono">{hhmm(u.at)}</span></li>)}
         </ul>
       )}

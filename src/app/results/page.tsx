@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Card, MarkIcon, Screen } from "@/components/ui";
+import { Card, MarkIcon, Pill, Screen } from "@/components/ui";
 import { usePublicLang } from "@/components/shell/lang";
 import { PageLoading, PublicHeader } from "@/components/shell/Common";
 import type { T } from "@/lib/i18n";
@@ -23,10 +23,10 @@ function parse(raw: unknown): Results | null {
   return models.length ? { ran_at: typeof r.ran_at === "string" ? r.ran_at : undefined, models } : null;
 }
 
-function Metric({ t, label, value, target, pass }: { t: T; label: string; value: string; target: string; pass: boolean | null }) {
+function Metric({ t, label, value, target, pass, note }: { t: T; label: string; value: string; target: string; pass: boolean | null; note?: string }) {
   return (
     <li className="flex items-start justify-between gap-3 py-2">
-      <span className="min-w-0"><span className="block font-semibold leading-tight">{label}</span><span className="block font-hand text-base text-muted">{t("res.target")}: {target}</span></span>
+      <span className="min-w-0"><span className="block font-semibold leading-tight">{label}</span><span className="block font-hand text-base text-muted">{t("res.target")}: {target}</span>{note && <span className="mt-1 block text-sm leading-snug text-muted">{note}</span>}</span>
       <span className="flex shrink-0 flex-col items-end">
         <span className="font-mono text-lg font-bold">{value}</span>
         {pass !== null && <span className={`flex items-center gap-1 text-sm font-semibold ${pass ? "text-ok" : "text-bad"}`}><MarkIcon mark={pass ? "match" : "mismatch"} size={16} />{t(pass ? "res.meets" : "res.below")}</span>}
@@ -67,10 +67,10 @@ export default function ResultsPage() {
                 {data.ran_at && <p className="font-hand text-base text-muted">{t("res.ran")}: {new Date(data.ran_at).toLocaleString()}</p>}
                 <ul className="mt-2 divide-y-2 divide-dashed divide-ink/30">
                   {tr && isNum(tr.total) && isNum(tr.kept_ok) && tr.total > 0 && (
-                    <Metric t={t} label={t("res.trans")} value={`${tr.kept_ok} / ${tr.total}`} target={t("res.all")} pass={tr.kept_ok === tr.total} />
+                    <Metric t={t} label={t("res.trans")} value={`${tr.kept_ok} / ${tr.total}`} target={t("res.all")} pass={tr.kept_ok === tr.total} note={tr.kept_ok < tr.total ? t("res.keptNote", { n: tr.total - tr.kept_ok, total: tr.total }) : undefined} />
                   )}
                   {tr && isNum(tr.median_ms) && (
-                    <Metric t={t} label={t("res.transMs")} value={`${Math.round(tr.median_ms)} ms`} target="< 1500 ms" pass={tr.median_ms < 1500} />
+                    <Metric t={t} label={t("res.transMs")} value={`${Math.round(tr.median_ms)} ms`} target="< 1500 ms" pass={tr.median_ms < 1500} note={tr.median_ms < 1500 ? undefined : t("res.speedNote")} />
                   )}
                   {mm && isNum(mm.planted) && isNum(mm.caught) && (
                     <Metric t={t} label={t("res.caught")} value={`${mm.caught} / ${mm.planted}`} target={t("res.all")} pass={mm.caught === mm.planted} />
@@ -89,7 +89,7 @@ export default function ResultsPage() {
           <Card>
             <h2 className="font-display text-xl font-extrabold">{t("res.targets")}</h2>
             <ul className="mt-2 list-disc space-y-1 pl-5 leading-snug">
-              {["res.t1", "res.t2", "res.t3"].map((k) => <li key={k}>{t(k)}</li>)}
+              {["res.t1", "res.t2", "res.t3"].map((k) => <li key={k}>{t(k)}{k === "res.t1" && <> <Pill tint="warn">{t("res.notDone")}</Pill></>}</li>)}
             </ul>
           </Card>
           <Link href="/" className="inline-flex min-h-12 items-center font-semibold text-pen underline underline-offset-4">{t("judge.home")}</Link>

@@ -2,7 +2,7 @@
 // Conversation: translated chat + task and meaning-check cards, live in both windows.
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/client/session";
 import { AppHeader } from "@/components/shell/AppHeader";
 import { useRequireMe } from "@/components/shell/guard";
@@ -19,6 +19,31 @@ import { cardOf, useConversation } from "@/components/chat/useConversation";
 import { BOT_USER_ID, LANG_NAME, LANGS, type ChatMsg, type TaskDTO } from "@/lib/types";
 
 const BIG = new Set(["TASK", "CHECK", "understood", "done"]);
+/** Cards that, when they arrive, are brought into view top first (ordinary messages only stick to the bottom). */
+const FOCUS = new Set(["TASK", "CHECK", "BOARD", "understood", "done"]);
+const OK_INK = "text-[#0f6b31]";   // --ok darkened: 4.5:1 or better on paper, card and the soft tints
+const smooth = (): ScrollBehavior => (matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth");
+/** Height covered at the top (sticky header) and bottom (sticky composer) of the window. */
+function covered() {
+  let top = 0;
+  for (const el of document.querySelectorAll<HTMLElement>("header")) {
+    const p = getComputedStyle(el).position, r = el.getBoundingClientRect();
+    if ((p === "sticky" || p === "fixed") && r.top <= 0 && r.bottom > top) top = r.bottom;
+  }
+  const bottom = document.querySelector("[data-composer]")?.getBoundingClientRect().height ?? 0;
+  return { top, bottom };
+}
+/** Scroll so the card's top sits just under the header; when the card is taller than the space, the first
+ *  red / unclear row (data-flag) must still be on screen. */
+function revealCard(el: HTMLElement) {
+  const { top, bottom } = covered();
+  const room = innerHeight - top - bottom;
+  const card = el.getBoundingClientRect();
+  let y = scrollY + card.top - top - 8;
+  const flag = el.querySelector("[data-flag]")?.getBoundingClientRect();
+  if (flag && flag.bottom - card.top + 16 > room) y = scrollY + flag.bottom - (innerHeight - bottom) + 16;
+  scrollTo({ top: Math.max(0, y), behavior: smooth() });
+}
 
 export default function ConversationPage() {
   const { conversationId } = useParams<{ conversationId: string }>();
@@ -69,14 +94,36 @@ export default function ConversationPage() {
     addEventListener("scroll", on, { passive: true });
     return () => removeEventListener("scroll", on);
   }, []);
-  const toBottom = (smooth = true) => scrollTo({ top: document.documentElement.scrollHeight, behavior: smooth ? "smooth" : "instant" });
+  const toBottom = (anim = true) => scrollTo({ top: document.documentElement.scrollHeight, behavior: anim ? smooth() : "instant" });
+  // a big card that arrived after the first paint: brought into view top first once its data is drawn
+  const known = useRef<Set<string> | null>(null);
+  const focus = useRef<{ id: string; since: number } | null>(null);
   useLayoutEffect(() => {
+    if (!s.historyReady) return;
     const grew = msgs.length > seenCount.current;
-    const first = seenCount.current === 0 && msgs.length > 0;
+    const first = known.current === null;
+    const k = (known.current ??= new Set());
     seenCount.current = msgs.length;
+    for (const m of msgs) {
+      if (k.has(m.id)) continue;
+      k.add(m.id);
+      const c = !first && cardOf(m);
+      if (c && FOCUS.has(c.kind === "STATE" ? c.event ?? "" : c.kind)) focus.current = { id: m.id, since: Date.now() };
+    }
+    if (focus.current && Date.now() - focus.current.since > 20000) focus.current = null;   // never drawn: give up
+    if (focus.current) {
+      const el = document.querySelector<HTMLElement>(`[data-mid="${focus.current.id}"]`);
+      // drawn (not empty, not a placeholder): reveal it; otherwise wait for the next render
+      if (el && el.offsetHeight > 0 && !el.querySelector("[data-card-loading]")) {
+        focus.current = null;
+        revealCard(el);
+        setChip(false);
+      }
+      return;
+    }
     if (first || atBottom.current) toBottom(!first);
     else if (grew) setChip(true);
-  }, [msgs.length, s.pending.length, tasks, checks]);
+  }, [msgs, s.pending.length, s.historyReady, tasks, checks, s.boards]);
 
   if (!me) return <Shell><div className="p-6"><Spinner label={t("c.loading")} /></div></Shell>;
   if (s.loadError) {
@@ -108,6 +155,8 @@ export default function ConversationPage() {
   for (const [nc, p] of Object.entries(conv?.members ?? {})) names[nc] = p.display_name;
   const mentionable = isCrew ? Object.entries(names).filter(([nc]) => nc !== myNc && nc !== BOT_USER_ID).map(([id, name]) => ({ id, name })) : undefined;
 
+  let loaders = 0;   // never more than one "Loading card" placeholder on screen
+  const loading = (retry: () => void) => (loaders++ ? null : <CardLoading t={t} onRetry={retry} />);
   function renderMsg(m: ChatMsg, i: number) {
     const c = cardOf(m);
     if (!c) {
@@ -125,18 +174,18 @@ export default function ConversationPage() {
     if (c.event === "board") return null; // ping only: the board above refetches itself
     if (c.kind === "BOARD") {
       const b = s.boards[c.id];
-      return b ? <BoardCard b={b} isSup={isSup} t={t} /> : <CardLoading t={t} onRetry={() => s.refreshBoard(c.id)} />;
+      return b ? <BoardCard b={b} isSup={isSup} t={t} /> : loading(() => s.refreshBoard(c.id));
     }
     if (c.kind === "TASK") {
       const task = tasks[c.id];
-      if (!task) return <CardLoading t={t} onRetry={() => s.refreshTask(c.id)} />;
+      if (!task) return loading(() => s.refreshTask(c.id));
       return <TaskCard task={task} live={live} t={t} lang={me!.language} showSeen={me!.id !== task.worker.id}>{restateFor(task, live)}</TaskCard>;
     }
     if (c.kind === "CHECK") {
       if (plan.lastCheckCopy[c.id] !== i) return null;
       const check = checks[c.id];
       const task = check && tasks[check.task_id];
-      if (!check || !task) return <CardLoading t={t} onRetry={() => s.refreshCheck(c.id)} />;
+      if (!check || !task) return loading(() => s.refreshCheck(c.id));
       return (
         <CheckCard check={check} task={task} me={me!} live={live} t={t} myLang={me!.language}
           otherLang={other?.language ?? me!.language} onTask={onTask} onFocusRestate={() => focusRestate(task.id)}>
@@ -146,11 +195,12 @@ export default function ConversationPage() {
     }
     const task = tasks[c.id];
     if (c.event === "seen") return null; // silent ping: the task card above refetches and shows "Seen"
-    if (!task) return c.event === "checking" || c.event === "confirmed" ? null : <CardLoading t={t} onRetry={() => s.refreshTask(c.id)} />;
+    if (!task) return c.event === "checking" || c.event === "confirmed" ? null : loading(() => s.refreshTask(c.id));
     switch (c.event) {
       case "checking":
         return (plan.lastBig[c.id] ?? -1) < i ? <StateLine><span className="dots">{t("c.checkingLine", { worker: task.worker.name })}</span></StateLine> : null;
       case "confirmed": {
+        if (task.state === "understood" || task.state === "done") return null;   // the Understood card says it all
         const who = task.confirmations[plan.confirmIdx[m.id] ?? 0];
         const name = who ? (who.profile_id === task.supervisor.id ? task.supervisor.name : task.worker.name) : null;
         const waiting = who?.profile_id === task.supervisor.id ? task.worker.name : task.supervisor.name;
@@ -186,10 +236,12 @@ export default function ConversationPage() {
             {isSup && <p className="mt-3 font-hand text-xl leading-tight text-pen">{t(isCrew ? "x.empty.task" : "c.empty.task")}</p>}
           </div>
         )}
-        {msgs.map((m, i) => <Fragment key={m.id}>{renderMsg(m, i)}</Fragment>)}
+        {/* the list is drawn once history and its cards' data are in (messages the SDK replays on connect wait too) */}
+        {s.historyReady && msgs.map((m, i) => <div key={m.id} data-mid={m.id}>{renderMsg(m, i)}</div>)}
         {s.pending.map((p) => (
-          <Bubble key={p.tempId} mine text={p.text} t={t} failed={p.failed} onRetry={() => s.retrySend(p)}>
-            {!p.failed && <div className="text-right font-hand text-sm text-muted"><span className="dots">{t("c.sending")}</span></div>}
+          <Bubble key={p.tempId} mine text={p.text} t={t} failed={p.state === "failed"} waiting={p.state === "queued"} onRetry={() => s.retrySend(p)}>
+            {p.state === "sending" && <div className="text-right font-hand text-base text-muted"><span className="dots">{t("c.sending")}</span></div>}
+            {p.state === "queued" && <div role="status" className="text-right font-hand text-base leading-tight text-muted">{t("c.queued")}</div>}
           </Bubble>
         ))}
       </div>
@@ -230,7 +282,7 @@ function CrewSummary({ members, t }: { members: { language: (typeof LANGS)[numbe
 function LinkChip({ status, t }: { status: "connecting" | "connected" | "offline"; t: (k: string) => string }) {
   const c = {
     connecting: "border-pen text-pen border-dashed",
-    connected: "border-ok text-ok",
+    connected: `border-ok ${OK_INK}`,
     offline: "border-bad text-bad bg-bad-soft",
   }[status];
   return (

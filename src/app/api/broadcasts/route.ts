@@ -1,3 +1,4 @@
+import { objectAliases } from "@/lib/server/ai";
 import { z } from "zod";
 import { CARD, type BroadcastSummary } from "@/lib/types";
 import { requireMe, type ProfileRow } from "@/lib/server/auth";
@@ -47,12 +48,13 @@ export const POST = route(async (req) => {
   // Channels first (Nexconn can fail): nothing is written until every conversation exists.
   const [crewConv, ...pairs] = await Promise.all([ensureCrewConversation(crewId), ...workers.map((w) => ensureConversation(me, w))]);
   const note = b.note || null;
-  const [object_i18n, note_i18n] = await Promise.all([
-    i18nAll(b.object_text, me.language, lists),
+  const object_i18n = await i18nAll(b.object_text, me.language, lists);
+  const [object_aliases, note_i18n] = await Promise.all([
+    objectAliases(object_i18n.en),
     note ? i18nAll(note, me.language, lists) : Promise.resolve({}),
   ]);
   const fields = {
-    action_id: b.action_id, object_text: b.object_text, object_i18n, place_id: b.place_id, due_time: b.due_time,
+    action_id: b.action_id, object_text: b.object_text, object_i18n, object_aliases, place_id: b.place_id, due_time: b.due_time,
     quantity: b.quantity ?? null, unit: b.quantity == null ? null : b.unit ?? null, note, note_i18n, is_sandbox: c.is_sandbox,
   };
   const bc = ok(await db().from("broadcasts").insert({

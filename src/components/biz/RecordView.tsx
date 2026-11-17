@@ -21,12 +21,15 @@ const PRINT_CSS = `
   .rec .doodle { box-shadow: none !important; border-radius: 6px !important; border-width: 1.5px !important; background: #fff !important; }
   .rec .keep { break-inside: avoid; page-break-inside: avoid; }
   .rec h2 { break-after: avoid; page-break-after: avoid; }
-  .rec-foot { position: fixed; left: 0; right: 0; bottom: 0; border-top: 1px solid #000; padding-top: 3mm; font-size: 9pt; text-align: center; background: #fff; }
+  .rec-foot { margin-top: 8mm; border-top: 1px solid #000; padding-top: 3mm; font-size: 9pt; text-align: center; break-inside: avoid; }
 }`;
 
 const Row = ({ k, v }: { k: string; v: React.ReactNode }) => (
   <div className="flex flex-wrap gap-x-2"><dt className="font-hand text-lg text-muted">{k}</dt><dd className="font-semibold">{v}</dd></div>
 );
+
+/** Human label for an audit event type; unknown types fall back to the words of the raw name. */
+const evLabel = (type: string, t: T) => { const k = `b.ev.${type}`; const s = t(k); return s === k ? type.replace(/_/g, " ") : s; };
 
 function Instruction({ r, t }: { r: RecordDTO; t: T }) {
   const k = r.task;
@@ -144,7 +147,7 @@ export function RecordView({ taskId }: { taskId: string }) {
               <div className="min-w-0">
                 <h1 className="font-display text-3xl font-extrabold leading-tight">{t("b.rec.title")}</h1>
                 <p className="mt-1 flex flex-wrap items-center gap-2 text-base">
-                  <span className="font-mono text-sm">{r.task.id}</span>
+                  <span className="font-semibold">{r.task.reader.object} · {r.task.worker.name}</span>
                   <TaskStatePill state={r.task.state} t={t} />
                   {r.task.is_sandbox && <Pill tint="warn">{t("b.rec.sandbox")}</Pill>}
                 </p>
@@ -164,9 +167,8 @@ export function RecordView({ taskId }: { taskId: string }) {
               <h2 id="rec-events" className="font-display text-2xl font-extrabold leading-tight">{t("b.rec.events")}</h2>
               <ol className="doodle mt-2 divide-y-2 divide-dashed divide-ink/30 p-0">
                 {r.events.map((e) => (
-                  <li key={e.id} className="keep px-3 py-2">
-                    <p className="flex flex-wrap items-baseline gap-x-3"><span className="font-mono text-sm">{whenFull(e.at, lang)}</span><span className="font-mono text-sm font-bold">{e.type}</span><span className="text-sm text-muted">{e.by ?? t("b.rec.system")}</span></p>
-                    {e.detail && <p className="font-mono text-sm text-muted">{e.detail}</p>}
+                  <li key={e.id} title={e.detail || undefined} className="keep px-3 py-2">
+                    <p className="flex flex-wrap items-baseline gap-x-3"><span className="font-mono text-sm">{whenFull(e.at, lang)}</span><span title={e.type} className="text-base font-bold">{evLabel(e.type, t)}</span><span className="text-sm text-muted">{e.by ?? t("b.rec.system")}</span></p>
                   </li>
                 ))}
               </ol>

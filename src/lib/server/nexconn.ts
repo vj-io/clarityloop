@@ -46,7 +46,7 @@ async function post(kind: string, path: string, payload: unknown): Promise<{ sta
       });
       const body = (await res.json().catch(() => ({}))) as Reply;
       if (res.status >= 500) { last = new NexconnError(`http_${res.status}`, `${path} ${res.status}`); continue; } // backup domain
-      const good = res.ok && body.code === 0;
+      const good = (res.ok && body.code === 0) || body.code === GROUP_EXISTS; // "already exists" is an expected answer, not a failure
       await logHealth(kind, good, good ? null : String(body.code ?? `http_${res.status}`), Date.now() - t0);
       return { status: res.status, body };
     } catch (e) {
@@ -56,6 +56,8 @@ async function post(kind: string, path: string, payload: unknown): Promise<{ sta
   await logHealth(kind, false, last?.code ?? "unknown", Date.now() - t0);
   throw last ?? new NexconnError("unknown", path);
 }
+
+const GROUP_EXISTS = 25409;
 
 const okOrThrow = (path: string, r: { status: number; body: Reply }) => {
   if (r.status >= 200 && r.status < 300 && r.body.code === 0) return r.body;
@@ -79,13 +81,17 @@ export async function ensureGroup(channelId: string, name: string, owner: string
 
 let botReady: Promise<string> | undefined;
 /** Send a text into a group as the ClarityLoop bot. Returns the Nexconn message id. */
-export async function sendGroupText(channelId: string, text: string): Promise<string | null> {
+/**
+ * `silent` messages are live signals for windows that are open right now (board / seen / checking pings):
+ * they are not stored, so they never show up in history or in anyone's unread count.
+ */
+export async function sendGroupText(channelId: string, text: string, silent = false): Promise<string | null> {
   botReady ??= issueToken(BOT_USER_ID, "ClarityLoop").catch((e) => { botReady = undefined; throw e; });
   await botReady;
   const p = "/v4/group-channel/message/send";
   const b = okOrThrow(p, await post("nexconn_send", p, {
     fromUserId: BOT_USER_ID, toChannelIds: [channelId], messageType: "RC:TxtMsg",
-    content: JSON.stringify({ content: text }), isEchoToSender: 0, shouldPersist: 1, needReadReceipt: 1,
+    content: JSON.stringify({ content: text }), isEchoToSender: 0, shouldPersist: silent ? 0 : 1, ...(silent ? { disablePush: 1 } : { needReadReceipt: 1 }),
   }));
   const ids = b.result?.messageIds as { channelId: string; messageId: string }[] | undefined;
   return ids?.[0]?.messageId ?? null;

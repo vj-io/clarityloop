@@ -1,5 +1,5 @@
 "use client";
-// Signed-in guard: signed out -> "/", no profile -> /onboarding, wrong role -> /inbox.
+// Signed-in guard: signed out -> "/?signin=1" (landing shows a notice), no profile -> /onboarding, wrong role -> /inbox.
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMe } from "@/lib/client/session";
@@ -25,7 +25,7 @@ export function useRequireMe(opts?: { role?: Role }): { me: Me | null; t: T } {
   useEffect(() => {
     if (me === undefined) return;
     if (needsOnboarding) router.replace("/onboarding");
-    else if (me === null) router.replace("/");
+    else if (me === null) router.replace("/?signin=1");
     else if (role && me.role !== role) router.replace("/inbox");
   }, [me, needsOnboarding, role, router]);
 

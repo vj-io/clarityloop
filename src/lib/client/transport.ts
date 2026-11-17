@@ -4,7 +4,7 @@
 // Dedupe and ordering are NOT done here: the conversation store merges by message id.
 "use client";
 import { api } from "@/lib/client/session";
-import type { Api, ChatMsg } from "@/lib/types";
+import { BOT_USER_ID, parseCard, type Api, type ChatMsg } from "@/lib/types";
 
 export type Room = { conversationId: string; groupId: string };
 export type LinkStatus = "connecting" | "connected" | "offline";
@@ -12,8 +12,8 @@ type Config = Api["GET /api/config"]["res"];
 
 /** A Nexconn read receipt. `users` (who, when) only where the SDK returns them. */
 export type Receipt = { id: string; read: number; total: number; users?: { userId: string; at: number }[] };
-/** Unread state per Nexconn group id. */
-export type Unread = Record<string, { n: number; mention: boolean }>;
+/** Unread state per Nexconn group id. `silent`: the newest message is a server ping no one should be told about. */
+export type Unread = Record<string, { n: number; mention: boolean; silent?: boolean }>;
 
 export interface ChatTransport {
   kind: Config["transport"];
@@ -43,20 +43,33 @@ export function getTransport(): Promise<ChatTransport> {
   return cached;
 }
 
-/** Small status hub shared by both implementations. */
-function statusHub() {
-  let cur: LinkStatus = "connecting";
+const browserOffline = () => typeof navigator !== "undefined" && navigator.onLine === false;
+
+/** Small status hub shared by both implementations. The browser's own offline flag wins over the SDK:
+ *  offline => "offline" at once; back online => `onOnline` lets the transport find out where it really is. */
+function statusHub(onOnline: () => void) {
+  let cur: LinkStatus = browserOffline() ? "offline" : "connecting";
   const subs = new Set<(s: LinkStatus) => void>();
+  const set = (s: LinkStatus) => {
+    if (browserOffline()) s = "offline";
+    if (s === cur) return;
+    cur = s; subs.forEach((f) => f(s));
+  };
+  if (typeof window !== "undefined") {
+    addEventListener("offline", () => set("offline"));
+    addEventListener("online", () => { set("connecting"); onOnline(); });
+  }
   return {
     get: () => cur,
-    set(s: LinkStatus) { if (s === cur) return; cur = s; subs.forEach((f) => f(s)); },
+    set,
     on(cb: (s: LinkStatus) => void) { subs.add(cb); cb(cur); return () => { subs.delete(cb); }; },
   };
 }
 
 // ---------------------------------------------------------------- local (polling)
 function local(): ChatTransport {
-  const st = statusHub();
+  // back online: the next poll (at most 3 s away) sets the status
+  const st = statusHub(() => {});
   const ok = <T,>(p: Promise<T>) => p.then((v) => { st.set("connected"); return v; }, (e) => { st.set("offline"); throw e; });
   const fetchAfter = (room: Room, after: number) =>
     ok(api("GET /api/local/messages?conversation_id=&after=", undefined, { conversation_id: room.conversationId, after })).then((r) => r.messages);
@@ -105,13 +118,28 @@ function local(): ChatTransport {
 type NC = typeof import("@nexconn/chat");
 const BACKOFF = [2000, 5000, 15000, 30000];
 
+/** True for the server's silent pings (no one needs to look at them): board / seen / checking. */
+const isSilentPing = (from: string, text: string) => {
+  const c = from === BOT_USER_ID ? parseCard(text) : null;
+  return c?.kind === "STATE" && (c.event === "board" || c.event === "seen" || c.event === "checking");
+};
+
 function nexconn(cfg: Config): ChatTransport {
-  const st = statusHub();
+  // back online: ask the SDK where it really is; if it gave up, connect again
+  const st = statusHub(() => {
+    void sdk?.then((nc) => {
+      const s = nc.NCEngine.getConnectionStatus();
+      if (s === nc.ConnectionStatus.CONNECTED) st.set("connected");
+      else if (s !== nc.ConnectionStatus.CONNECTING && s !== nc.ConnectionStatus.SUSPENDED) { connecting = null; connect().catch(() => {}); }
+    });
+  });
   const listeners = new Set<(groupId: string, m: ChatMsg) => void>();
   let sdk: Promise<NC> | null = null;
   let connecting: Promise<void> | null = null;
   let attempt = 0;
   let retryTimer: ReturnType<typeof setTimeout> | undefined;
+  // started with the transport, in parallel with everything else the page loads; used once by the first connect
+  let earlyToken: Promise<{ token: string | null } | null> | null = api("POST /api/nexconn/token").catch(() => null);
 
   const receiptSubs = new Set<(r: Receipt[]) => void>();
   // Receipt service off for this app (26314 unavailable / 26315 not supported): stop asking, draw nothing.
@@ -169,10 +197,11 @@ function nexconn(cfg: Config): ChatTransport {
   async function connect(): Promise<void> {
     if (st.get() === "connected") return;
     connecting ??= (async () => {
-      const nc = await load();
       st.set("connecting");
       try {
-        const { token } = await api("POST /api/nexconn/token");
+        const early = earlyToken; earlyToken = null;
+        const [nc, pre] = await Promise.all([load(), early ?? Promise.resolve(null)]);
+        const { token } = pre ?? await api("POST /api/nexconn/token");
         if (!token) throw new Error("no token");
         const r = await nc.NCEngine.connect({ token });
         if (!r.isOk) throw new Error(`connect ${r.code}`);
@@ -187,6 +216,7 @@ function nexconn(cfg: Config): ChatTransport {
     return connecting;
   }
 
+  void load().catch(() => { sdk = null; });   // import + initialize the SDK now, while the page loads
   return {
     kind: "nexconn",
     connect,
@@ -245,7 +275,12 @@ function nexconn(cfg: Config): ChatTransport {
       }
       if (!r.isOk || !r.data) return null;
       const out: Unread = {};
-      for (const c of r.data.data) if (c.channelType === nc.ChannelType.GROUP) out[c.channelId] = { n: c.unreadCount, mention: false };
+      for (const c of r.data.data) {
+        if (c.channelType !== nc.ChannelType.GROUP) continue;
+        const last = c.latestMessage;
+        const text = last?.messageType === nc.MessageType.TEXT ? String((last.content as { text?: string } | undefined)?.text ?? "") : "";
+        out[c.channelId] = { n: c.unreadCount, mention: false, silent: !!last && isSilentPing(last.senderUserId, text) };
+      }
       const m = await nc.BaseChannel.createUnreadMentionMeChannelsQuery({ channelTypes: [nc.ChannelType.GROUP] }).loadNextPage().catch(() => null);
       if (m?.isOk && m.data) for (const c of m.data.data) (out[c.channelId] ??= { n: c.unreadCount, mention: false }).mention = true;
       return out;

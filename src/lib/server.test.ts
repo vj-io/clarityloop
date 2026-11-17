@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  extractFields, glossary, missingNumbers, parseJsonObject, quickTranslate, translateText,
+  extractFields, glossary, inScript, missingNumbers, parseJsonObject, quickTranslate, translateText,
   type CrewLists, type ModelRequest, type Runner,
 } from "./server/ai.ts";
 import { hashPin, verifyPin } from "./server/pin.ts";
@@ -110,4 +110,13 @@ test("PIN: hashed with a per-user salt, verified, wrong PIN rejected", () => {
   assert.ok(verifyPin("1234", a));
   assert.ok(!verifyPin("1235", a));
   assert.ok(!verifyPin("1234", null));
+});
+
+test("translation must be in the reader's script; a source handed back with one word swapped is rejected", () => {
+  assert.equal(inScript("@Murugan Steel rods arrive at गेट 1 at 9:30.", "hi"), false);
+  assert.equal(inScript("@Murugan स्टील की छड़ें गेट 1 पर 9:30 बजे आएँगी।", "hi"), true);
+  assert.equal(inScript("Ravi சார், சிமெண்ட் லாரி 1 மணிக்கு வருகிறது.", "ta"), true);
+  assert.equal(inScript("Okay sir, where should I unload?", "en"), true);
+  assert.equal(inScript("ठीक है sir", "en"), false);
+  assert.equal(inScript("OK 👍", "hi"), true); // too short to judge
 });

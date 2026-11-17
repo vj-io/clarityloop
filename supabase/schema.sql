@@ -317,3 +317,8 @@ end $$;
 
 -- When the assigned worker first had the task card on screen ("seen" is not "understood").
 alter table tasks add column if not exists seen_at timestamptz;
+
+-- Other names for the task's object ("steel rods": iron rods, rebar, sariya, ...), made once from the
+-- supervisor's own words when the task is created. Code compares the worker's object against them.
+alter table tasks add column if not exists object_aliases jsonb not null default '[]'::jsonb;
+alter table broadcasts add column if not exists object_aliases jsonb not null default '[]'::jsonb;

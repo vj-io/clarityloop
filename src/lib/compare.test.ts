@@ -79,3 +79,13 @@ test("card prefixes", () => {
   assert.equal(parseCard("hello [[CL:TASK]]abc"), null);
   assert.deepEqual(parseCard("[[CL:STATE]]t1:understood"), { kind: "STATE", id: "t1", event: "understood" });
 });
+
+test("object: an alias made from the supervisor's own words counts as the same thing", () => {
+  const t: TaskFields = { ...task, object_en: "steel rods", object_aliases: ["iron rods", "rebar", "sariya", "सरिया"] };
+  assert.equal(compareFields(t, ex({ object: "iron rods" })).object.mark, "match");
+  assert.equal(compareFields(t, ex({ object: "Sariya" })).object.mark, "match");
+  assert.equal(compareFields(t, ex({ object: "cement bags" })).object.mark, "mismatch"); // a different thing stays red
+  // a name that only overlaps ("rods" inside "copper rods") is amber: the supervisor decides, never an automatic match
+  assert.equal(compareFields({ ...t, object_aliases: ["rods"] }, ex({ object: "copper rods" })).object.mark, "unclear");
+  assert.equal(compareFields(task, ex({ object: "sand bags" })).object.mark, "mismatch"); // container words never make things related
+});

@@ -5,7 +5,7 @@
       "model": "google/gemini-3.5-flash-lite",
       "translation": {
         "total": 100,
-        "kept_ok": 99,
+        "kept_ok": 100,
         "median_ms": 1945,
         "p90_ms": 5351
       },

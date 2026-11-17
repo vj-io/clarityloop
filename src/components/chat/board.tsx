@@ -17,8 +17,8 @@ const TONE: Record<BoardStatus, { fg: string; row: string }> = {
   checking: { fg: "text-pen", row: "bg-pen-soft/50" },
   mismatch: { fg: "text-bad", row: "bg-bad-soft border-l-[6px] border-l-bad" },
   needs_look: { fg: "text-warn", row: "bg-warn-soft/70 border-l-[6px] border-l-warn" },
-  all_match: { fg: "text-ok", row: "bg-ok-soft/50" },
-  understood: { fg: "text-ok", row: "bg-ok-soft" },
+  all_match: { fg: "text-[#0f6b31]", row: "bg-ok-soft/50" },
+  understood: { fg: "text-[#0f6b31]", row: "bg-ok-soft" },
   done: { fg: "text-ink", row: "bg-ok-soft/60" },
 };
 
@@ -127,7 +127,7 @@ export function BoardCard({ b, isSup, t }: { b: BroadcastDTO; isSup: boolean; t:
         <p className="mb-2 text-sm text-muted">{t("x.board.from", { sup: b.supervisor.name })}</p>
         <TaskFacts v={b} t={t} />
         <div className="mt-4" role="status" aria-live="polite">
-          <p className={cx("flex items-center gap-2 font-display text-2xl font-extrabold leading-tight", all && "text-ok")}>
+          <p className={cx("flex items-center gap-2 font-display text-2xl font-extrabold leading-tight", all && "text-[#0f6b31]")}>
             {all && <MarkIcon mark="match" size={30} />}
             {all ? t("x.board.allDone") : t("x.board.progress", { n, total })}
           </p>

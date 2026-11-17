@@ -21,7 +21,9 @@ function violations(mustKeep, out, target) {
   return mustKeep.filter((k) => {
     if (k.startsWith("place:")) {
       const p = lists.places.find((x) => x.id === k.slice(6));
-      return !(out.includes(p.labels[target]) || out.toLowerCase().includes(p.labels.en.toLowerCase()));
+      // Tamil and Hindi inflect a place name ("ஸ்டோர் ரூம்" -> "ஸ்டோர் ரூமுக்கு"): compare without the final vowel-killer sign.
+      const stem = p.labels[target].replace(/[\u0BCD\u094D]$/u, "");
+      return !(out.includes(stem) || out.toLowerCase().includes(p.labels.en.toLowerCase()));
     }
     return !runs.has(k);
   });

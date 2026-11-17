@@ -19,10 +19,10 @@ export function HBar({ parts, hi }: { parts: { pct: number; color: string }[]; h
 /** 14 days: ink-outlined bar = tasks sent; lime bar inside = understood on the first try. */
 export function TrendChart({ days, lang, label }: { days: { date: string; sent: number; first_try: number }[]; lang: Lang; label: string }) {
   const W = 320, H = 150, L = 26, B = 24, T = 10, plotH = H - B - T;
-  const max = Math.max(4, ...days.map((d) => d.sent));
+  const max = Math.max(4, Math.ceil(Math.max(...days.map((d) => d.sent)) / 2) * 2); // even, so the middle tick is a whole number
   const slot = (W - L - 4) / days.length;
   const y = (v: number) => T + plotH - (v / max) * plotH;
-  const ticks = [0, Math.round(max / 2), max];
+  const ticks = [0, max / 2, max];
   return (
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label} className="mx-auto block h-auto w-full max-w-xl">
       {ticks.map((v) => (

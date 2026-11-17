@@ -34,6 +34,8 @@ export type Extraction = z.infer<typeof ExtractionSchema>;
 export type TaskFields = {
   action_id: string;
   object_en: string;
+  /** Other accepted names for the object, made from the supervisor's own words at task creation. */
+  object_aliases?: string[];
   place_id: string;
   due_time: string; // HH:MM 24h
   quantity: number | null;
@@ -163,7 +165,8 @@ export type Api = {
   "GET /api/config": { res: { transport: "nexconn" | "local"; nexconn_app_key: string | null; nexconn_area: "SG" | "NA" | "SA"; ai_ready: boolean } };
   "POST /api/join": { req: { join_code: string; name: string; language: Lang; pin: string }; res: SessionGrant };
   "POST /api/worker-login": { req: { join_code: string; name: string; pin: string }; res: SessionGrant };
-  "POST /api/judge": { req: { role: Role; fresh?: boolean; worker?: "murugan" | "lakshmi" }; res: SessionGrant & { conversation_id: string; crew_conversation_id?: string } };
+  "POST /api/judge": { req: { role: Role; fresh?: boolean; worker?: "murugan" | "lakshmi"; room?: number }; res: SessionGrant & { conversation_id: string; crew_conversation_id?: string; room?: number } };
+  "POST /api/judge/room": { res: { room: number } };   // a clean private demo room for this visitor
   "GET /api/me": { res: { me: Me | null } };                       // null => signed in, no profile yet => /onboarding
   "PATCH /api/me": { req: { language?: Lang; display_name?: string }; res: { me: Me } };
   "POST /api/crews": { req: { display_name: string; language: Lang; crew_name: string; site_name: string }; res: { me: Me; crew: CrewDTO } };

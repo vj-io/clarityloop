@@ -36,7 +36,7 @@ export function Composer({ t, lang, offline, onSend, taskHref, taskLabel, member
   }
 
   function send() {
-    if (!v || offline) return;
+    if (!v) return;   // offline too: the message waits in the outbox and goes when the line is back
     const body = v.slice(0, MAX);
     onSend(body, picked.filter((m) => body.includes(`@${m.name}`)).map((m) => m.id));
     setText(""); setPicked([]);
@@ -44,7 +44,7 @@ export function Composer({ t, lang, offline, onSend, taskHref, taskLabel, member
   }
 
   return (
-    <div className="sticky bottom-0 z-10 border-t-[2.5px] border-ink bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm">
+    <div data-composer className="sticky bottom-0 z-10 border-t-[2.5px] border-ink bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm">
       <div className="mx-auto max-w-3xl px-3 py-2">
         {offline && <p role="status" className="mb-1 font-hand text-lg leading-tight text-bad">{t("c.offlineReason")}</p>}
         {choices.length > 0 && (
@@ -70,9 +70,9 @@ export function Composer({ t, lang, offline, onSend, taskHref, taskLabel, member
               if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); }
             }}
             placeholder={t("c.typeMessage")}
-            className="doodle doodle-flat min-h-12 min-w-0 flex-1 resize-none bg-card px-3 py-2.5 text-base leading-snug placeholder:text-muted/70" />
+            className="doodle doodle-flat min-h-12 min-w-0 flex-1 resize-none bg-card px-3 py-2.5 text-base leading-snug placeholder:text-muted" />
           <MicButton mic={mic} t={t} />
-          <button type="button" onClick={send} disabled={!v || offline} aria-label={t("c.send")}
+          <button type="button" onClick={send} disabled={!v} aria-label={t("c.send")}
             className="doodle doodle-2 inline-flex h-12 w-12 shrink-0 items-center justify-center text-white transition-transform active:translate-x-[2px] active:translate-y-[2px] disabled:opacity-40"
             style={{ background: "var(--pen)" }}>
             <SendDoodle />

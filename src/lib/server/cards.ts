@@ -1,7 +1,7 @@
 // Every card goes through card_outbox: the DB change stands even if the send fails,
 // and unsent rows are retried (oldest first, max 5 attempts) on the next card post for
 // that conversation and on GET /api/health.
-import { BOT_USER_ID } from "../types.ts";
+import { BOT_USER_ID, parseCard } from "../types.ts";
 import { db, ok } from "./db.ts";
 import { sendGroupText, transport } from "./nexconn.ts";
 
@@ -15,7 +15,9 @@ async function deliver(row: OutboxRow): Promise<string | null> {
     return m.id as string;
   }
   const c = ok(await db().from("conversations").select("nexconn_group_id").eq("id", row.conversation_id).single());
-  return sendGroupText(c.nexconn_group_id as string, row.body);
+  const card = parseCard(row.body);
+  const silent = card?.kind === "STATE" && (card.event === "board" || card.event === "seen" || card.event === "checking");
+  return sendGroupText(c.nexconn_group_id as string, row.body, silent);
 }
 
 /** Post a card into a conversation. Never throws because of the transport. */

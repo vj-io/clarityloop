@@ -12,9 +12,10 @@ export const hhmm = (ms: number | string) =>
 
 const linkBtn = "inline-flex min-h-12 items-center text-left font-semibold text-pen underline decoration-2 underline-offset-4";
 
-export function Bubble({ mine, text, at, name, children, failed, onRetry, t, tool, status, atMe }: {
+export function Bubble({ mine, text, at, name, children, failed, waiting, onRetry, t, tool, status, atMe }: {
   mine: boolean; text: string; at?: number; name?: string; children?: React.ReactNode;
-  failed?: boolean; onRetry?: () => void; t: T;
+  /** failed: refused, tap to retry · waiting: queued until the connection is live */
+  failed?: boolean; waiting?: boolean; onRetry?: () => void; t: T;
   /** footer: a button on the left (read aloud), a status before the time (read receipt) */
   tool?: React.ReactNode; status?: React.ReactNode;
   /** this message @mentions me: lime highlighter + tag */
@@ -23,9 +24,11 @@ export function Bubble({ mine, text, at, name, children, failed, onRetry, t, too
   const fill = mine ? "var(--pen-soft)" : "var(--card)";
   return (
     <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-      <div className={`relative mb-3 max-w-[85%] sm:max-w-[70%] ${failed ? "opacity-80" : ""}`}>
+      <div className="mb-3 max-w-[85%] sm:max-w-[70%]">
+        {/* bubble and tail share a box, so the tail stays under the bubble even with a retry line below it */}
+        <div className="relative">
         <div
-          className={`doodle doodle-flat px-3.5 pb-1.5 pt-2 ${mine ? "doodle-2" : ""} ${failed ? "border-dashed !border-bad" : ""}`}
+          className={`doodle doodle-flat px-3.5 pb-1.5 pt-2 ${mine ? "doodle-2" : ""} ${failed ? "border-dashed !border-bad" : waiting ? "border-dashed" : ""}`}
           style={{ background: fill, boxShadow: "2px 2px 0 var(--ink)" }}
         >
           {!mine && (name || atMe) && (
@@ -44,6 +47,7 @@ export function Bubble({ mine, text, at, name, children, failed, onRetry, t, too
           )}
         </div>
         <Tail side={mine ? "right" : "left"} fill={fill} />
+        </div>
         {failed && (
           <button type="button" onClick={onRetry} className="mt-3 inline-flex min-h-12 items-center gap-1 font-semibold text-bad underline decoration-2 underline-offset-4">
             {t("c.notSent")}
@@ -89,7 +93,7 @@ export function TheirBubble({ m, name, tr, t, onRetry, onFlag, lang, atMe }: {
             <div className="mb-1 rounded-lg border-2 border-ink/30 bg-paper px-2.5 py-1.5">
               <p lang={translated.source_lang ?? undefined} className="whitespace-pre-wrap break-words font-hand text-lg leading-snug">{m.text}</p>
               {translated.flagged ? (
-                <p role="status" className="py-2 text-sm font-semibold text-ok">{t("c.flagged")}</p>
+                <p role="status" className="py-2 text-sm font-semibold text-[#0f6b31]">{t("c.flagged")}</p>
               ) : (
                 <button type="button" disabled={flagState === "busy"} className={`${linkBtn} text-sm text-muted`}
                   onClick={async () => { setFlagState("busy"); try { await onFlag(); setFlagState("idle"); } catch { setFlagState("err"); } }}>

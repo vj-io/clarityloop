@@ -56,6 +56,9 @@ const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
   <p>The supervisor sends a task: action, object, place, time, quantity. There is no OK button. The worker says it back in their own words. A card compares each field side by side and blocks Confirm while anything differs or is unclear.</p></div>
 </div>
 
+<div class="box"><p class="hand pen">At crew scale</p>
+<p>One task can go to the <b>whole crew</b>: every worker gets it in their own language and says it back separately. A live <b>roll-call board</b> in the crew chat shows who understood and who has not; only the supervisor sees which field a worker got wrong, so nobody is shamed in front of the crew. Workers can <b>speak instead of type</b> and <b>listen instead of read</b>. The supervisor gets an <b>insights</b> page (caught before work started, most-missed fields, by language) and a printable <b>record</b> of every task.</p></div>
+
 <p class="hand">The demo case, as it runs on the live app:</p>
 <p>Supervisor sends <b>Unload · cement bags · Gate 3 · 14:00 · 40 bags</b>. Worker replies in Hinglish: <i>"40 bori cement Gate 2 pe utaarna hai, 2 baje tak."</i></p>
 <table>
@@ -79,6 +82,9 @@ const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
   <tr><td>Message history</td><td><span class="mono">createMessagesQuery</span> loads the conversation on open and after a reconnect.</td></tr>
   <tr><td>Server API: access tokens</td><td><span class="mono">/v4/auth/access-token/issue</span>, signed on our server; each browser only ever gets a token for its own user.</td></tr>
   <tr><td>Server API: groups + messages</td><td>The server creates and joins the pair's group and posts every card (task, comparison, Understood, Done) as a bot user. Cards are plain Nexconn text with a prefix, so state changes reach both people through the same live channel. A card typed by a user is ignored.</td></tr>
+  <tr><td>Read receipts</td><td><span class="mono">needReceipt</span>, <span class="mono">sendReadReceiptResponse</span>, <span class="mono">onMessageReceiptResponse</span>: "Read 14:02" under a bubble, "Read by 2 of 3" in crew chat. Next to it the task card says "Seen · not yet understood": read is not understood.</td></tr>
+  <tr><td>Unread counts, channel list, mentions</td><td><span class="mono">createChannelsQuery</span>, <span class="mono">clearUnreadCount</span> for inbox pills; <span class="mono">mentionedInfo</span> for @mentions in crew chat.</td></tr>
+  <tr><td>Crew channel</td><td>One group channel per crew carries crew chat, the roll-call board card and its live update pings.</td></tr>
   <tr><td>Message id</td><td>Nexconn's message id is the cache key for each translation, so a message is translated once per language.</td></tr>
 </table>
 

@@ -55,9 +55,11 @@ export default function InboxPage() {
   }, [me?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const badges = (c: ConversationDTO) => {
     const u = unread?.[c.nexconn_group_id];
+    // the newest one is a silent server ping (board / seen / checking): it alone is not news
+    const n = u ? u.n - (u.silent ? 1 : 0) : 0;
     return <>
       {u?.mention && <Pill tint="hi">{t("v.atYou")}</Pill>}
-      {u && u.n > 0 && <Pill tint="pen">{t("v.unread", { n: u.n > 99 ? "99+" : u.n })}</Pill>}
+      {n > 0 && <Pill tint="pen">{t("v.unread", { n: n > 9 ? "9+" : n })}</Pill>}
     </>;
   };
 
@@ -102,7 +104,7 @@ export default function InboxPage() {
                       <p className="flex flex-wrap items-center gap-1 text-base">
                         <Pill>{t("x.people", { n: c.member_count ?? 0 })}</Pill>
                         <span className="font-hand text-base">{t("x.eachOwnLang")}</span>
-                        <span className="font-hand text-base text-muted">· {ago(c.last_activity_at, t, me.language)}</span>
+                        <span className="font-hand text-base text-muted">{ago(c.last_activity_at, t, me.language)}</span>
                       </p>
                     </div>
                     <span className="flex shrink-0 flex-col items-end gap-1">{badges(c)}</span>

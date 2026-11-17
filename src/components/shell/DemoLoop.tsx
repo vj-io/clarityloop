@@ -1,5 +1,5 @@
 "use client";
-// Self-playing demo case from the PRD worked example. Pure HTML/SVG; honours reduced motion.
+// Demo case from the PRD worked example, always fully drawn. Pure HTML/SVG; the ring animation honours reduced motion.
 import { useEffect, useState } from "react";
 import type { T } from "@/lib/i18n";
 import type { FieldKey, Mark } from "@/lib/types";
@@ -14,18 +14,18 @@ const ROWS: { f: FieldKey; sup: string; wrk: string; mark: Mark }[] = [
   { f: "time", sup: "demo.time", wrk: "demo.time", mark: "match" },
   { f: "quantity", sup: "demo.qty", wrk: "demo.qty", mark: "match" },
 ];
-const LAST = 9; // 0 task, 1 reply, 2..6 rows, 7 banner, 8 hold, 9 hold
 const tone: Record<Mark, string> = { match: "text-ok", mismatch: "text-bad font-bold", unclear: "text-warn" };
 
 export function DemoLoop({ t }: { t: T }) {
-  const [step, setStep] = useState(0);
+  // The finished case is the default render (server, no JS, reduced motion). With motion allowed, a pen-ring
+  // walks down the rows on top of it; nothing is ever hidden.
+  const [ring, setRing] = useState(-1);
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reduced motion: show the finished state once
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { setStep(LAST); return; }
-    const id = setInterval(() => setStep((s) => (s >= LAST + 2 ? 0 : s + 1)), 1100);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = setInterval(() => setRing((r) => (r >= ROWS.length ? -1 : r + 1)), 1100);
     return () => clearInterval(id);
   }, []);
-  const s = Math.min(step, LAST);
+  const rc = (on: boolean) => on && "outline outline-[3px] outline-offset-2 outline-pen";
 
   return (
     <figure className="doodle -rotate-1 bg-card p-3" aria-label={t("land.demoLabel")}>
@@ -40,7 +40,7 @@ export function DemoLoop({ t }: { t: T }) {
         </div>
       </div>
 
-      <div className={cx("mt-3 flex items-start justify-end gap-2 transition-opacity duration-300", s >= 1 ? "opacity-100" : "opacity-0")}>
+      <div className={cx("mt-3 flex items-start justify-end gap-2")}>
         <div className="min-w-0 flex-1 text-right">
           <p className="font-hand text-base text-muted">{t("demo.murugan")}</p>
           <div className="doodle doodle-flat inline-block max-w-full bg-pen-soft! px-3 py-2 text-left">
@@ -51,12 +51,10 @@ export function DemoLoop({ t }: { t: T }) {
         <Stick hat size={40} color="var(--pen)" />
       </div>
 
-      <ul className="mt-3 min-h-[18.5rem]" aria-live="off">
+      <ul className="mt-3" aria-live="off">
         {ROWS.map((r, i) => {
-          const vis = s >= 2 + i;
-          if (!vis) return <li key={r.f} className="mb-1 h-14" aria-hidden="true" />;
           return (
-            <li key={r.f} className={cx("pop mb-1 flex items-center gap-2 rounded-lg border-2 border-ink px-2 py-1", r.mark === "mismatch" ? "bg-bad-soft" : "bg-ok-soft")}>
+            <li key={r.f} className={cx("mb-1 flex items-center gap-2 rounded-lg border-2 border-ink px-2 py-1", r.mark === "mismatch" ? "bg-bad-soft" : "bg-ok-soft", rc(ring === i))}>
               <MarkIcon mark={r.mark} size={26} />
               <span className="min-w-0 flex-1">
                 <span className="block text-base font-semibold leading-tight">{t(`f.${r.f}`)}</span>
@@ -69,7 +67,7 @@ export function DemoLoop({ t }: { t: T }) {
         })}
       </ul>
 
-      <div className={cx("rounded-lg border-2 border-ink bg-bad px-3 py-2 text-center font-display text-base font-extrabold text-white transition-opacity duration-300", s >= 7 ? "opacity-100" : "opacity-0")}>
+      <div className={cx("rounded-lg border-2 border-ink bg-bad px-3 py-2 text-center font-display text-base font-extrabold text-white", rc(ring === ROWS.length))}>
         {t("demo.blocked")}
       </div>
       <figcaption className="mt-2 text-center font-hand text-lg leading-tight">{t("demo.caption")}</figcaption>

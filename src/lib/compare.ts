@@ -28,6 +28,14 @@ export function sameObject(a: string, b: string): boolean {
   return ca.length > 0 && ca === cb;
 }
 
+/** One name's words are all inside the other ("rods" / "iron rods"): maybe the same thing, so amber, never green or red. */
+export function relatedObject(a: string, b: string): boolean {
+  const ca = core(objectTokens(a)), cb = core(objectTokens(b));
+  if (!ca.length || !cb.length) return false;
+  const inside = (x: string[], y: string[]) => x.every((w) => y.includes(w));
+  return inside(ca, cb) || inside(cb, ca);
+}
+
 const hhmm = (h: number, m: number) => `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 
 /**
@@ -57,10 +65,11 @@ export function compareFields(task: TaskFields, ex: Extraction | null): FieldMar
     got === "unknown" ? { mark: "unclear", supervisor: sup, worker: null, reason: "unknown" }
     : { mark: got === sup ? "match" : "mismatch", supervisor: sup, worker: got };
 
+  const names = [task.object_en, ...(task.object_aliases ?? [])];
   let object: FieldMark;
   if (!ex.object || !ex.object.trim()) object = { mark: "unclear", supervisor: task.object_en, worker: null, reason: "not_mentioned" };
-  else if (sameObject(task.object_en, ex.object)) object = { mark: "match", supervisor: task.object_en, worker: ex.object };
-  else if (ex.object_maybe_same) object = { mark: "unclear", supervisor: task.object_en, worker: ex.object, reason: "vague" };
+  else if (names.some((name) => sameObject(name, ex.object!))) object = { mark: "match", supervisor: task.object_en, worker: ex.object };
+  else if (ex.object_maybe_same || names.some((name) => relatedObject(name, ex.object!))) object = { mark: "unclear", supervisor: task.object_en, worker: ex.object, reason: "vague" };
   else object = { mark: "mismatch", supervisor: task.object_en, worker: ex.object };
 
   let time: FieldMark;

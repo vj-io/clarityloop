@@ -1,6 +1,9 @@
 "use client";
+import { Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Card, Hl, Pill } from "@/components/ui";
+import type { T } from "@/lib/i18n";
 import { usePublicLang } from "./lang";
 import { LinkButton, PublicHeader, Section, Squiggle } from "./Common";
 import { DemoLoop } from "./DemoLoop";
@@ -15,7 +18,20 @@ const BUYERS = [1, 2, 3, 4] as const;
 const PHASES = ["now", "pilot", "site", "scale"] as const;
 const PLANS = ["free", "pro", "ent"] as const;
 const WHO = [["ravi", false], ["murugan", true], ["manager", false]] as const;
+const TODAY = [1, 2, 3, 4, 5, 6] as const;
+const NEXCONN_KEY = "qd46yzrfq1obf";
 const linkCls = "inline-flex min-h-12 items-center font-semibold text-pen underline underline-offset-4";
+
+/** Shown when a signed-out visitor was sent here from a page that needs an account (guard.ts adds ?signin=1). */
+function SignInNotice({ t }: { t: T }) {
+  if (!useSearchParams().has("signin")) return null;
+  return (
+    <div role="status" className="doodle doodle-flat mb-6 bg-pen-soft! px-4 py-3">
+      <p className="text-lg leading-snug">{t("land.signin")}</p>
+      <p className="flex flex-wrap gap-x-5"><Link href="/judge" className={linkCls}>{t("land.cta")}</Link><Link href="/login" className={linkCls}>{t("land.supervisor")}</Link></p>
+    </div>
+  );
+}
 
 export function Landing() {
   const { lang, setLang, t } = usePublicLang();
@@ -23,6 +39,7 @@ export function Landing() {
     <>
       <PublicHeader lang={lang} setLang={setLang} t={t} />
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-16 pt-6 [overflow-wrap:anywhere]">
+        <Suspense><SignInNotice t={t} /></Suspense>
         {/* Hero: claim, promise, one big button, honest notes + the demo case */}
         <div className="grid grid-cols-[minmax(0,1fr)] gap-8 md:grid-cols-[1.1fr_1fr] md:items-start">
           <div>
@@ -35,6 +52,7 @@ export function Landing() {
               <LinkButton href="/judge" tone="hi" className="min-h-14 w-full text-lg sm:w-auto">{t("land.cta")}</LinkButton>
               <p className="font-hand text-base text-muted">{t("land.ctaSub")}</p>
             </div>
+            <p className="mt-3 text-base leading-snug">{t("land.nexconn")} <code className="font-mono font-bold">{NEXCONN_KEY}</code></p>
             <ul className="mt-4 space-y-1 font-hand text-lg leading-snug">
               {["land.note1", "land.note2", "land.note3"].map((k) => (
                 <li key={k} className="flex gap-2"><span aria-hidden="true" className="text-pen">&#x270E;</span><span>{t(k)}</span></li>
@@ -47,6 +65,16 @@ export function Landing() {
           </div>
           <DemoLoop t={t} />
         </div>
+
+        <Section title={t("land.todayTitle")}>
+          <ul className="grid grid-cols-2 gap-3 md:grid-cols-6">
+            {TODAY.map((n) => (
+              <li key={n} className="doodle doodle-flat flex min-h-12 items-center gap-2 bg-card px-3 py-2 font-display text-base font-extrabold leading-tight">
+                <span aria-hidden="true" className="text-ok">&#x2713;</span>{t(`land.today${n}`)}
+              </li>
+            ))}
+          </ul>
+        </Section>
 
         <Section title={t("land.layersTitle")}>
           <div className="grid gap-5 md:grid-cols-2">

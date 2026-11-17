@@ -14,7 +14,7 @@ import { MicButton, MicStatus, SpeakButton, useMic } from "./voice";
 const cx = (...a: (string | false | null | undefined)[]) => a.filter(Boolean).join(" ");
 const OVERALL_TINT: Record<Overall, "bad" | "warn" | "ok"> = { mismatch: "bad", needs_look: "warn", all_match: "ok" };
 const TINT_BG = { bad: "bg-bad-soft", warn: "bg-warn-soft", ok: "bg-ok-soft", pen: "bg-pen-soft", ink: "bg-card" } as const;
-const TINT_FG = { bad: "text-bad", warn: "text-warn", ok: "text-ok", pen: "text-pen", ink: "text-ink" } as const;
+const TINT_FG = { bad: "text-bad", warn: "text-warn", ok: "text-[#0f6b31]", pen: "text-pen", ink: "text-ink" } as const;
 // .doodle (unlayered CSS) beats Tailwind bg-* utilities (layered), so coloured doodle buttons need inline backgrounds.
 export const BG = { hi: { background: "var(--hi)" }, pen: { background: "var(--pen)" }, ok: { background: "var(--ok)" }, ink: { background: "var(--ink)" } } as const;
 export const RESTATE_STATES: TaskState[] = ["waiting", "checking", "mismatch", "needs_look", "all_match"];
@@ -32,15 +32,15 @@ export function CardFrame({ tint, label, title, live, earlier, children, aside }
   if (!live && !open) {
     return (
       <button type="button" onClick={() => setOpen(true)}
-        className="doodle doodle-flat my-3 flex min-h-12 w-full items-center gap-2 bg-card px-3 py-2 text-left opacity-70 grayscale">
+        className="doodle doodle-flat my-3 flex min-h-12 w-full items-center gap-2 bg-paper px-3 py-2 text-left grayscale">
         <span className="font-hand text-base text-muted">{earlier}</span>
-        <span className="min-w-0 flex-1 truncate font-display font-extrabold">{title}</span>
+        <span className="min-w-0 flex-1 break-words font-display font-extrabold leading-tight">{title}</span>
         <span aria-hidden="true" className="font-display text-lg text-pen">+</span>
       </button>
     );
   }
   return (
-    <section className={cx("doodle pop my-4 overflow-hidden p-0", !live && "opacity-75 grayscale")} aria-label={typeof title === "string" ? title : label}>
+    <section className={cx("doodle pop my-4 overflow-hidden p-0", !live && "grayscale")} aria-label={typeof title === "string" ? title : label}>
       <header className={cx("flex items-center gap-2 border-b-[2.5px] border-ink px-4 py-2", TINT_BG[tint])}>
         <span className={cx("font-hand text-lg leading-none", TINT_FG[tint])}>{label}</span>
         <span className="ml-auto flex flex-wrap items-center justify-end gap-1">{aside}</span>
@@ -86,7 +86,10 @@ const STATE_TINT: Record<TaskState, "ghost" | "pen" | "bad" | "warn" | "ok" | "h
   waiting: "pen", checking: "pen", mismatch: "bad", needs_look: "warn", all_match: "ok", understood: "ok", done: "ghost",
 };
 export function StatePill({ task, t }: { task: TaskDTO; t: T }) {
-  return <Pill tint={STATE_TINT[task.state]}>{t(`c.state.${task.state}`, { worker: task.worker.name })}</Pill>;
+  const tint = STATE_TINT[task.state];
+  const word = t(`c.state.${task.state}`, { worker: task.worker.name });
+  // the shared Pill's green is 4.4:1 on its tint; the darker ink keeps it readable
+  return <Pill tint={tint}>{tint === "ok" ? <span className="text-[#0f6b31]">{word}</span> : word}</Pill>;
 }
 
 /** The task as one sentence in the reader's language, for reading aloud. Times are passed as written ("14:00"). */
@@ -103,7 +106,7 @@ function SeenLine({ task, t }: { task: TaskDTO; t: T }) {
   const understood = task.state === "understood" || task.state === "done";
   if (!task.seen_at) return <p className="mt-2 font-hand text-base text-muted">{t("x.seen.notYet", { worker: task.worker.name })}</p>;
   return (
-    <p className={`mt-2 flex flex-wrap items-center gap-x-2 font-hand text-lg ${understood ? "text-ok" : "text-warn"}`}>
+    <p className={`mt-2 flex flex-wrap items-center gap-x-2 font-hand text-lg ${understood ? "text-[#0f6b31]" : "text-warn"}`}>
       <span className="inline-flex items-center gap-1"><MarkIcon mark="match" size={20} />{t("x.seen.at", { time: hhmm(task.seen_at) })}</span>
       <span aria-hidden="true">·</span>
       <span className="inline-flex items-center gap-1 font-semibold"><MarkIcon mark={understood ? "match" : "unclear"} size={20} />{t(understood ? "x.seen.understood" : "x.seen.notUnderstood")}</span>
@@ -168,7 +171,7 @@ export function RestateBox({ task, t, lang, onResult }: {
       <div className="mt-2 flex items-start gap-2">
         <textarea id={`restate-${task.id}`} ref={inputRef} value={text} maxLength={500} rows={3} disabled={busy}
           onChange={(e) => setText(e.target.value)} placeholder={t("c.restate.placeholder")}
-          className="doodle doodle-flat min-w-0 flex-1 resize-y bg-card px-3 py-2 text-base placeholder:text-muted/70" />
+          className="doodle doodle-flat min-w-0 flex-1 resize-y bg-card px-3 py-2 text-base placeholder:text-muted" />
         <MicButton mic={mic} t={t} disabled={busy} />
       </div>
       <MicStatus mic={mic} t={t} />
@@ -189,10 +192,10 @@ const REASON_KEY: Record<NonNullable<CheckRow["reason"]>, string> = {
 
 function MarkWord({ row, t }: { row: CheckRow; t: T }) {
   const m = row.accepted ? "accepted" : row.mark;
-  const fg = m === "mismatch" ? "text-bad" : m === "unclear" ? "text-warn" : "text-ok";
+  const fg = m === "mismatch" ? "text-bad" : m === "unclear" ? "text-warn" : "text-[#0f6b31]";
   return (
-    <span className={cx("inline-flex items-center gap-1 font-display font-extrabold", fg)}>
-      <MarkIcon mark={m} size={26} />{t(`c.mark.${m}`)}
+    <span className={cx("inline-flex min-w-0 max-w-full items-center gap-1 font-display font-extrabold leading-tight", fg)}>
+      <MarkIcon mark={m} size={26} /><span className="min-w-0 [overflow-wrap:anywhere]">{t(`c.mark.${m}`)}</span>
     </span>
   );
 }
@@ -203,14 +206,14 @@ function Row({ row, t, canAccept, onAccept, busy, supName, workerName }: {
   const bad = row.mark === "mismatch";
   const unclear = row.mark === "unclear" && !row.accepted;
   return (
-    <li className={cx(
+    <li data-flag={bad || unclear ? "" : undefined} className={cx(
       "border-t-2 border-ink/15 px-3 py-2.5 first:border-t-0",
-      "sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)_2rem_minmax(0,1fr)_8.5rem] sm:items-center sm:gap-x-2",
+      "sm:grid sm:grid-cols-[7rem_minmax(0,1fr)_2rem_minmax(0,1fr)_11.5rem] sm:items-center sm:gap-x-2",
       bad && "border-l-[6px] !border-l-bad bg-bad-soft", unclear && "border-l-[6px] !border-l-warn bg-warn-soft/70",
     )}>
       <div className="flex items-center justify-between gap-2 sm:contents">
         <span className="font-hand text-xl leading-tight sm:order-1">{t(`c.f.${row.field}`)}</span>
-        <span className="sm:order-5"><MarkWord row={row} t={t} /></span>
+        <span className="min-w-0 sm:order-5"><MarkWord row={row} t={t} /></span>
       </div>
       <div className="mt-1 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-x-2 sm:contents">
         <div className="min-w-0 sm:order-2">
@@ -296,7 +299,7 @@ export function CheckCard({ check, task, me, live, t, myLang, otherLang, onTask,
 
       {/* five-row comparison */}
       <div className="mt-3 overflow-hidden rounded-xl border-[2.5px] border-ink bg-card">
-        <div className="hidden border-b-[2.5px] border-ink bg-paper px-3 py-1.5 font-hand text-base text-muted sm:grid sm:grid-cols-[7.5rem_minmax(0,1fr)_2rem_minmax(0,1fr)_8.5rem] sm:gap-x-2">
+        <div className="hidden border-b-[2.5px] border-ink bg-paper px-3 py-1.5 font-hand text-base text-muted sm:grid sm:grid-cols-[7rem_minmax(0,1fr)_2rem_minmax(0,1fr)_11.5rem] sm:gap-x-2">
           <span>{t("c.col.field")}</span><span>{task.supervisor.name}</span><span /><span>{task.worker.name}</span><span>{t("c.col.mark")}</span>
         </div>
         <ul>
@@ -331,7 +334,7 @@ export function CheckCard({ check, task, me, live, t, myLang, otherLang, onTask,
       {live && (
         <div className="mt-4 border-t-2 border-dashed border-ink/30 pt-3">
           {iConfirmed ? (
-            <p className="flex items-center gap-2 font-display text-lg font-extrabold text-ok">
+            <p className="flex items-center gap-2 font-display text-lg font-extrabold text-[#0f6b31]">
               <MarkIcon mark="match" size={26} />{t("c.youConfirmed", { other: isSup ? task.worker.name : task.supervisor.name })}
             </p>
           ) : (
@@ -363,7 +366,7 @@ export function CheckCard({ check, task, me, live, t, myLang, otherLang, onTask,
 export function StateLine({ children, tone = "pen" }: { children: ReactNode; tone?: "pen" | "ok" }) {
   return (
     <div role="status" className="my-3 flex justify-center">
-      <span className={cx("inline-flex items-center gap-2 rounded-full border-2 border-dashed px-3 py-1 font-hand text-lg", tone === "ok" ? "border-ok text-ok" : "border-pen text-pen")}>
+      <span className={cx("inline-flex items-center gap-2 rounded-full border-2 border-dashed px-3 py-1 font-hand text-lg", tone === "ok" ? "border-ok text-[#0f6b31]" : "border-pen text-pen")}>
         {children}
       </span>
     </div>
@@ -431,7 +434,7 @@ export function CardLoading({ t, onRetry }: { t: T; onRetry?: () => void }) {
   const [late, setLate] = useState(false);
   useEffect(() => { const id = setTimeout(() => setLate(true), 5000); return () => clearTimeout(id); }, []);
   return (
-    <div className="doodle doodle-flat my-3 px-4 py-3 opacity-80">
+    <div data-card-loading className="doodle doodle-flat my-3 px-4 py-3">
       {!late ? <span className="font-hand text-lg text-muted"><span className="dots">{t("c.cardLoading")}</span></span>
         : <button type="button" onClick={onRetry} className="min-h-12 font-semibold text-pen underline underline-offset-4">{t("c.cardRetry")}</button>}
     </div>

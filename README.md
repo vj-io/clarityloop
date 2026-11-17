@@ -2,13 +2,15 @@
 
 **Read is not understood.**
 
-ClarityLoop is a work chat where two people who don't share a language can talk normally, each reading and writing in their own language. Important instructions then get a meaning check before work starts: the worker restates the task, and any difference in task, place, time or quantity is shown live to both people.
+ClarityLoop is a work chat where a supervisor and workers who don't share a language each read and write in their own language. Any instruction sent as a task must be said back by the worker. AI reads the reply into fields, plain code compares them, and a Meaning Mismatch card blocks confirmation until both people agree.
+
+**Built on the Nexconn Chat SDK** (live group channels, read receipts, unread counts, @mentions). App Key: `qd46yzrfq1obf`.
 
 ## What it does
 
 It has two layers in the same conversation.
 
-1. **Chat in your own language.** Every message is shown in the reader's language, with the original one tap away. The MVP supports English, Hindi (including Hinglish typed in Roman letters) and Tamil.
+1. **Chat in your own language.** Every message is shown in the reader's language, with the original one tap away. It supports English, Hindi (including Hinglish typed in Roman letters) and Tamil.
 2. **Meaning check for instructions.** When a supervisor sends a message as a task, the worker must restate it in their own words. A Meaning Mismatch card compares each field (action, object, place, time, quantity) and blocks confirmation until both people agree. There is no OK button.
 
 Worked example from the product spec. The supervisor sends:
@@ -23,17 +25,28 @@ Worked example from the product spec. The supervisor sends:
 
 The worker restated it as: "40 bori cement Gate 2 pe utaarna hai, 2 baje tak." The red card blocks confirmation until the place is fixed in the same chat.
 
+## At crew scale
+
+- **Crew chat.** One channel for the whole crew; each person reads every message in their own language.
+- **Task for the whole crew.** One instruction goes to every worker in their language, and each worker says it back separately. Optional "Safety briefing" tag.
+- **Roll-call board.** A live card in the crew chat shows who understood, who has not yet, and (for the supervisor only) which field a worker got wrong. Workers never see each other's mistakes.
+- **Seen is not understood.** The supervisor's task card shows when the worker opened it and whether it is understood yet; chat bubbles show Nexconn read receipts.
+- **Voice.** Workers can speak instead of type (browser speech recognition in English, Hindi, Tamil; the words land in the box to read before sending) and listen instead of read (read-aloud on messages and task cards).
+- **Insights.** For the supervisor's own crew: tasks sent, said back, understood, caught before work started, most-missed fields, by language, 14-day trend.
+- **Task record.** The full trail of one task (instruction, every restatement, every check, confirmations) with a print layout.
+- **Installable.** Web app manifest, so it can be added to a phone's home screen.
+
 ## Try it
 
 Live app: https://clarityloop-theta.vercel.app
 
-**Judge mode.** Open `/judge` to sign in two seeded accounts in two tabs: an English-speaking supervisor and a Hindi-speaking worker. Judge-mode data is sandbox data and is marked as such. No sign-up is needed.
+**Judge mode.** Open `/judge` to get three seeded accounts: Ravi (supervisor, English), Murugan (worker, Hindi) and Lakshmi (worker, Tamil). "Open all three" opens them side by side, or open each one on its own. Every judge gets a private sandbox room, and the page has a step-by-step script with copy buttons. Judge-mode data is sandbox data and is marked as such. No sign-up is needed.
 
 ## How it works
 
 - **Web app:** Next.js (App Router) with React and TypeScript, hosted on Vercel (Node runtime).
 - **Accounts and data:** Supabase Auth (email one-time code for supervisors, PIN for workers) and Postgres with row-level security, so each table is limited to the user's own crew.
-- **Chat:** each supervisor–worker pair has one Nexconn group channel. The browser uses `@nexconn/engine` and `@nexconn/chat` for live messages. The server uses `@nexconn/server-sdk` and Nexconn's REST API, with signed headers, to create channels, add members and post cards.
+- **Chat:** each supervisor–worker pair has one Nexconn group channel, and each crew has one more for crew chat. Read receipts, unread counts and @mentions use Nexconn's own features. The browser uses `@nexconn/engine` and `@nexconn/chat` for live messages. The server uses `@nexconn/server-sdk` and Nexconn's REST API, with signed headers, to create channels, add members and post cards.
 - **Cards:** task, result and state cards are plain text with a prefix (`[[CL:TASK]]`, `[[CL:CHECK]]`, `[[CL:STATE]]`). Only the server posts them. A card typed by a user is ignored.
 - **AI:** Gemini (`google/gemini-3.5-flash-lite`), called through the Vercel AI SDK either directly with a Google AI Studio key or through the Vercel AI Gateway, for three narrow jobs: translate chat messages, translate task text, and extract fields from the worker's restatement into a JSON contract checked with zod.
 - **Comparison:** the match, mismatch and unclear marks are produced by plain code in `src/lib/compare.ts`. The AI never decides whether a restatement matches, and never confirms a task.
@@ -85,30 +98,39 @@ Copy `.env.example` to `.env.local`. Never commit `.env.local`.
 
 ## Not in this build
 
+- Voice messages (recorded audio). Voice input and read-aloud exist; they use the browser, and the words are text.
+- Phone-number sign-in
+- A site glossary learned from "Translation looks wrong" flags
+- Nudges and reminders for tasks nobody has said back
+- An offline queue
+- Photos
+- Multi-site admin
+- SMS or WhatsApp reach for workers without the app
+- Billing and paid plans
 - Attendance, GPS tracking, photo proof or any monitoring of workers
-- Voice or video calls, and voice messages
+- Voice or video calls
 - Scheduling, payroll or HR features
 - Certifying safety. ClarityLoop is an extra check, not a guarantee
-- Native mobile apps
+- Native mobile apps (it is an installable web app)
 - Web push notifications
 - More than three languages
 
 ## Roadmap
 
-These are planned, not built. Each phase starts only after the previous one passes its gate with real sites.
+These are planned, not built. Everything under "What it does" and "At crew scale" above is built and live.
 
 **Pilot-ready**
-- Voice messages (transcribed and translated), read-aloud, and phone-number sign-in
-- Crew-wide chat with translation, a site glossary learned from "Translation looks wrong" flags, and tasks for several workers
+- Voice messages (transcribed and translated) and phone-number sign-in
+- A site glossary learned from "Translation looks wrong" flags
 - Reminders for unrestated tasks, an offline queue, and a "Make this a task" action from chat
 
 **Site product**
-- Safety briefing check, safety templates for high-risk work, and a shift handover check
-- Site dashboard and a PDF audit export of what was instructed, translated, restated and confirmed
+- Photos on tasks, safety templates for high-risk work, and a shift handover check
+- Multi-site admin, roles and single sign-on
 
 **Scale**
-- Multi-site admin, roles and single sign-on
 - Reaching workers without the app through SMS or WhatsApp links, and API and webhooks for project tools
+- Billing and paid plans
 - Data controls: retention, export and deletion on request, and consent notices in each language
 
 ## Evidence

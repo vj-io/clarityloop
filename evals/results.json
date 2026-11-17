@@ -1,1455 +1,1453 @@
 {
-  "ran_at": "2026-11-17T20:54:13.394Z",
-  "models": [
-    {
-      "model": "google/gemini-3.5-flash-lite",
-      "runner_errors": 1,
-      "runner_error_samples": [
-        "The operation was aborted due to timeout"
-      ],
-      "translation": {
-        "runs": 100,
-        "failed": 0,
-        "must_keep_violations": 1,
-        "median_ms": 1945,
-        "p90_ms": 5351,
-        "results": [
-          {
-            "id": "en01",
-            "from": "en",
-            "to": "hi",
-            "text": "Morning! Cement truck arrives at 1.",
-            "out": "सुप्रभात! सीमेंट का ट्रक 1 बजे आएगा।",
-            "ms": 1360,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en01",
-            "from": "en",
-            "to": "ta",
-            "text": "Morning! Cement truck arrives at 1.",
-            "out": "காலை வணக்கம்! சிமெண்ட் லாரி 1 மணிக்கு வரும்.",
-            "ms": 1741,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en02",
-            "from": "en",
-            "to": "hi",
-            "text": "Unload 40 bags of cement at Gate 3 by 2 pm.",
-            "out": "2 बजे तक गेट 3 पर सीमेंट की 40 बोरियाँ उतारना।",
-            "ms": 1829,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en02",
-            "from": "en",
-            "to": "ta",
-            "text": "Unload 40 bags of cement at Gate 3 by 2 pm.",
-            "out": "மதியம் 2 மணிக்குள் கேட் 3-ல் 40 சிமெண்ட் மூட்டைகளை இறக்கு.",
-            "ms": 2525,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en03",
-            "from": "en",
-            "to": "hi",
-            "text": "Don't use Gate 2 today, the road is dug up.",
-            "out": "आज गेट 2 का इस्तेमाल न करें, सड़क खुदी हुई है।",
-            "ms": 1522,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en03",
-            "from": "en",
-            "to": "ta",
-            "text": "Don't use Gate 2 today, the road is dug up.",
-            "out": "இன்று கேட் 2 ஐ பயன்படுத்த வேண்டாம், சாலை தோண்டப்பட்டுள்ளது.",
-            "ms": 7906,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en04",
-            "from": "en",
-            "to": "hi",
-            "text": "Bring 15 more bricks to the store room.",
-            "out": "स्टोर रूम में और 15 ईंटें पहुँचाना।",
-            "ms": 1839,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en04",
-            "from": "en",
-            "to": "ta",
-            "text": "Bring 15 more bricks to the store room.",
-            "out": "ஸ்டோர் ரூமுக்கு இன்னும் 15 செங்கற்களை கொண்டு வாருங்கள்.",
-            "ms": 1629,
-            "error": null,
-            "violations": [
-              "place:store"
-            ]
-          },
-          {
-            "id": "en05",
-            "from": "en",
-            "to": "hi",
-            "text": "Lunch break at 1:30, be back by 2.",
-            "out": "1:30 पर लंच ब्रेक है, 2 तक वापस आ जाओ।",
-            "ms": 1928,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en05",
-            "from": "en",
-            "to": "ta",
-            "text": "Lunch break at 1:30, be back by 2.",
-            "out": "1:30-க்கு லஞ்ச் பிரேக், 2 மணிக்கு வந்துடுங்க.",
-            "ms": 7730,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en06",
-            "from": "en",
-            "to": "hi",
-            "text": "Who has the key for the store room?",
-            "out": "स्टोर रूम की चाबी किसके पास है?",
-            "ms": 1803,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en06",
-            "from": "en",
-            "to": "ta",
-            "text": "Who has the key for the store room?",
-            "out": "ஸ்டோர் ரூம் சாவி யாரிடம் உள்ளது?",
-            "ms": 1623,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en07",
-            "from": "en",
-            "to": "hi",
-            "text": "Wear your helmet before you go up.",
-            "out": "ऊपर जाने से पहले अपना हेलमेट पहन लें।",
-            "ms": 2044,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en07",
-            "from": "en",
-            "to": "ta",
-            "text": "Wear your helmet before you go up.",
-            "out": "மேலே செல்வதற்கு முன் உங்கள் ஹெல்மெட்டை அணியுங்கள்.",
-            "ms": 2278,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en08",
-            "from": "en",
-            "to": "hi",
-            "text": "Mixer is broken, get it fixed before 11.",
-            "out": "मिक्सर खराब है, 11 बजे से पहले ठीक करना",
-            "ms": 1945,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en08",
-            "from": "en",
-            "to": "ta",
-            "text": "Mixer is broken, get it fixed before 11.",
-            "out": "மிக்ஸர் பழுதாகிவிட்டது, 11 மணிக்கு முன் அதை சரி செய்.",
-            "ms": 1602,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en09",
-            "from": "en",
-            "to": "hi",
-            "text": "Move the sand from Gate 1 to Gate 4.",
-            "out": "गेट 1 से रेत को गेट 4 पर ले जाना।",
-            "ms": 4913,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en09",
-            "from": "en",
-            "to": "ta",
-            "text": "Move the sand from Gate 1 to Gate 4.",
-            "out": "கேட் 1 லிருந்து கேட் 4 க்கு மணலை நகர்த்து.",
-            "ms": 3124,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en10",
-            "from": "en",
-            "to": "hi",
-            "text": "Clean up near Gate 3 after the truck leaves.",
-            "out": "ट्रक के जाने के बाद गेट 3 के पास साफ़ करना।",
-            "ms": 1778,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en10",
-            "from": "en",
-            "to": "ta",
-            "text": "Clean up near Gate 3 after the truck leaves.",
-            "out": "லாரி சென்ற பிறகு கேட் 3 அருகில் சுத்தம் செய்.",
-            "ms": 3643,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en11",
-            "from": "en",
-            "to": "hi",
-            "text": "How many bags are left?",
-            "out": "कितने बोरे बचे हैं?",
-            "ms": 2614,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en11",
-            "from": "en",
-            "to": "ta",
-            "text": "How many bags are left?",
-            "out": "எத்தனை பைகள் மீதமுள்ளன?",
-            "ms": 1686,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en12",
-            "from": "en",
-            "to": "hi",
-            "text": "Call me when the steel comes.",
-            "out": "जब स्टील आ जाए तो मुझे कॉल करना।",
-            "ms": 1340,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en12",
-            "from": "en",
-            "to": "ta",
-            "text": "Call me when the steel comes.",
-            "out": "ஸ்டீல் வந்ததும் எனக்கு போன் செய்.",
-            "ms": 2076,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en13",
-            "from": "en",
-            "to": "hi",
-            "text": "Today we finish at 6, tomorrow start at 8.",
-            "out": "आज हम 6 बजे खत्म करते हैं, कल 8 बजे शुरू करेंगे।",
-            "ms": 2196,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en13",
-            "from": "en",
-            "to": "ta",
-            "text": "Today we finish at 6, tomorrow start at 8.",
-            "out": "இன்று நாம் 6 மணிக்கு முடிக்கிறோம், நாளை 8 மணிக்கு தொடங்குகிறோம்.",
-            "ms": 2141,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en14",
-            "from": "en",
-            "to": "hi",
-            "text": "Deliver 20 rods to the second floor.",
-            "out": "20 रॉड दूसरी मंज़िल पर पहुँचाना।",
-            "ms": 1583,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en14",
-            "from": "en",
-            "to": "ta",
-            "text": "Deliver 20 rods to the second floor.",
-            "out": "20 கம்பிகளை 2வது தளத்தில் கொண்டு சேர்.",
-            "ms": 1283,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en15",
-            "from": "en",
-            "to": "hi",
-            "text": "Is the water tank full?",
-            "out": "क्या पानी की टंकी भर गई है?",
-            "ms": 4889,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en15",
-            "from": "en",
-            "to": "ta",
-            "text": "Is the water tank full?",
-            "out": "தண்ணீர் தொட்டி நிரம்பிவிட்டதா?",
-            "ms": 3889,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en16",
-            "from": "en",
-            "to": "hi",
-            "text": "Good work today, thank you all.",
-            "out": "आज अच्छा काम किया, आप सबका धन्यवाद।",
-            "ms": 3285,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en16",
-            "from": "en",
-            "to": "ta",
-            "text": "Good work today, thank you all.",
-            "out": "இன்று நல்ல வேலை, உங்கள் அனைவருக்கும் நன்றி.",
-            "ms": 1265,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en17",
-            "from": "en",
-            "to": "hi",
-            "text": "Stop work, it's raining. Cover the cement.",
-            "out": "काम बंद करो, बारिश हो रही है। सीमेंट को ढक दो।",
-            "ms": 1285,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en17",
-            "from": "en",
-            "to": "ta",
-            "text": "Stop work, it's raining. Cover the cement.",
-            "out": "வேலையை நிறுத்துங்கள், மழை பெய்கிறது. சிமெண்டை மூடுங்கள்.",
-            "ms": 2002,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en18",
-            "from": "en",
-            "to": "hi",
-            "text": "Need 3 more people at Gate 2 at 9 tomorrow.",
-            "out": "कल 9 बजे गेट 2 पर 3 और लोग चाहिए।",
-            "ms": 5292,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en18",
-            "from": "en",
-            "to": "ta",
-            "text": "Need 3 more people at Gate 2 at 9 tomorrow.",
-            "out": "நாளை காலை 9 மணிக்கு கேட் 2-க்கு மேலும் 3 ஆட்கள் தேவை.",
-            "ms": 2135,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en19",
-            "from": "en",
-            "to": "hi",
-            "text": "Did everyone get paid this week?",
-            "out": "क्या इस हफ़्ते सभी को भुगतान मिल गया?",
-            "ms": 1064,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en19",
-            "from": "en",
-            "to": "ta",
-            "text": "Did everyone get paid this week?",
-            "out": "இந்த வாரம் எல்லாருக்கும் சம்பளம் கிடைத்துவிட்டதா?",
-            "ms": 1709,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en20",
-            "from": "en",
-            "to": "hi",
-            "text": "Keep the tiles in the store room, not outside.",
-            "out": "टाइल्स को स्टोर रूम में रखना, बाहर नहीं।",
-            "ms": 1514,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "en20",
-            "from": "en",
-            "to": "ta",
-            "text": "Keep the tiles in the store room, not outside.",
-            "out": "டைல்ஸை ஸ்டோர் ரூம்-ல் வையுங்கள், வெளியே வைக்க வேண்டாம்.",
-            "ms": 1671,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hi01",
-            "from": "hi",
-            "to": "en",
-            "text": "सर, ट्रक गेट 1 पर खड़ा है।",
-            "out": "Sir, the truck is parked at Gate 1.",
-            "ms": 2068,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hi02",
-            "from": "hi",
-            "to": "en",
-            "text": "सीमेंट की 40 बोरी उतार दी हैं।",
-            "out": "Unloaded 40 bags of cement.",
-            "ms": 1971,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hi03",
-            "from": "hi",
-            "to": "en",
-            "text": "10 मिनट में आ रहा हूँ।",
-            "out": "I am coming in 10 minutes.",
-            "ms": 1816,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hi04",
-            "from": "hi",
-            "to": "en",
-            "text": "पानी की मोटर खराब है, कौन ठीक करेगा?",
-            "out": "Water motor is broken, who will Fix it?",
-            "ms": 1694,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hi05",
-            "from": "hi",
-            "to": "en",
-            "text": "आज खाना 1 बजे मिलेगा क्या?",
-            "out": "Will lunch be available at 1?",
-            "ms": 1678,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hi06",
-            "from": "hi",
-            "to": "en",
-            "text": "स्टोर रूम की चाबी किसके पास है?",
-            "out": "Who has the key to the Store room?",
-            "ms": 2129,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hi07",
-            "from": "hi",
-            "to": "en",
-            "text": "रेत कहाँ डालनी है, गेट 4 पर?",
-            "out": "Where should the sand be dumped, at Gate 4?",
-            "ms": 2065,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hi08",
-            "from": "hi",
-            "to": "en",
-            "text": "कल 9 बजे तक ही आ पाऊँगा, बस लेट है।",
-            "out": "I will be able to come only by 9 tomorrow, the bus is late.",
-            "ms": 1504,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hi09",
-            "from": "hi",
-            "to": "en",
-            "text": "सरिया 25 पीस कम है।",
-            "out": "25 pieces of rebar are less.",
-            "ms": 1401,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hi10",
-            "from": "hi",
-            "to": "en",
-            "text": "बारिश हो रही है, काम रोक दें?",
-            "out": "It is raining, should we stop work?",
-            "ms": 1690,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hi11",
-            "from": "hi",
-            "to": "en",
-            "text": "मिक्सर में तेल डालना है।",
-            "out": "Need to put oil in the mixer.",
-            "ms": 2278,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hi12",
-            "from": "hi",
-            "to": "en",
-            "text": "गेट 2 के पास गड्ढा है, ध्यान रखना।",
-            "out": "There is a pothole near Gate 2, be careful.",
-            "ms": 1424,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hi13",
-            "from": "hi",
-            "to": "en",
-            "text": "हेलमेट बस 3 बचे हैं।",
-            "out": "Only 3 helmets are left.",
-            "ms": 2092,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hi14",
-            "from": "hi",
-            "to": "en",
-            "text": "दूसरी मंज़िल की सफ़ाई हो गई है।",
-            "out": "The second floor has been cleaned.",
-            "ms": 1378,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hi15",
-            "from": "hi",
-            "to": "en",
-            "text": "ठेकेदार साहब 4 बजे आएँगे।",
-            "out": "The contractor sir will come at 4 o'clock.",
-            "ms": 2117,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hi16",
-            "from": "hi",
-            "to": "en",
-            "text": "तबीयत ठीक नहीं है, आज जल्दी जाना है।",
-            "out": "I am not feeling well, I need to leave early today.",
-            "ms": 3909,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hi17",
-            "from": "hi",
-            "to": "en",
-            "text": "500 ईंटें और चाहिए।",
-            "out": "Need 500 more bricks.",
-            "ms": 4265,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hi18",
-            "from": "hi",
-            "to": "en",
-            "text": "पाइप स्टोर रूम में रख दिए हैं।",
-            "out": "Pipes have been kept in the Store room.",
-            "ms": 1910,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hi19",
-            "from": "hi",
-            "to": "en",
-            "text": "ट्रक वाला पैसे माँग रहा है।",
-            "out": "The truck driver is asking for money.",
-            "ms": 3035,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hi20",
-            "from": "hi",
-            "to": "en",
-            "text": "कल छुट्टी है क्या?",
-            "out": "Is tomorrow a holiday?",
-            "ms": 4234,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hg01",
-            "from": "hinglish",
-            "to": "en",
-            "text": "Theek hai sir, kahan utaarna hai?",
-            "out": "Okay sir, where should I Unload?",
-            "ms": 4042,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hg02",
-            "from": "hinglish",
-            "to": "en",
-            "text": "Sir truck Gate 3 pe aa gaya hai",
-            "out": "Sir truck has arrived at Gate 3",
-            "ms": 3964,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hg03",
-            "from": "hinglish",
-            "to": "en",
-            "text": "40 bori cement utaar di",
-            "out": "Unloaded 40 cement bags",
-            "ms": 8401,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hg04",
-            "from": "hinglish",
-            "to": "en",
-            "text": "5 minute mein aata hoon",
-            "out": "I am coming in 5 minutes",
-            "ms": 1433,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hg05",
-            "from": "hinglish",
-            "to": "en",
-            "text": "Paani khatam ho gaya, tanker kab aayega?",
-            "out": "Water has run out, when will the tanker arrive?",
-            "ms": 4131,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hg06",
-            "from": "hinglish",
-            "to": "en",
-            "text": "Gate 2 wala rasta band hai",
-            "out": "Gate 2 path is closed",
-            "ms": 1296,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hg07",
-            "from": "hinglish",
-            "to": "en",
-            "text": "Kal subah 8 baje aana hai kya?",
-            "out": "Do I need to come tomorrow morning at 8 AM?",
-            "ms": 1701,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hg08",
-            "from": "hinglish",
-            "to": "en",
-            "text": "Mixer chal nahi raha, mistri ko bulao",
-            "out": "Mixer is not working, call the mechanic",
-            "ms": 1419,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hg09",
-            "from": "hinglish",
-            "to": "en",
-            "text": "Store room mein jagah nahi hai",
-            "out": "There is no space in the Store room",
-            "ms": 2257,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hg10",
-            "from": "hinglish",
-            "to": "en",
-            "text": "Sir 2 log aaj chutti pe hain",
-            "out": "Sir 2 people are on leave today",
-            "ms": 4449,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hg11",
-            "from": "hinglish",
-            "to": "en",
-            "text": "Ret Gate 1 ke paas daal di hai",
-            "out": "Sand has been dumped near Gate 1",
-            "ms": 7237,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hg12",
-            "from": "hinglish",
-            "to": "en",
-            "text": "Saria kitna kaatna hai?",
-            "out": "How much rebar needs to be cut?",
-            "ms": 1602,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hg13",
-            "from": "hinglish",
-            "to": "en",
-            "text": "Khana 1 baje milega na?",
-            "out": "Food will be available at 1 o'clock, right?",
-            "ms": 6293,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hg14",
-            "from": "hinglish",
-            "to": "en",
-            "text": "Upar wali slab ka kaam ho gaya",
-            "out": "The work on the upper slab is done",
-            "ms": 6121,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hg15",
-            "from": "hinglish",
-            "to": "en",
-            "text": "Sir mera payment abhi tak nahi aaya",
-            "out": "Sir, my payment has not come yet.",
-            "ms": 1338,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hg16",
-            "from": "hinglish",
-            "to": "en",
-            "text": "Baarish ho rahi hai, cement dhak diya hai",
-            "out": "It is raining, has the cement been covered?",
-            "ms": 1474,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hg17",
-            "from": "hinglish",
-            "to": "en",
-            "text": "20 aur eent chahiye 3rd floor pe",
-            "out": "Need 20 more bricks on the 3rd floor",
-            "ms": 9323,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hg18",
-            "from": "hinglish",
-            "to": "en",
-            "text": "Helmet toot gaya, naya milega?",
-            "out": "Helmet is broken, will I get a new one?",
-            "ms": 1694,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hg19",
-            "from": "hinglish",
-            "to": "en",
-            "text": "Gate 4 pe JCB khadi hai, hata dein?",
-            "out": "JCB is parked at Gate 4, should we move it?",
-            "ms": 1956,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "hg20",
-            "from": "hinglish",
-            "to": "en",
-            "text": "Aaj 6 baje tak rukna padega kya?",
-            "out": "Do we have to stay until 6?",
-            "ms": 5351,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "ta01",
-            "from": "ta",
-            "to": "en",
-            "text": "சார், லாரி கேட் 1-ல நிக்குது",
-            "out": "Sir, the lorry is standing at Gate 1",
-            "ms": 4232,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "ta02",
-            "from": "ta",
-            "to": "en",
-            "text": "40 மூட்டை சிமெண்ட் இறக்கியாச்சு",
-            "out": "Unloaded 40 bags of cement",
-            "ms": 3482,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "ta03",
-            "from": "ta",
-            "to": "en",
-            "text": "10 நிமிஷத்துல வர்றேன்",
-            "out": "I will come in 10 minutes",
-            "ms": 1085,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "ta04",
-            "from": "ta",
-            "to": "en",
-            "text": "தண்ணி மோட்டார் ரிப்பேர் ஆயிடுச்சு",
-            "out": "Water motor is broken down.",
-            "ms": 7637,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "ta05",
-            "from": "ta",
-            "to": "en",
-            "text": "சாப்பாடு 1 மணிக்கு வருமா?",
-            "out": "Will lunch arrive at 1?",
-            "ms": 1799,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "ta06",
-            "from": "ta",
-            "to": "en",
-            "text": "ஸ்டோர் ரூம் சாவி யார்கிட்ட இருக்கு?",
-            "out": "Who has the Store room key?",
-            "ms": 1967,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "ta07",
-            "from": "ta",
-            "to": "en",
-            "text": "மணல் எங்க கொட்டணும், கேட் 4-லயா?",
-            "out": "Where should I dump the sand, at Gate 4?",
-            "ms": 1357,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "ta08",
-            "from": "ta",
-            "to": "en",
-            "text": "நாளைக்கு 9 மணிக்கு தான் வர முடியும்",
-            "out": "Can come only tomorrow at 9 o'clock",
-            "ms": 1850,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "ta09",
-            "from": "ta",
-            "to": "en",
-            "text": "கம்பி 25 பீஸ் குறையுது",
-            "out": "25 pieces of steel rods are missing",
-            "ms": 1772,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "ta10",
-            "from": "ta",
-            "to": "en",
-            "text": "மழை வருது, வேலைய நிறுத்தலாமா?",
-            "out": "It's raining, should we stop work?",
-            "ms": 12569,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "ta11",
-            "from": "ta",
-            "to": "en",
-            "text": "மிக்சர்ல ஆயில் ஊத்தணும்",
-            "out": "Need to pour oil in the mixer",
-            "ms": 2898,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "ta12",
-            "from": "ta",
-            "to": "en",
-            "text": "கேட் 2 பக்கத்துல பள்ளம் இருக்கு, கவனமா இருங்க",
-            "out": "There is a pit near Gate 2, be careful",
-            "ms": 1721,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "ta13",
-            "from": "ta",
-            "to": "en",
-            "text": "ஹெல்மெட் 3 தான் இருக்கு",
-            "out": "There are only 3 helmets",
-            "ms": 1936,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "ta14",
-            "from": "ta",
-            "to": "en",
-            "text": "ரெண்டாவது மாடி சுத்தம் பண்ணியாச்சு",
-            "out": "The second floor has been cleaned.",
-            "ms": 6822,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "ta15",
-            "from": "ta",
-            "to": "en",
-            "text": "காண்ட்ராக்டர் 4 மணிக்கு வருவாரு",
-            "out": "The contractor will come at 4 o'clock",
-            "ms": 1279,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "ta16",
-            "from": "ta",
-            "to": "en",
-            "text": "உடம்பு சரியில்ல, இன்னைக்கு சீக்கிரம் போகணும்",
-            "out": "I am not feeling well, I need to leave early today.",
-            "ms": 1250,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "ta17",
-            "from": "ta",
-            "to": "en",
-            "text": "இன்னும் 500 செங்கல் வேணும்",
-            "out": "Still need 500 bricks",
-            "ms": 1793,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "ta18",
-            "from": "ta",
-            "to": "en",
-            "text": "பைப் எல்லாம் ஸ்டோர் ரூம்ல வச்சாச்சு",
-            "out": "All the pipes are kept in the Store room",
-            "ms": 1980,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "ta19",
-            "from": "ta",
-            "to": "en",
-            "text": "லாரிக்காரர் காசு கேக்குறாரு",
-            "out": "The truck driver is asking for payment",
-            "ms": 1747,
-            "error": null,
-            "violations": []
-          },
-          {
-            "id": "ta20",
-            "from": "ta",
-            "to": "en",
-            "text": "நாளைக்கு லீவா?",
-            "out": "Is tomorrow a leave?",
-            "ms": 2695,
-            "error": null,
-            "violations": []
-          }
-        ]
+ "ran_at": "2026-11-17T20:54:13.394Z",
+ "models": [
+  {
+   "model": "google/gemini-3.5-flash-lite",
+   "runner_errors": 1,
+   "runner_error_samples": [
+    "The operation was aborted due to timeout"
+   ],
+   "translation": {
+    "runs": 100,
+    "failed": 0,
+    "must_keep_violations": 0,
+    "median_ms": 1945,
+    "p90_ms": 5351,
+    "results": [
+     {
+      "id": "en01",
+      "from": "en",
+      "to": "hi",
+      "text": "Morning! Cement truck arrives at 1.",
+      "out": "सुप्रभात! सीमेंट का ट्रक 1 बजे आएगा।",
+      "ms": 1360,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en01",
+      "from": "en",
+      "to": "ta",
+      "text": "Morning! Cement truck arrives at 1.",
+      "out": "காலை வணக்கம்! சிமெண்ட் லாரி 1 மணிக்கு வரும்.",
+      "ms": 1741,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en02",
+      "from": "en",
+      "to": "hi",
+      "text": "Unload 40 bags of cement at Gate 3 by 2 pm.",
+      "out": "2 बजे तक गेट 3 पर सीमेंट की 40 बोरियाँ उतारना।",
+      "ms": 1829,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en02",
+      "from": "en",
+      "to": "ta",
+      "text": "Unload 40 bags of cement at Gate 3 by 2 pm.",
+      "out": "மதியம் 2 மணிக்குள் கேட் 3-ல் 40 சிமெண்ட் மூட்டைகளை இறக்கு.",
+      "ms": 2525,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en03",
+      "from": "en",
+      "to": "hi",
+      "text": "Don't use Gate 2 today, the road is dug up.",
+      "out": "आज गेट 2 का इस्तेमाल न करें, सड़क खुदी हुई है।",
+      "ms": 1522,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en03",
+      "from": "en",
+      "to": "ta",
+      "text": "Don't use Gate 2 today, the road is dug up.",
+      "out": "இன்று கேட் 2 ஐ பயன்படுத்த வேண்டாம், சாலை தோண்டப்பட்டுள்ளது.",
+      "ms": 7906,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en04",
+      "from": "en",
+      "to": "hi",
+      "text": "Bring 15 more bricks to the store room.",
+      "out": "स्टोर रूम में और 15 ईंटें पहुँचाना।",
+      "ms": 1839,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en04",
+      "from": "en",
+      "to": "ta",
+      "text": "Bring 15 more bricks to the store room.",
+      "out": "ஸ்டோர் ரூமுக்கு இன்னும் 15 செங்கற்களை கொண்டு வாருங்கள்.",
+      "ms": 1629,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en05",
+      "from": "en",
+      "to": "hi",
+      "text": "Lunch break at 1:30, be back by 2.",
+      "out": "1:30 पर लंच ब्रेक है, 2 तक वापस आ जाओ।",
+      "ms": 1928,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en05",
+      "from": "en",
+      "to": "ta",
+      "text": "Lunch break at 1:30, be back by 2.",
+      "out": "1:30-க்கு லஞ்ச் பிரேக், 2 மணிக்கு வந்துடுங்க.",
+      "ms": 7730,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en06",
+      "from": "en",
+      "to": "hi",
+      "text": "Who has the key for the store room?",
+      "out": "स्टोर रूम की चाबी किसके पास है?",
+      "ms": 1803,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en06",
+      "from": "en",
+      "to": "ta",
+      "text": "Who has the key for the store room?",
+      "out": "ஸ்டோர் ரூம் சாவி யாரிடம் உள்ளது?",
+      "ms": 1623,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en07",
+      "from": "en",
+      "to": "hi",
+      "text": "Wear your helmet before you go up.",
+      "out": "ऊपर जाने से पहले अपना हेलमेट पहन लें।",
+      "ms": 2044,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en07",
+      "from": "en",
+      "to": "ta",
+      "text": "Wear your helmet before you go up.",
+      "out": "மேலே செல்வதற்கு முன் உங்கள் ஹெல்மெட்டை அணியுங்கள்.",
+      "ms": 2278,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en08",
+      "from": "en",
+      "to": "hi",
+      "text": "Mixer is broken, get it fixed before 11.",
+      "out": "मिक्सर खराब है, 11 बजे से पहले ठीक करना",
+      "ms": 1945,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en08",
+      "from": "en",
+      "to": "ta",
+      "text": "Mixer is broken, get it fixed before 11.",
+      "out": "மிக்ஸர் பழுதாகிவிட்டது, 11 மணிக்கு முன் அதை சரி செய்.",
+      "ms": 1602,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en09",
+      "from": "en",
+      "to": "hi",
+      "text": "Move the sand from Gate 1 to Gate 4.",
+      "out": "गेट 1 से रेत को गेट 4 पर ले जाना।",
+      "ms": 4913,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en09",
+      "from": "en",
+      "to": "ta",
+      "text": "Move the sand from Gate 1 to Gate 4.",
+      "out": "கேட் 1 லிருந்து கேட் 4 க்கு மணலை நகர்த்து.",
+      "ms": 3124,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en10",
+      "from": "en",
+      "to": "hi",
+      "text": "Clean up near Gate 3 after the truck leaves.",
+      "out": "ट्रक के जाने के बाद गेट 3 के पास साफ़ करना।",
+      "ms": 1778,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en10",
+      "from": "en",
+      "to": "ta",
+      "text": "Clean up near Gate 3 after the truck leaves.",
+      "out": "லாரி சென்ற பிறகு கேட் 3 அருகில் சுத்தம் செய்.",
+      "ms": 3643,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en11",
+      "from": "en",
+      "to": "hi",
+      "text": "How many bags are left?",
+      "out": "कितने बोरे बचे हैं?",
+      "ms": 2614,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en11",
+      "from": "en",
+      "to": "ta",
+      "text": "How many bags are left?",
+      "out": "எத்தனை பைகள் மீதமுள்ளன?",
+      "ms": 1686,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en12",
+      "from": "en",
+      "to": "hi",
+      "text": "Call me when the steel comes.",
+      "out": "जब स्टील आ जाए तो मुझे कॉल करना।",
+      "ms": 1340,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en12",
+      "from": "en",
+      "to": "ta",
+      "text": "Call me when the steel comes.",
+      "out": "ஸ்டீல் வந்ததும் எனக்கு போன் செய்.",
+      "ms": 2076,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en13",
+      "from": "en",
+      "to": "hi",
+      "text": "Today we finish at 6, tomorrow start at 8.",
+      "out": "आज हम 6 बजे खत्म करते हैं, कल 8 बजे शुरू करेंगे।",
+      "ms": 2196,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en13",
+      "from": "en",
+      "to": "ta",
+      "text": "Today we finish at 6, tomorrow start at 8.",
+      "out": "இன்று நாம் 6 மணிக்கு முடிக்கிறோம், நாளை 8 மணிக்கு தொடங்குகிறோம்.",
+      "ms": 2141,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en14",
+      "from": "en",
+      "to": "hi",
+      "text": "Deliver 20 rods to the second floor.",
+      "out": "20 रॉड दूसरी मंज़िल पर पहुँचाना।",
+      "ms": 1583,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en14",
+      "from": "en",
+      "to": "ta",
+      "text": "Deliver 20 rods to the second floor.",
+      "out": "20 கம்பிகளை 2வது தளத்தில் கொண்டு சேர்.",
+      "ms": 1283,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en15",
+      "from": "en",
+      "to": "hi",
+      "text": "Is the water tank full?",
+      "out": "क्या पानी की टंकी भर गई है?",
+      "ms": 4889,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en15",
+      "from": "en",
+      "to": "ta",
+      "text": "Is the water tank full?",
+      "out": "தண்ணீர் தொட்டி நிரம்பிவிட்டதா?",
+      "ms": 3889,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en16",
+      "from": "en",
+      "to": "hi",
+      "text": "Good work today, thank you all.",
+      "out": "आज अच्छा काम किया, आप सबका धन्यवाद।",
+      "ms": 3285,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en16",
+      "from": "en",
+      "to": "ta",
+      "text": "Good work today, thank you all.",
+      "out": "இன்று நல்ல வேலை, உங்கள் அனைவருக்கும் நன்றி.",
+      "ms": 1265,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en17",
+      "from": "en",
+      "to": "hi",
+      "text": "Stop work, it's raining. Cover the cement.",
+      "out": "काम बंद करो, बारिश हो रही है। सीमेंट को ढक दो।",
+      "ms": 1285,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en17",
+      "from": "en",
+      "to": "ta",
+      "text": "Stop work, it's raining. Cover the cement.",
+      "out": "வேலையை நிறுத்துங்கள், மழை பெய்கிறது. சிமெண்டை மூடுங்கள்.",
+      "ms": 2002,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en18",
+      "from": "en",
+      "to": "hi",
+      "text": "Need 3 more people at Gate 2 at 9 tomorrow.",
+      "out": "कल 9 बजे गेट 2 पर 3 और लोग चाहिए।",
+      "ms": 5292,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en18",
+      "from": "en",
+      "to": "ta",
+      "text": "Need 3 more people at Gate 2 at 9 tomorrow.",
+      "out": "நாளை காலை 9 மணிக்கு கேட் 2-க்கு மேலும் 3 ஆட்கள் தேவை.",
+      "ms": 2135,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en19",
+      "from": "en",
+      "to": "hi",
+      "text": "Did everyone get paid this week?",
+      "out": "क्या इस हफ़्ते सभी को भुगतान मिल गया?",
+      "ms": 1064,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en19",
+      "from": "en",
+      "to": "ta",
+      "text": "Did everyone get paid this week?",
+      "out": "இந்த வாரம் எல்லாருக்கும் சம்பளம் கிடைத்துவிட்டதா?",
+      "ms": 1709,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en20",
+      "from": "en",
+      "to": "hi",
+      "text": "Keep the tiles in the store room, not outside.",
+      "out": "टाइल्स को स्टोर रूम में रखना, बाहर नहीं।",
+      "ms": 1514,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "en20",
+      "from": "en",
+      "to": "ta",
+      "text": "Keep the tiles in the store room, not outside.",
+      "out": "டைல்ஸை ஸ்டோர் ரூம்-ல் வையுங்கள், வெளியே வைக்க வேண்டாம்.",
+      "ms": 1671,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hi01",
+      "from": "hi",
+      "to": "en",
+      "text": "सर, ट्रक गेट 1 पर खड़ा है।",
+      "out": "Sir, the truck is parked at Gate 1.",
+      "ms": 2068,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hi02",
+      "from": "hi",
+      "to": "en",
+      "text": "सीमेंट की 40 बोरी उतार दी हैं।",
+      "out": "Unloaded 40 bags of cement.",
+      "ms": 1971,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hi03",
+      "from": "hi",
+      "to": "en",
+      "text": "10 मिनट में आ रहा हूँ।",
+      "out": "I am coming in 10 minutes.",
+      "ms": 1816,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hi04",
+      "from": "hi",
+      "to": "en",
+      "text": "पानी की मोटर खराब है, कौन ठीक करेगा?",
+      "out": "Water motor is broken, who will Fix it?",
+      "ms": 1694,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hi05",
+      "from": "hi",
+      "to": "en",
+      "text": "आज खाना 1 बजे मिलेगा क्या?",
+      "out": "Will lunch be available at 1?",
+      "ms": 1678,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hi06",
+      "from": "hi",
+      "to": "en",
+      "text": "स्टोर रूम की चाबी किसके पास है?",
+      "out": "Who has the key to the Store room?",
+      "ms": 2129,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hi07",
+      "from": "hi",
+      "to": "en",
+      "text": "रेत कहाँ डालनी है, गेट 4 पर?",
+      "out": "Where should the sand be dumped, at Gate 4?",
+      "ms": 2065,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hi08",
+      "from": "hi",
+      "to": "en",
+      "text": "कल 9 बजे तक ही आ पाऊँगा, बस लेट है।",
+      "out": "I will be able to come only by 9 tomorrow, the bus is late.",
+      "ms": 1504,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hi09",
+      "from": "hi",
+      "to": "en",
+      "text": "सरिया 25 पीस कम है।",
+      "out": "25 pieces of rebar are less.",
+      "ms": 1401,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hi10",
+      "from": "hi",
+      "to": "en",
+      "text": "बारिश हो रही है, काम रोक दें?",
+      "out": "It is raining, should we stop work?",
+      "ms": 1690,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hi11",
+      "from": "hi",
+      "to": "en",
+      "text": "मिक्सर में तेल डालना है।",
+      "out": "Need to put oil in the mixer.",
+      "ms": 2278,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hi12",
+      "from": "hi",
+      "to": "en",
+      "text": "गेट 2 के पास गड्ढा है, ध्यान रखना।",
+      "out": "There is a pothole near Gate 2, be careful.",
+      "ms": 1424,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hi13",
+      "from": "hi",
+      "to": "en",
+      "text": "हेलमेट बस 3 बचे हैं।",
+      "out": "Only 3 helmets are left.",
+      "ms": 2092,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hi14",
+      "from": "hi",
+      "to": "en",
+      "text": "दूसरी मंज़िल की सफ़ाई हो गई है।",
+      "out": "The second floor has been cleaned.",
+      "ms": 1378,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hi15",
+      "from": "hi",
+      "to": "en",
+      "text": "ठेकेदार साहब 4 बजे आएँगे।",
+      "out": "The contractor sir will come at 4 o'clock.",
+      "ms": 2117,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hi16",
+      "from": "hi",
+      "to": "en",
+      "text": "तबीयत ठीक नहीं है, आज जल्दी जाना है।",
+      "out": "I am not feeling well, I need to leave early today.",
+      "ms": 3909,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hi17",
+      "from": "hi",
+      "to": "en",
+      "text": "500 ईंटें और चाहिए।",
+      "out": "Need 500 more bricks.",
+      "ms": 4265,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hi18",
+      "from": "hi",
+      "to": "en",
+      "text": "पाइप स्टोर रूम में रख दिए हैं।",
+      "out": "Pipes have been kept in the Store room.",
+      "ms": 1910,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hi19",
+      "from": "hi",
+      "to": "en",
+      "text": "ट्रक वाला पैसे माँग रहा है।",
+      "out": "The truck driver is asking for money.",
+      "ms": 3035,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hi20",
+      "from": "hi",
+      "to": "en",
+      "text": "कल छुट्टी है क्या?",
+      "out": "Is tomorrow a holiday?",
+      "ms": 4234,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hg01",
+      "from": "hinglish",
+      "to": "en",
+      "text": "Theek hai sir, kahan utaarna hai?",
+      "out": "Okay sir, where should I Unload?",
+      "ms": 4042,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hg02",
+      "from": "hinglish",
+      "to": "en",
+      "text": "Sir truck Gate 3 pe aa gaya hai",
+      "out": "Sir truck has arrived at Gate 3",
+      "ms": 3964,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hg03",
+      "from": "hinglish",
+      "to": "en",
+      "text": "40 bori cement utaar di",
+      "out": "Unloaded 40 cement bags",
+      "ms": 8401,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hg04",
+      "from": "hinglish",
+      "to": "en",
+      "text": "5 minute mein aata hoon",
+      "out": "I am coming in 5 minutes",
+      "ms": 1433,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hg05",
+      "from": "hinglish",
+      "to": "en",
+      "text": "Paani khatam ho gaya, tanker kab aayega?",
+      "out": "Water has run out, when will the tanker arrive?",
+      "ms": 4131,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hg06",
+      "from": "hinglish",
+      "to": "en",
+      "text": "Gate 2 wala rasta band hai",
+      "out": "Gate 2 path is closed",
+      "ms": 1296,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hg07",
+      "from": "hinglish",
+      "to": "en",
+      "text": "Kal subah 8 baje aana hai kya?",
+      "out": "Do I need to come tomorrow morning at 8 AM?",
+      "ms": 1701,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hg08",
+      "from": "hinglish",
+      "to": "en",
+      "text": "Mixer chal nahi raha, mistri ko bulao",
+      "out": "Mixer is not working, call the mechanic",
+      "ms": 1419,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hg09",
+      "from": "hinglish",
+      "to": "en",
+      "text": "Store room mein jagah nahi hai",
+      "out": "There is no space in the Store room",
+      "ms": 2257,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hg10",
+      "from": "hinglish",
+      "to": "en",
+      "text": "Sir 2 log aaj chutti pe hain",
+      "out": "Sir 2 people are on leave today",
+      "ms": 4449,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hg11",
+      "from": "hinglish",
+      "to": "en",
+      "text": "Ret Gate 1 ke paas daal di hai",
+      "out": "Sand has been dumped near Gate 1",
+      "ms": 7237,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hg12",
+      "from": "hinglish",
+      "to": "en",
+      "text": "Saria kitna kaatna hai?",
+      "out": "How much rebar needs to be cut?",
+      "ms": 1602,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hg13",
+      "from": "hinglish",
+      "to": "en",
+      "text": "Khana 1 baje milega na?",
+      "out": "Food will be available at 1 o'clock, right?",
+      "ms": 6293,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hg14",
+      "from": "hinglish",
+      "to": "en",
+      "text": "Upar wali slab ka kaam ho gaya",
+      "out": "The work on the upper slab is done",
+      "ms": 6121,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hg15",
+      "from": "hinglish",
+      "to": "en",
+      "text": "Sir mera payment abhi tak nahi aaya",
+      "out": "Sir, my payment has not come yet.",
+      "ms": 1338,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hg16",
+      "from": "hinglish",
+      "to": "en",
+      "text": "Baarish ho rahi hai, cement dhak diya hai",
+      "out": "It is raining, has the cement been covered?",
+      "ms": 1474,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hg17",
+      "from": "hinglish",
+      "to": "en",
+      "text": "20 aur eent chahiye 3rd floor pe",
+      "out": "Need 20 more bricks on the 3rd floor",
+      "ms": 9323,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hg18",
+      "from": "hinglish",
+      "to": "en",
+      "text": "Helmet toot gaya, naya milega?",
+      "out": "Helmet is broken, will I get a new one?",
+      "ms": 1694,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hg19",
+      "from": "hinglish",
+      "to": "en",
+      "text": "Gate 4 pe JCB khadi hai, hata dein?",
+      "out": "JCB is parked at Gate 4, should we move it?",
+      "ms": 1956,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "hg20",
+      "from": "hinglish",
+      "to": "en",
+      "text": "Aaj 6 baje tak rukna padega kya?",
+      "out": "Do we have to stay until 6?",
+      "ms": 5351,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "ta01",
+      "from": "ta",
+      "to": "en",
+      "text": "சார், லாரி கேட் 1-ல நிக்குது",
+      "out": "Sir, the lorry is standing at Gate 1",
+      "ms": 4232,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "ta02",
+      "from": "ta",
+      "to": "en",
+      "text": "40 மூட்டை சிமெண்ட் இறக்கியாச்சு",
+      "out": "Unloaded 40 bags of cement",
+      "ms": 3482,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "ta03",
+      "from": "ta",
+      "to": "en",
+      "text": "10 நிமிஷத்துல வர்றேன்",
+      "out": "I will come in 10 minutes",
+      "ms": 1085,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "ta04",
+      "from": "ta",
+      "to": "en",
+      "text": "தண்ணி மோட்டார் ரிப்பேர் ஆயிடுச்சு",
+      "out": "Water motor is broken down.",
+      "ms": 7637,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "ta05",
+      "from": "ta",
+      "to": "en",
+      "text": "சாப்பாடு 1 மணிக்கு வருமா?",
+      "out": "Will lunch arrive at 1?",
+      "ms": 1799,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "ta06",
+      "from": "ta",
+      "to": "en",
+      "text": "ஸ்டோர் ரூம் சாவி யார்கிட்ட இருக்கு?",
+      "out": "Who has the Store room key?",
+      "ms": 1967,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "ta07",
+      "from": "ta",
+      "to": "en",
+      "text": "மணல் எங்க கொட்டணும், கேட் 4-லயா?",
+      "out": "Where should I dump the sand, at Gate 4?",
+      "ms": 1357,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "ta08",
+      "from": "ta",
+      "to": "en",
+      "text": "நாளைக்கு 9 மணிக்கு தான் வர முடியும்",
+      "out": "Can come only tomorrow at 9 o'clock",
+      "ms": 1850,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "ta09",
+      "from": "ta",
+      "to": "en",
+      "text": "கம்பி 25 பீஸ் குறையுது",
+      "out": "25 pieces of steel rods are missing",
+      "ms": 1772,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "ta10",
+      "from": "ta",
+      "to": "en",
+      "text": "மழை வருது, வேலைய நிறுத்தலாமா?",
+      "out": "It's raining, should we stop work?",
+      "ms": 12569,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "ta11",
+      "from": "ta",
+      "to": "en",
+      "text": "மிக்சர்ல ஆயில் ஊத்தணும்",
+      "out": "Need to pour oil in the mixer",
+      "ms": 2898,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "ta12",
+      "from": "ta",
+      "to": "en",
+      "text": "கேட் 2 பக்கத்துல பள்ளம் இருக்கு, கவனமா இருங்க",
+      "out": "There is a pit near Gate 2, be careful",
+      "ms": 1721,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "ta13",
+      "from": "ta",
+      "to": "en",
+      "text": "ஹெல்மெட் 3 தான் இருக்கு",
+      "out": "There are only 3 helmets",
+      "ms": 1936,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "ta14",
+      "from": "ta",
+      "to": "en",
+      "text": "ரெண்டாவது மாடி சுத்தம் பண்ணியாச்சு",
+      "out": "The second floor has been cleaned.",
+      "ms": 6822,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "ta15",
+      "from": "ta",
+      "to": "en",
+      "text": "காண்ட்ராக்டர் 4 மணிக்கு வருவாரு",
+      "out": "The contractor will come at 4 o'clock",
+      "ms": 1279,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "ta16",
+      "from": "ta",
+      "to": "en",
+      "text": "உடம்பு சரியில்ல, இன்னைக்கு சீக்கிரம் போகணும்",
+      "out": "I am not feeling well, I need to leave early today.",
+      "ms": 1250,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "ta17",
+      "from": "ta",
+      "to": "en",
+      "text": "இன்னும் 500 செங்கல் வேணும்",
+      "out": "Still need 500 bricks",
+      "ms": 1793,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "ta18",
+      "from": "ta",
+      "to": "en",
+      "text": "பைப் எல்லாம் ஸ்டோர் ரூம்ல வச்சாச்சு",
+      "out": "All the pipes are kept in the Store room",
+      "ms": 1980,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "ta19",
+      "from": "ta",
+      "to": "en",
+      "text": "லாரிக்காரர் காசு கேக்குறாரு",
+      "out": "The truck driver is asking for payment",
+      "ms": 1747,
+      "error": null,
+      "violations": []
+     },
+     {
+      "id": "ta20",
+      "from": "ta",
+      "to": "en",
+      "text": "நாளைக்கு லீவா?",
+      "out": "Is tomorrow a leave?",
+      "ms": 2695,
+      "error": null,
+      "violations": []
+     }
+    ]
+   },
+   "meaning": {
+    "cases": 15,
+    "planted": 6,
+    "caught": 6,
+    "false_alarms": 0,
+    "unreadable": 0,
+    "field_errors": 0,
+    "median_ms": 2253,
+    "p90_ms": 5693,
+    "results": [
+     {
+      "id": "m01",
+      "planted": null,
+      "overall": "all_match",
+      "ms": 2291,
+      "unreadable": false,
+      "extracted": {
+       "action": "unload",
+       "object": "cement bags",
+       "object_maybe_same": false,
+       "place": "gate3",
+       "time": "14:00",
+       "time_ambiguous": false,
+       "quantity": 40,
+       "unit": "bags",
+       "gloss_en": "40 cement bags need to be unloaded at Gate 3 by 2 PM."
       },
-      "meaning": {
-        "cases": 15,
-        "planted": 6,
-        "caught": 6,
-        "false_alarms": 0,
-        "unreadable": 0,
-        "field_errors": 0,
-        "median_ms": 2253,
-        "p90_ms": 5693,
-        "results": [
-          {
-            "id": "m01",
-            "planted": null,
-            "overall": "all_match",
-            "ms": 2291,
-            "unreadable": false,
-            "extracted": {
-              "action": "unload",
-              "object": "cement bags",
-              "object_maybe_same": false,
-              "place": "gate3",
-              "time": "14:00",
-              "time_ambiguous": false,
-              "quantity": 40,
-              "unit": "bags",
-              "gloss_en": "40 cement bags need to be unloaded at Gate 3 by 2 PM."
-            },
-            "marks": {
-              "action": "match",
-              "object": "match",
-              "place": "match",
-              "time": "match",
-              "quantity": "match"
-            },
-            "wrong_fields": [],
-            "caught": null,
-            "false_alarm": false
-          },
-          {
-            "id": "m02",
-            "planted": null,
-            "overall": "all_match",
-            "ms": 2892,
-            "unreadable": false,
-            "extracted": {
-              "action": "move",
-              "object": "sand bags",
-              "object_maybe_same": false,
-              "place": "gate1",
-              "time": "04:00",
-              "time_ambiguous": true,
-              "quantity": 20,
-              "unit": "bags",
-              "gloss_en": "20 bags of sand need to be taken to Gate 1 by 4 o'clock."
-            },
-            "marks": {
-              "action": "match",
-              "object": "match",
-              "place": "match",
-              "time": "match",
-              "quantity": "match"
-            },
-            "wrong_fields": [],
-            "caught": null,
-            "false_alarm": false
-          },
-          {
-            "id": "m03",
-            "planted": null,
-            "overall": "all_match",
-            "ms": 2626,
-            "unreadable": false,
-            "extracted": {
-              "action": "clean",
-              "object": "floor",
-              "object_maybe_same": false,
-              "place": "store",
-              "time": "17:00",
-              "time_ambiguous": false,
-              "quantity": null,
-              "unit": null,
-              "gloss_en": "I will clean the store room floor by 5 PM."
-            },
-            "marks": {
-              "action": "match",
-              "object": "match",
-              "place": "match",
-              "time": "match",
-              "quantity": "match"
-            },
-            "wrong_fields": [],
-            "caught": null,
-            "false_alarm": false
-          },
-          {
-            "id": "m04",
-            "planted": null,
-            "overall": "all_match",
-            "ms": 1815,
-            "unreadable": false,
-            "extracted": {
-              "action": "deliver",
-              "object": "bricks",
-              "object_maybe_same": false,
-              "place": "gate4",
-              "time": "11:00",
-              "time_ambiguous": false,
-              "quantity": 30,
-              "unit": "bricks",
-              "gloss_en": "I will deliver 30 bricks at gate 4 by 11 am."
-            },
-            "marks": {
-              "action": "match",
-              "object": "match",
-              "place": "match",
-              "time": "match",
-              "quantity": "match"
-            },
-            "wrong_fields": [],
-            "caught": null,
-            "false_alarm": false
-          },
-          {
-            "id": "m05",
-            "planted": null,
-            "overall": "all_match",
-            "ms": 1896,
-            "unreadable": false,
-            "extracted": {
-              "action": "fix",
-              "object": "mixer",
-              "object_maybe_same": false,
-              "place": "gate2",
-              "time": "10:00",
-              "time_ambiguous": false,
-              "quantity": null,
-              "unit": null,
-              "gloss_en": "I will fix the mixer at Gate 2 by 10 AM in the morning."
-            },
-            "marks": {
-              "action": "match",
-              "object": "match",
-              "place": "match",
-              "time": "match",
-              "quantity": "match"
-            },
-            "wrong_fields": [],
-            "caught": null,
-            "false_alarm": false
-          },
-          {
-            "id": "m06",
-            "planted": null,
-            "overall": "all_match",
-            "ms": 5568,
-            "unreadable": false,
-            "extracted": {
-              "action": "unload",
-              "object": "cement bags",
-              "object_maybe_same": false,
-              "place": "gate3",
-              "time": "15:00",
-              "time_ambiguous": false,
-              "quantity": 50,
-              "unit": "bags",
-              "gloss_en": "Unload 50 bags of cement at Gate 3 by 3 PM."
-            },
-            "marks": {
-              "action": "match",
-              "object": "match",
-              "place": "match",
-              "time": "match",
-              "quantity": "match"
-            },
-            "wrong_fields": [],
-            "caught": null,
-            "false_alarm": false
-          },
-          {
-            "id": "m07",
-            "planted": null,
-            "overall": "all_match",
-            "ms": 2266,
-            "unreadable": false,
-            "extracted": {
-              "action": "move",
-              "object": "bricks",
-              "object_maybe_same": false,
-              "place": "gate2",
-              "time": "01:00",
-              "time_ambiguous": true,
-              "quantity": 200,
-              "unit": "bricks",
-              "gloss_en": "200 bricks have to be taken to Gate 2 by 1 o'clock."
-            },
-            "marks": {
-              "action": "match",
-              "object": "match",
-              "place": "match",
-              "time": "match",
-              "quantity": "match"
-            },
-            "wrong_fields": [],
-            "caught": null,
-            "false_alarm": false
-          },
-          {
-            "id": "m08",
-            "planted": null,
-            "overall": "all_match",
-            "ms": 6183,
-            "unreadable": false,
-            "extracted": {
-              "action": "clean",
-              "object": "debris",
-              "object_maybe_same": false,
-              "place": "gate1",
-              "time": "12:00",
-              "time_ambiguous": true,
-              "quantity": null,
-              "unit": null,
-              "gloss_en": "I will clean the debris near gate 1 by 12."
-            },
-            "marks": {
-              "action": "match",
-              "object": "match",
-              "place": "match",
-              "time": "match",
-              "quantity": "match"
-            },
-            "wrong_fields": [],
-            "caught": null,
-            "false_alarm": false
-          },
-          {
-            "id": "m09",
-            "planted": null,
-            "overall": "all_match",
-            "ms": 1466,
-            "unreadable": false,
-            "extracted": {
-              "action": "deliver",
-              "object": "water can",
-              "object_maybe_same": false,
-              "place": "store",
-              "time": "09:00",
-              "time_ambiguous": false,
-              "quantity": 10,
-              "unit": "cans",
-              "gloss_en": "I will deliver 10 water cans to the store room at 9 in the morning."
-            },
-            "marks": {
-              "action": "match",
-              "object": "match",
-              "place": "match",
-              "time": "match",
-              "quantity": "match"
-            },
-            "wrong_fields": [],
-            "caught": null,
-            "false_alarm": false
-          },
-          {
-            "id": "p01",
-            "planted": "place",
-            "overall": "mismatch",
-            "ms": 5693,
-            "unreadable": false,
-            "extracted": {
-              "action": "unload",
-              "object": "cement bags",
-              "object_maybe_same": false,
-              "place": "gate1",
-              "time": "14:00",
-              "time_ambiguous": false,
-              "quantity": 40,
-              "unit": "bags",
-              "gloss_en": "40 bags of cement need to be unloaded at Gate 1 by 2 PM."
-            },
-            "marks": {
-              "action": "match",
-              "object": "match",
-              "place": "mismatch",
-              "time": "match",
-              "quantity": "match"
-            },
-            "wrong_fields": [],
-            "caught": true,
-            "false_alarm": null
-          },
-          {
-            "id": "p02",
-            "planted": "time",
-            "overall": "mismatch",
-            "ms": 1570,
-            "unreadable": false,
-            "extracted": {
-              "action": "move",
-              "object": "sand bags",
-              "object_maybe_same": false,
-              "place": "gate4",
-              "time": "20:00",
-              "time_ambiguous": false,
-              "quantity": 15,
-              "unit": "bags",
-              "gloss_en": "I will move 15 bags of sand to Gate 4 by 8 PM."
-            },
-            "marks": {
-              "action": "match",
-              "object": "match",
-              "place": "match",
-              "time": "mismatch",
-              "quantity": "match"
-            },
-            "wrong_fields": [],
-            "caught": true,
-            "false_alarm": null
-          },
-          {
-            "id": "p03",
-            "planted": "quantity",
-            "overall": "mismatch",
-            "ms": 1444,
-            "unreadable": false,
-            "extracted": {
-              "action": "unload",
-              "object": "cement bags",
-              "object_maybe_same": false,
-              "place": "gate3",
-              "time": "14:00",
-              "time_ambiguous": false,
-              "quantity": 14,
-              "unit": "bags",
-              "gloss_en": "Got it, unloading 14 bags of cement at Gate 3 by 2 pm"
-            },
-            "marks": {
-              "action": "match",
-              "object": "match",
-              "place": "match",
-              "time": "match",
-              "quantity": "mismatch"
-            },
-            "wrong_fields": [],
-            "caught": true,
-            "false_alarm": null
-          },
-          {
-            "id": "p04",
-            "planted": "action",
-            "overall": "mismatch",
-            "ms": 1677,
-            "unreadable": false,
-            "extracted": {
-              "action": "fix",
-              "object": "floor",
-              "object_maybe_same": false,
-              "place": "store",
-              "time": "17:00",
-              "time_ambiguous": false,
-              "quantity": null,
-              "unit": null,
-              "gloss_en": "I will fix the store room floor by 5 PM."
-            },
-            "marks": {
-              "action": "mismatch",
-              "object": "match",
-              "place": "match",
-              "time": "match",
-              "quantity": "match"
-            },
-            "wrong_fields": [],
-            "caught": true,
-            "false_alarm": null
-          },
-          {
-            "id": "p05",
-            "planted": "time",
-            "overall": "needs_look",
-            "ms": 1939,
-            "unreadable": false,
-            "extracted": {
-              "action": "deliver",
-              "object": "bricks",
-              "object_maybe_same": false,
-              "place": "gate4",
-              "time": null,
-              "time_ambiguous": false,
-              "quantity": 30,
-              "unit": "bricks",
-              "gloss_en": "I am delivering 30 bricks to Gate 4."
-            },
-            "marks": {
-              "action": "match",
-              "object": "match",
-              "place": "match",
-              "time": "unclear",
-              "quantity": "match"
-            },
-            "wrong_fields": [],
-            "caught": true,
-            "false_alarm": null
-          },
-          {
-            "id": "p06",
-            "planted": "place",
-            "overall": "mismatch",
-            "ms": 2253,
-            "unreadable": false,
-            "extracted": {
-              "action": "unload",
-              "object": "cement bags",
-              "object_maybe_same": false,
-              "place": "gate2",
-              "time": "02:00",
-              "time_ambiguous": true,
-              "quantity": 40,
-              "unit": "bags",
-              "gloss_en": "40 cement bags need to be unloaded at Gate 2 by 2 o'clock."
-            },
-            "marks": {
-              "action": "match",
-              "object": "match",
-              "place": "mismatch",
-              "time": "match",
-              "quantity": "match"
-            },
-            "wrong_fields": [],
-            "caught": true,
-            "false_alarm": null
-          }
-        ]
-      }
-    }
-  ]
+      "marks": {
+       "action": "match",
+       "object": "match",
+       "place": "match",
+       "time": "match",
+       "quantity": "match"
+      },
+      "wrong_fields": [],
+      "caught": null,
+      "false_alarm": false
+     },
+     {
+      "id": "m02",
+      "planted": null,
+      "overall": "all_match",
+      "ms": 2892,
+      "unreadable": false,
+      "extracted": {
+       "action": "move",
+       "object": "sand bags",
+       "object_maybe_same": false,
+       "place": "gate1",
+       "time": "04:00",
+       "time_ambiguous": true,
+       "quantity": 20,
+       "unit": "bags",
+       "gloss_en": "20 bags of sand need to be taken to Gate 1 by 4 o'clock."
+      },
+      "marks": {
+       "action": "match",
+       "object": "match",
+       "place": "match",
+       "time": "match",
+       "quantity": "match"
+      },
+      "wrong_fields": [],
+      "caught": null,
+      "false_alarm": false
+     },
+     {
+      "id": "m03",
+      "planted": null,
+      "overall": "all_match",
+      "ms": 2626,
+      "unreadable": false,
+      "extracted": {
+       "action": "clean",
+       "object": "floor",
+       "object_maybe_same": false,
+       "place": "store",
+       "time": "17:00",
+       "time_ambiguous": false,
+       "quantity": null,
+       "unit": null,
+       "gloss_en": "I will clean the store room floor by 5 PM."
+      },
+      "marks": {
+       "action": "match",
+       "object": "match",
+       "place": "match",
+       "time": "match",
+       "quantity": "match"
+      },
+      "wrong_fields": [],
+      "caught": null,
+      "false_alarm": false
+     },
+     {
+      "id": "m04",
+      "planted": null,
+      "overall": "all_match",
+      "ms": 1815,
+      "unreadable": false,
+      "extracted": {
+       "action": "deliver",
+       "object": "bricks",
+       "object_maybe_same": false,
+       "place": "gate4",
+       "time": "11:00",
+       "time_ambiguous": false,
+       "quantity": 30,
+       "unit": "bricks",
+       "gloss_en": "I will deliver 30 bricks at gate 4 by 11 am."
+      },
+      "marks": {
+       "action": "match",
+       "object": "match",
+       "place": "match",
+       "time": "match",
+       "quantity": "match"
+      },
+      "wrong_fields": [],
+      "caught": null,
+      "false_alarm": false
+     },
+     {
+      "id": "m05",
+      "planted": null,
+      "overall": "all_match",
+      "ms": 1896,
+      "unreadable": false,
+      "extracted": {
+       "action": "fix",
+       "object": "mixer",
+       "object_maybe_same": false,
+       "place": "gate2",
+       "time": "10:00",
+       "time_ambiguous": false,
+       "quantity": null,
+       "unit": null,
+       "gloss_en": "I will fix the mixer at Gate 2 by 10 AM in the morning."
+      },
+      "marks": {
+       "action": "match",
+       "object": "match",
+       "place": "match",
+       "time": "match",
+       "quantity": "match"
+      },
+      "wrong_fields": [],
+      "caught": null,
+      "false_alarm": false
+     },
+     {
+      "id": "m06",
+      "planted": null,
+      "overall": "all_match",
+      "ms": 5568,
+      "unreadable": false,
+      "extracted": {
+       "action": "unload",
+       "object": "cement bags",
+       "object_maybe_same": false,
+       "place": "gate3",
+       "time": "15:00",
+       "time_ambiguous": false,
+       "quantity": 50,
+       "unit": "bags",
+       "gloss_en": "Unload 50 bags of cement at Gate 3 by 3 PM."
+      },
+      "marks": {
+       "action": "match",
+       "object": "match",
+       "place": "match",
+       "time": "match",
+       "quantity": "match"
+      },
+      "wrong_fields": [],
+      "caught": null,
+      "false_alarm": false
+     },
+     {
+      "id": "m07",
+      "planted": null,
+      "overall": "all_match",
+      "ms": 2266,
+      "unreadable": false,
+      "extracted": {
+       "action": "move",
+       "object": "bricks",
+       "object_maybe_same": false,
+       "place": "gate2",
+       "time": "01:00",
+       "time_ambiguous": true,
+       "quantity": 200,
+       "unit": "bricks",
+       "gloss_en": "200 bricks have to be taken to Gate 2 by 1 o'clock."
+      },
+      "marks": {
+       "action": "match",
+       "object": "match",
+       "place": "match",
+       "time": "match",
+       "quantity": "match"
+      },
+      "wrong_fields": [],
+      "caught": null,
+      "false_alarm": false
+     },
+     {
+      "id": "m08",
+      "planted": null,
+      "overall": "all_match",
+      "ms": 6183,
+      "unreadable": false,
+      "extracted": {
+       "action": "clean",
+       "object": "debris",
+       "object_maybe_same": false,
+       "place": "gate1",
+       "time": "12:00",
+       "time_ambiguous": true,
+       "quantity": null,
+       "unit": null,
+       "gloss_en": "I will clean the debris near gate 1 by 12."
+      },
+      "marks": {
+       "action": "match",
+       "object": "match",
+       "place": "match",
+       "time": "match",
+       "quantity": "match"
+      },
+      "wrong_fields": [],
+      "caught": null,
+      "false_alarm": false
+     },
+     {
+      "id": "m09",
+      "planted": null,
+      "overall": "all_match",
+      "ms": 1466,
+      "unreadable": false,
+      "extracted": {
+       "action": "deliver",
+       "object": "water can",
+       "object_maybe_same": false,
+       "place": "store",
+       "time": "09:00",
+       "time_ambiguous": false,
+       "quantity": 10,
+       "unit": "cans",
+       "gloss_en": "I will deliver 10 water cans to the store room at 9 in the morning."
+      },
+      "marks": {
+       "action": "match",
+       "object": "match",
+       "place": "match",
+       "time": "match",
+       "quantity": "match"
+      },
+      "wrong_fields": [],
+      "caught": null,
+      "false_alarm": false
+     },
+     {
+      "id": "p01",
+      "planted": "place",
+      "overall": "mismatch",
+      "ms": 5693,
+      "unreadable": false,
+      "extracted": {
+       "action": "unload",
+       "object": "cement bags",
+       "object_maybe_same": false,
+       "place": "gate1",
+       "time": "14:00",
+       "time_ambiguous": false,
+       "quantity": 40,
+       "unit": "bags",
+       "gloss_en": "40 bags of cement need to be unloaded at Gate 1 by 2 PM."
+      },
+      "marks": {
+       "action": "match",
+       "object": "match",
+       "place": "mismatch",
+       "time": "match",
+       "quantity": "match"
+      },
+      "wrong_fields": [],
+      "caught": true,
+      "false_alarm": null
+     },
+     {
+      "id": "p02",
+      "planted": "time",
+      "overall": "mismatch",
+      "ms": 1570,
+      "unreadable": false,
+      "extracted": {
+       "action": "move",
+       "object": "sand bags",
+       "object_maybe_same": false,
+       "place": "gate4",
+       "time": "20:00",
+       "time_ambiguous": false,
+       "quantity": 15,
+       "unit": "bags",
+       "gloss_en": "I will move 15 bags of sand to Gate 4 by 8 PM."
+      },
+      "marks": {
+       "action": "match",
+       "object": "match",
+       "place": "match",
+       "time": "mismatch",
+       "quantity": "match"
+      },
+      "wrong_fields": [],
+      "caught": true,
+      "false_alarm": null
+     },
+     {
+      "id": "p03",
+      "planted": "quantity",
+      "overall": "mismatch",
+      "ms": 1444,
+      "unreadable": false,
+      "extracted": {
+       "action": "unload",
+       "object": "cement bags",
+       "object_maybe_same": false,
+       "place": "gate3",
+       "time": "14:00",
+       "time_ambiguous": false,
+       "quantity": 14,
+       "unit": "bags",
+       "gloss_en": "Got it, unloading 14 bags of cement at Gate 3 by 2 pm"
+      },
+      "marks": {
+       "action": "match",
+       "object": "match",
+       "place": "match",
+       "time": "match",
+       "quantity": "mismatch"
+      },
+      "wrong_fields": [],
+      "caught": true,
+      "false_alarm": null
+     },
+     {
+      "id": "p04",
+      "planted": "action",
+      "overall": "mismatch",
+      "ms": 1677,
+      "unreadable": false,
+      "extracted": {
+       "action": "fix",
+       "object": "floor",
+       "object_maybe_same": false,
+       "place": "store",
+       "time": "17:00",
+       "time_ambiguous": false,
+       "quantity": null,
+       "unit": null,
+       "gloss_en": "I will fix the store room floor by 5 PM."
+      },
+      "marks": {
+       "action": "mismatch",
+       "object": "match",
+       "place": "match",
+       "time": "match",
+       "quantity": "match"
+      },
+      "wrong_fields": [],
+      "caught": true,
+      "false_alarm": null
+     },
+     {
+      "id": "p05",
+      "planted": "time",
+      "overall": "needs_look",
+      "ms": 1939,
+      "unreadable": false,
+      "extracted": {
+       "action": "deliver",
+       "object": "bricks",
+       "object_maybe_same": false,
+       "place": "gate4",
+       "time": null,
+       "time_ambiguous": false,
+       "quantity": 30,
+       "unit": "bricks",
+       "gloss_en": "I am delivering 30 bricks to Gate 4."
+      },
+      "marks": {
+       "action": "match",
+       "object": "match",
+       "place": "match",
+       "time": "unclear",
+       "quantity": "match"
+      },
+      "wrong_fields": [],
+      "caught": true,
+      "false_alarm": null
+     },
+     {
+      "id": "p06",
+      "planted": "place",
+      "overall": "mismatch",
+      "ms": 2253,
+      "unreadable": false,
+      "extracted": {
+       "action": "unload",
+       "object": "cement bags",
+       "object_maybe_same": false,
+       "place": "gate2",
+       "time": "02:00",
+       "time_ambiguous": true,
+       "quantity": 40,
+       "unit": "bags",
+       "gloss_en": "40 cement bags need to be unloaded at Gate 2 by 2 o'clock."
+      },
+      "marks": {
+       "action": "match",
+       "object": "match",
+       "place": "mismatch",
+       "time": "match",
+       "quantity": "match"
+      },
+      "wrong_fields": [],
+      "caught": true,
+      "false_alarm": null
+     }
+    ]
+   }
+  }
+ ]
 }

@@ -1,7 +1,8 @@
 "use client";
 /* eslint-disable react-hooks/set-state-in-effect -- these effects only start a fetch on mount; state is set when it resolves */
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/client/session";
 import type { HealthDTO } from "@/lib/types";
 import { Card, MarkIcon, Screen } from "@/components/ui";
@@ -19,7 +20,8 @@ function Row({ label, ok, value }: { label: string; ok?: boolean; value: string 
   );
 }
 
-export default function HealthPage() {
+function Health() {
+  const debug = useSearchParams().get("debug") === "1"; // raw error rows are for the team only
   const { lang, setLang, t } = usePublicLang();
   const [h, setH] = useState<HealthDTO | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -63,6 +65,7 @@ export default function HealthPage() {
                   </table>
                 )}
               </Card>
+              {debug && (
               <Card>
                 <h2 className="font-display text-xl font-extrabold">{t("health.lastErrors")}</h2>
                 {h.last_errors.length === 0 ? <p className="mt-1 text-muted">{t("health.none")}</p> : (
@@ -71,12 +74,19 @@ export default function HealthPage() {
                   </ul>
                 )}
               </Card>
-              <button type="button" onClick={load} className="inline-flex min-h-12 items-center font-semibold text-pen underline underline-offset-4">{t("health.refresh")}</button>
+              )}
             </>
           )}
-          <Link href="/" className="inline-flex min-h-12 items-center font-semibold text-pen underline underline-offset-4">{t("judge.home")}</Link>
+          <p className="flex flex-wrap gap-x-6">
+            {h && <button type="button" onClick={load} className="inline-flex min-h-12 items-center font-semibold text-pen underline underline-offset-4">{t("health.refresh")}</button>}
+            <Link href="/" className="inline-flex min-h-12 items-center font-semibold text-pen underline underline-offset-4">{t("judge.home")}</Link>
+          </p>
         </div>
       </Screen>
     </>
   );
+}
+
+export default function HealthPage() {
+  return <Suspense><Health /></Suspense>;
 }
