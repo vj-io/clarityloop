@@ -7,7 +7,7 @@ import { api, ApiError } from "@/lib/client/session";
 import type { T } from "@/lib/i18n";
 import { LANG_NAME, type CheckDTO, type CheckRow, type FieldKey, type Lang, type Me, type Overall, type TaskDTO, type TaskState } from "@/lib/types";
 import { Button, Hl, MarkIcon, Pill } from "@/components/ui";
-import { BigCheck, MarkerUnderline, NotEqual } from "./doodles";
+import { BigCheck, HazardIcon, MarkerUnderline, NotEqual } from "./doodles";
 import { hhmm } from "./Bubble";
 
 const cx = (...a: (string | false | null | undefined)[]) => a.filter(Boolean).join(" ");
@@ -42,7 +42,7 @@ export function CardFrame({ tint, label, title, live, earlier, children, aside }
     <section className={cx("doodle pop my-4 overflow-hidden p-0", !live && "opacity-75 grayscale")} aria-label={typeof title === "string" ? title : label}>
       <header className={cx("flex items-center gap-2 border-b-[2.5px] border-ink px-4 py-2", TINT_BG[tint])}>
         <span className={cx("font-hand text-lg leading-none", TINT_FG[tint])}>{label}</span>
-        <span className="ml-auto flex items-center gap-1">{aside}</span>
+        <span className="ml-auto flex flex-wrap items-center justify-end gap-1">{aside}</span>
       </header>
       <div className="p-4">{children}</div>
       {!live && (
@@ -92,7 +92,11 @@ export function TaskCard({ task, live, t, children }: { task: TaskDTO; live: boo
   return (
     <CardFrame tint="pen" label={t("c.card.task")} live={live} earlier={t("c.earlierTask")}
       title={`${task.action} · ${task.place} · ${task.due_time}`}
-      aside={task.is_sandbox ? <Pill tint="warn">{t("c.sandbox")}</Pill> : null}>
+      aside={<>
+        {task.is_safety && <Pill tint="bad"><HazardIcon />{t("x.form.safety")}</Pill>}
+        {task.broadcast_id && <Pill tint="hi">{t("x.task.crewBadge")}</Pill>}
+        {task.is_sandbox && <Pill tint="warn">{t("c.sandbox")}</Pill>}
+      </>}>
       <p className="mb-2 text-sm text-muted">{t("c.taskFrom", { sup: task.supervisor.name, worker: task.worker.name })}</p>
       <TaskFacts v={task} t={t} />
       <div className="mt-3"><StatePill task={task} t={t} /></div>

@@ -1,8 +1,9 @@
 "use client";
 // Send as task (supervisor only): action, object, place, 24-hour time, quantity + unit, note.
 // A live preview shows the card the worker will receive, in the worker's language.
+// In a crew channel the same form sends one task to every worker (POST /api/broadcasts), with a safety toggle.
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/shell/AppHeader";
 import { useRequireMe } from "@/components/shell/guard";
 import { Button, Field, Input, Pill, Select, Spinner } from "@/components/ui";
@@ -10,7 +11,7 @@ import { BG, TaskFacts } from "@/components/chat/cards";
 import { ClipboardDoodle } from "@/components/chat/doodles";
 import { api, ApiError } from "@/lib/client/session";
 import { makeT, type T } from "@/lib/i18n";
-import { LANG_NAME, type Api, type CrewDTO, type ListItem } from "@/lib/types";
+import { LANG_NAME, LANGS, type Api, type CrewDTO, type Lang, type ListItem } from "@/lib/types";
 
 type Conv = Api["GET /api/conversations/:id"]["res"];
 
@@ -25,6 +26,8 @@ export default function NewTaskPage() {
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [safety, setSafety] = useState(false);
+  const [pick, setPick] = useState<Lang | null>(null);   // crew: which worker language the preview shows
   const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
 
   useEffect(() => {
@@ -46,20 +49,25 @@ export default function NewTaskPage() {
   };
   const show = (k: keyof typeof errors) => (tried ? errors[k] : null);
 
-  const workerLang = conv?.conversation.other.language ?? me?.language ?? "en";
-  const wt = useMemo(() => makeT(workerLang), [workerLang]);
+  const isCrew = conv?.conversation.kind === "crew";
+  const workers = crew?.members.filter((m) => m.role === "worker") ?? [];
+  const crewLangs = LANGS.filter((l) => workers.some((w) => w.language === l));
+  const workerLang = isCrew ? pick ?? crewLangs[0] ?? me?.language ?? "en" : conv?.conversation.other.language ?? me?.language ?? "en";
+  const wt = makeT(workerLang);
   const label = (list: ListItem[] | undefined, id: string) => list?.find((x) => x.id === id)?.labels[workerLang] ?? "";
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setTried(true);
-    if (Object.values(errors).some(Boolean)) return;
+    if (Object.values(errors).some(Boolean) || (isCrew && !workers.length)) return;
     setBusy(true); setErr(null);
+    const fields = {
+      action_id: f.action, object_text: f.object.trim(), place_id: f.place,
+      due_time: f.time, quantity: qtyNum, unit: qtyNum !== null ? f.unit.trim() || null : null, note: f.note.trim() || null,
+    };
     try {
-      await api("POST /api/tasks", {
-        conversation_id: conversationId, action_id: f.action, object_text: f.object.trim(), place_id: f.place,
-        due_time: f.time, quantity: qtyNum, unit: qtyNum !== null ? f.unit.trim() || null : null, note: f.note.trim() || null,
-      });
+      if (isCrew) await api("POST /api/broadcasts", { ...fields, is_safety: safety });
+      else await api("POST /api/tasks", { conversation_id: conversationId, ...fields });
       router.push(`/c/${conversationId}`);
     } catch (e) {
       setErr(e instanceof ApiError ? (e.status === 429 ? t("c.err.slow") : t("c.form.err.send")) : t("c.err.network"));
@@ -74,9 +82,10 @@ export default function NewTaskPage() {
   const other = conv?.conversation.other;
   return (
     <>
-      <AppHeader title={t("c.form.title")} back={back} />
+      <AppHeader title={t(isCrew ? "x.form.title" : "c.form.title")} back={back} />
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-5">
-        {other && <p className="mb-4 font-hand text-xl leading-tight">{t("c.form.to", { name: other.display_name, lang: LANG_NAME[other.language] })}</p>}
+        {isCrew ? <p className="mb-4 font-hand text-xl leading-tight">{workers.length ? t("x.form.to", { n: workers.length }) : <span className="text-bad">{t("x.form.noWorkers")}</span>}</p>
+          : other && <p className="mb-4 font-hand text-xl leading-tight">{t("c.form.to", { name: other.display_name, lang: LANG_NAME[other.language] })}</p>}
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
           <form onSubmit={submit} noValidate className="space-y-5">
             <Picker label={t("c.f.action")} items={crew.actions} value={f.action} onChange={set("action")} error={show("action")} t={t} />
@@ -113,18 +122,42 @@ export default function NewTaskPage() {
                 className="doodle doodle-flat w-full resize-y bg-card px-3 py-2 text-base" />
               <span className={`block text-right font-mono text-sm ${f.note.length > 260 ? "text-warn" : "text-muted"}`}>{f.note.length}/280</span>
             </Field>
+            {isCrew && (
+              <label className="doodle doodle-flat flex min-h-12 cursor-pointer items-start gap-3 px-3 py-2.5" style={safety ? { background: "var(--bad-soft)" } : undefined}>
+                <input type="checkbox" checked={safety} onChange={(e) => setSafety(e.target.checked)} className="mt-1 h-6 w-6 shrink-0 accent-[var(--bad)]" />
+                <span>
+                  <span className="block font-display text-lg font-extrabold leading-tight">{t("x.form.safety")}</span>
+                  <span className="block text-base text-muted">{t("x.form.safetyHint")}</span>
+                </span>
+              </label>
+            )}
             {err && <p role="alert" className="font-semibold text-bad">{err}</p>}
-            <Button tone="hi" type="submit" disabled={busy} className="w-full text-lg" style={BG.hi}>
-              <ClipboardDoodle />{busy ? <span className="dots">{t("c.form.sending")}</span> : t("c.form.send")}
+            <Button tone="hi" type="submit" disabled={busy || (isCrew && !workers.length)} className="w-full text-lg" style={BG.hi}>
+              <ClipboardDoodle />{busy ? <span className="dots">{t("c.form.sending")}</span> : t(isCrew ? "x.form.send" : "c.form.send")}
             </Button>
           </form>
 
           <aside aria-label={t("c.form.preview")} className="lg:sticky lg:top-24 lg:self-start">
+            {isCrew && crewLangs.length > 1 && (
+              <div role="group" aria-label={t("x.form.previewIn")} className="mb-2 flex flex-wrap items-center gap-2">
+                <span className="font-hand text-lg text-muted">{t("x.form.previewIn")}</span>
+                {crewLangs.map((l) => (
+                  <button key={l} type="button" aria-pressed={l === workerLang} onClick={() => setPick(l)}
+                    className={`min-h-12 rounded-full border-2 border-ink px-4 font-display font-extrabold ${l === workerLang ? "bg-ink text-paper" : "bg-card"}`}>
+                    {LANG_NAME[l]}
+                  </button>
+                ))}
+              </div>
+            )}
             <p className="mb-1 font-hand text-lg text-muted">{t("c.form.preview", { lang: LANG_NAME[workerLang] })}</p>
             <div className="doodle overflow-hidden p-0">
               <div className="flex items-center gap-2 border-b-[2.5px] border-ink bg-pen-soft px-4 py-2">
                 <span className="font-hand text-lg leading-none text-pen">{wt("c.card.task")}</span>
-                {me.is_sandbox && <span className="ml-auto"><Pill tint="warn">{wt("c.sandbox")}</Pill></span>}
+                <span className="ml-auto flex flex-wrap justify-end gap-1">
+                  {isCrew && safety && <Pill tint="bad">{wt("x.form.safety")}</Pill>}
+                  {isCrew && <Pill tint="hi">{wt("x.task.crewBadge")}</Pill>}
+                  {me.is_sandbox && <Pill tint="warn">{wt("c.sandbox")}</Pill>}
+                </span>
               </div>
               <div className="p-4" lang={workerLang}>
                 <TaskFacts t={wt} v={{

@@ -47,3 +47,9 @@ next-env.d.ts
 
 # private planning doc
 docs/PRD.md
+
+# video working files (large)
+submission/video/
+submission/*.mp4
+submission/fastrender_*/
+submission/ClarityLoop-demo*

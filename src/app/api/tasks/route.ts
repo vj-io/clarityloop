@@ -27,6 +27,7 @@ export const POST = route(async (req) => {
   const b = await body(req, Body);
   const conv = await memberConversation(b.conversation_id, me.id);
   if (conv.supervisor_id !== me.id) return forbidden();
+  if (conv.kind !== "pair") return fail(400, "invalid", "a crew channel takes crew tasks: POST /api/broadcasts");
   const lists = await crewLists(conv.crew_id);
   if (!lists.actions.some((a) => a.id === b.action_id) || !lists.places.some((p) => p.id === b.place_id)) return fail(400, "invalid", "action or place is not in this crew's lists");
 

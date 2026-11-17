@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { LangSchema } from "@/lib/types";
 import { createAuthUser, grantFor, workerEmail, type ProfileRow } from "@/lib/server/auth";
-import { ensureConversation } from "@/lib/server/conversations";
+import { ensureConversation, ensureCrewConversation } from "@/lib/server/conversations";
 import { db, nexconnId, ok } from "@/lib/server/db";
 import { body, fail, json, route } from "@/lib/server/http";
 import { hashPin, PIN_RE } from "@/lib/server/pin";
@@ -32,6 +32,7 @@ export const POST = route(async (req) => {
   // Open the pair conversation now so the worker's inbox is not empty.
   const sup = ok(await db().from("profiles").select("*").eq("id", crew.supervisor_id).maybeSingle()) as ProfileRow | null;
   if (sup) await ensureConversation(sup, worker).catch((e) => console.error("[join] conversation", e));
+  await ensureCrewConversation(crew.id).catch((e) => console.error("[join] crew channel", e)); // adds the joiner to the crew channel
 
   return json(await grantFor(id));
 });

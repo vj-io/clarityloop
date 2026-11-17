@@ -10,10 +10,11 @@ import { Bubble, TheirBubble } from "@/components/chat/Bubble";
 import {
   CardLoading, CheckCard, DoneCard, RESTATE_STATES, RestateBox, StateLine, TaskCard, UnderstoodCard,
 } from "@/components/chat/cards";
+import { BoardCard } from "@/components/chat/board";
 import { Composer } from "@/components/chat/Composer";
 import { HelloDoodle } from "@/components/chat/doodles";
 import { cardOf, useConversation } from "@/components/chat/useConversation";
-import { BOT_USER_ID, LANG_NAME, type ChatMsg, type TaskDTO } from "@/lib/types";
+import { BOT_USER_ID, LANG_NAME, LANGS, type ChatMsg, type TaskDTO } from "@/lib/types";
 
 const BIG = new Set(["TASK", "CHECK", "understood", "done"]);
 
@@ -78,6 +79,7 @@ export default function ConversationPage() {
   }
 
   const other = conv?.conversation.other;
+  const isCrew = conv?.conversation.kind === "crew";
   const isSup = me.role === "supervisor";
   const onTask = (task: TaskDTO) => s.putTask(task);
   const focusRestate = (taskId: string) => {
@@ -100,6 +102,11 @@ export default function ConversationPage() {
     const tid = plan.taskOf(m);
     const live = tid !== null && plan.lastBig[tid] === i;
     if (s.gone[c.id]) return null; // deleted task or check: nothing to draw
+    if (c.event === "board") return null; // ping only: the board above refetches itself
+    if (c.kind === "BOARD") {
+      const b = s.boards[c.id];
+      return b ? <BoardCard b={b} isSup={isSup} t={t} /> : <CardLoading t={t} onRetry={() => s.refreshBoard(c.id)} />;
+    }
     if (c.kind === "TASK") {
       const task = tasks[c.id];
       if (!task) return <CardLoading t={t} onRetry={() => s.refreshTask(c.id)} />;
@@ -137,11 +144,12 @@ export default function ConversationPage() {
 
   const empty = s.historyReady && msgs.length === 0 && s.pending.length === 0;
   return (
-    <Shell title={other?.display_name} back="/inbox">
+    <Shell title={isCrew ? conv?.conversation.title : other?.display_name} back="/inbox">
       {/* who I'm talking to, and whether the line is live */}
       <div className="border-b-2 border-ink/20 bg-paper">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1.5">
-          {other && <span className="font-hand text-lg leading-tight">{t("c.readsIn", { name: other.display_name, lang: LANG_NAME[other.language] })}</span>}
+          {isCrew && conv ? <CrewSummary members={Object.values(conv.members)} t={t} />
+            : other && <span className="font-hand text-lg leading-tight">{t("c.readsIn", { name: other.display_name, lang: LANG_NAME[other.language] })}</span>}
           <LinkChip status={s.status} t={t} />
           {s.kind === "local" && <span className="text-xs text-muted">{t("c.localTransport")}</span>}
         </div>
@@ -152,9 +160,9 @@ export default function ConversationPage() {
         {empty && (
           <div className="pop mx-auto mt-6 flex max-w-sm flex-col items-center text-center">
             <HelloDoodle />
-            <p className="mt-3 font-display text-2xl font-extrabold leading-tight">{t("c.empty.title")}</p>
-            <p className="mt-1 text-base text-muted">{t("c.empty.body")}</p>
-            {isSup && <p className="mt-3 font-hand text-xl leading-tight text-pen">{t("c.empty.task")}</p>}
+            <p className="mt-3 font-display text-2xl font-extrabold leading-tight">{t(isCrew ? "x.empty.title" : "c.empty.title")}</p>
+            <p className="mt-1 text-base text-muted">{t(isCrew ? "x.empty.body" : "c.empty.body")}</p>
+            {isSup && <p className="mt-3 font-hand text-xl leading-tight text-pen">{t(isCrew ? "x.empty.task" : "c.empty.task")}</p>}
           </div>
         )}
         {msgs.map((m, i) => <Fragment key={m.id}>{renderMsg(m, i)}</Fragment>)}
@@ -174,7 +182,8 @@ export default function ConversationPage() {
         </div>
       )}
 
-      <Composer t={t} offline={s.status === "offline"} taskHref={isSup ? `/c/${conversationId}/task/new` : undefined}
+      <Composer t={t} offline={s.status === "offline"} taskHref={isSup && conv ? `/c/${conversationId}/task/new` : undefined}
+        taskLabel={isCrew ? t("x.crewTask") : undefined}
         onSend={(text) => { atBottom.current = true; s.send(text); }} />
     </Shell>
   );
@@ -182,6 +191,19 @@ export default function ConversationPage() {
 
 function Shell({ title, back, children }: { title?: string; back?: string; children: React.ReactNode }) {
   return <div className="flex min-h-dvh flex-col"><AppHeader title={title} back={back} />{children}</div>;
+}
+
+/** Crew channel header line: how many people, and how many read in each language. */
+function CrewSummary({ members, t }: { members: { language: (typeof LANGS)[number] }[]; t: (k: string, v?: Record<string, string | number>) => string }) {
+  return (
+    <span className="flex flex-wrap items-center gap-1.5 font-hand text-lg leading-tight">
+      <span>{t("x.people", { n: members.length })} ·</span>
+      {LANGS.map((l) => {
+        const n = members.filter((m) => m.language === l).length;
+        return n ? <span key={l} className="rounded-full border-2 border-ink/40 px-2 text-base leading-snug">{LANG_NAME[l]} <span className="font-mono">{n}</span></span> : null;
+      })}
+    </span>
+  );
 }
 
 function LinkChip({ status, t }: { status: "connecting" | "connected" | "offline"; t: (k: string) => string }) {

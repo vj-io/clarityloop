@@ -1,12 +1,14 @@
 // Task / check loading and DTOs in the reader's language (FR-11, FR-15).
+import { after } from "next/server";
 import {
-  FIELDS, LANGS, type CheckDTO, type CheckRow, type FieldMarks, type I18n, type Lang,
+  CARD, FIELDS, LANGS, type CheckDTO, type CheckRow, type FieldMarks, type I18n, type Lang,
   type Overall, type Role, type TaskDTO, type TaskState,
 } from "../types.ts";
 import { translateText, type CrewLists } from "./ai.ts";
 import type { ProfileRow } from "./auth.ts";
 import { memberConversation, type ConvRow } from "./conversations.ts";
 import { crewLists } from "./crew.ts";
+import { postCard } from "./cards.ts";
 import { audit, db, logHealth, ok } from "./db.ts";
 import { notFound } from "./http.ts";
 
@@ -15,6 +17,7 @@ export type TaskRow = {
   action_id: string; object_text: string; object_i18n: I18n; place_id: string; due_time: string;
   quantity: number | string | null; unit: string | null; note: string | null; note_i18n: I18n;
   state: TaskState; is_sandbox: boolean; created_at: string; understood_at: string | null; done_at: string | null;
+  broadcast_id?: string | null;
 };
 export type CheckDbRow = {
   id: string; restatement_id: string; task_id: string; extracted: unknown; field_marks: FieldMarks;
@@ -53,6 +56,19 @@ export async function setState(task: TaskRow, state: TaskState, actor: string, t
   ok(u);
   task.state = state;
   Object.assign(task, extra);
+  if (task.broadcast_id) pingBoard(task.broadcast_id);
+}
+
+/**
+ * A child task of a crew task changed: tell the crew channel so every open board refetches.
+ * Sent at once (so "Checking" shows while the AI runs); `after` keeps the function alive until it lands.
+ */
+function pingBoard(broadcastId: string) {
+  const p = (async () => {
+    const b = ok(await db().from("broadcasts").select("conversation_id").eq("id", broadcastId).maybeSingle()) as { conversation_id: string } | null;
+    if (b) await postCard(b.conversation_id, `${CARD.STATE}${broadcastId}:board`);
+  })().catch((e) => console.error("[board ping]", e));
+  try { after(p); } catch { /* outside a request (tests): the promise still runs */ }
 }
 
 type Ctx = { lists: CrewLists; people: Record<string, Person> };
@@ -65,9 +81,9 @@ async function context(task: TaskRow, conv: ConvRow): Promise<Ctx> {
   return { lists, people: Object.fromEntries((ok(ppl) as Person[]).map((p) => [p.id, p])) };
 }
 
-const label = (lists: CrewLists, kind: "places" | "actions", id: string | null, lang: Lang) =>
+export const label = (lists: CrewLists, kind: "places" | "actions", id: string | null, lang: Lang) =>
   id == null ? "" : lists[kind].find((x) => x.id === id)?.labels[lang] ?? id;
-const pickI18n = (v: I18n, lang: Lang, fallback: string) => v[lang] ?? v.en ?? fallback;
+export const pickI18n = (v: I18n, lang: Lang, fallback: string) => v[lang] ?? v.en ?? fallback;
 
 async function checkDTO(check: CheckDbRow, task: TaskRow, reader: ProfileRow, cx: Ctx): Promise<CheckDTO> {
   const lang = reader.language;
@@ -117,10 +133,11 @@ export async function latestCheck(taskId: string): Promise<CheckDbRow | null> {
 
 export async function taskDTO(task: TaskRow, conv: ConvRow, reader: ProfileRow, check?: CheckDbRow | null): Promise<TaskDTO> {
   const lang = reader.language;
-  const [cx, confs, latest] = await Promise.all([
+  const [cx, confs, latest, bc] = await Promise.all([
     context(task, conv),
     db().from("task_confirmations").select("profile_id, confirmed_at").eq("task_id", task.id).order("confirmed_at"),
     check === undefined ? latestCheck(task.id) : Promise.resolve(check),
+    task.broadcast_id ? db().from("broadcasts").select("is_safety").eq("id", task.broadcast_id).maybeSingle() : Promise.resolve(null),
   ]);
   const name = (id: string) => ({ id, name: cx.people[id]?.display_name ?? "" });
   return {
@@ -133,6 +150,7 @@ export async function taskDTO(task: TaskRow, conv: ConvRow, reader: ProfileRow, 
     confirmations: ok(confs) as { profile_id: string; confirmed_at: string }[],
     latest_check: latest ? await checkDTO(latest, task, reader, cx) : null,
     understood_at: task.understood_at, done_at: task.done_at,
+    broadcast_id: task.broadcast_id ?? null, is_safety: Boolean((bc && (ok(bc) as { is_safety: boolean } | null))?.is_safety),
   };
 }
 

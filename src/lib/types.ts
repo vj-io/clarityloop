@@ -61,11 +61,13 @@ export type FieldMarks = Record<FieldKey, FieldMark>;
 // [[CL:TASK]]<taskId>                      task card
 // [[CL:CHECK]]<checkId>                    comparison card (red / amber / green), re-posted after an acceptance
 // [[CL:STATE]]<taskId>:<event>             event = checking | confirmed | understood | done
+// [[CL:BOARD]]<broadcastId>                roll-call board of a crew task (crew channel)
+// [[CL:STATE]]<broadcastId>:board          ping: a child task of that crew task changed; refetch the board
 // A card-looking text whose sender is not BOT_USER_ID is ordinary chat and must be drawn as text.
 export const BOT_USER_ID = "clarityloopbot";
-export const CARD = { TASK: "[[CL:TASK]]", CHECK: "[[CL:CHECK]]", STATE: "[[CL:STATE]]" } as const;
+export const CARD = { TASK: "[[CL:TASK]]", CHECK: "[[CL:CHECK]]", STATE: "[[CL:STATE]]", BOARD: "[[CL:BOARD]]" } as const;
 export type CardKind = keyof typeof CARD;
-export type StateEvent = "checking" | "confirmed" | "understood" | "done";
+export type StateEvent = "checking" | "confirmed" | "understood" | "done" | "board";
 export function parseCard(text: string): { kind: CardKind; id: string; event?: StateEvent } | null {
   for (const kind of Object.keys(CARD) as CardKind[]) {
     if (!text.startsWith(CARD[kind])) continue;
@@ -95,6 +97,8 @@ export type ConversationDTO = {
   id: string; nexconn_group_id: string;
   other: { id: string; display_name: string; language: Lang; role: Role };
   open_tasks: number; last_activity_at: string;
+  /** Crew scale (optional for backward compatibility). For kind "crew", `other` is a stand-in named after the crew. */
+  kind?: "pair" | "crew"; title?: string; member_count?: number;
 };
 export type CheckRow = { field: FieldKey; mark: Mark; supervisor: string; worker: string; reason?: FieldMark["reason"]; accepted?: boolean };
 export type CheckDTO = {
@@ -113,7 +117,31 @@ export type TaskDTO = {
   confirmations: { profile_id: string; confirmed_at: string }[];
   latest_check: CheckDTO | null;
   understood_at: string | null; done_at: string | null;
+  broadcast_id?: string | null; is_safety?: boolean;   // set when the task is one worker's copy of a crew task
 };
+/**
+ * Roll-call board row. Workers see other workers redacted: status is only "understood" or "not_yet",
+ * with no fields and no task/conversation ids (no one is shown up in front of the crew).
+ */
+export type BoardStatus = TaskState | "not_yet";
+export type BoardRow = {
+  worker: { id: string; name: string; language: Lang };
+  status: BoardStatus;
+  is_me: boolean;
+  task_id: string | null;           // null when redacted
+  conversation_id: string | null;   // the worker's pair conversation; null when redacted
+  issues: { field: FieldKey; mark: Mark; supervisor: string; worker: string }[];   // empty when redacted
+};
+export type BroadcastDTO = {
+  id: string; conversation_id: string; created_at: string; is_safety: boolean; is_sandbox: boolean;
+  action: string; object: string; place: string; due_time: string;
+  quantity: number | null; unit: string | null; note: string | null;
+  supervisor: { id: string; name: string };
+  rows: BoardRow[];
+  progress: { understood: number; total: number };   // understood counts understood + done
+  redacted: boolean;
+};
+export type BroadcastSummary = Pick<BroadcastDTO, "id" | "conversation_id" | "created_at" | "is_safety" | "action" | "object" | "place" | "due_time" | "progress">;
 export type TranslationDTO = {
   id: string;                      // nexconn message id
   text: string | null;             // null => same language, show the original
@@ -130,7 +158,7 @@ export type Api = {
   "GET /api/config": { res: { transport: "nexconn" | "local"; nexconn_app_key: string | null; nexconn_area: "SG" | "NA" | "SA"; ai_ready: boolean } };
   "POST /api/join": { req: { join_code: string; name: string; language: Lang; pin: string }; res: SessionGrant };
   "POST /api/worker-login": { req: { join_code: string; name: string; pin: string }; res: SessionGrant };
-  "POST /api/judge": { req: { role: Role; fresh?: boolean }; res: SessionGrant & { conversation_id: string } };
+  "POST /api/judge": { req: { role: Role; fresh?: boolean; worker?: "murugan" | "lakshmi" }; res: SessionGrant & { conversation_id: string; crew_conversation_id?: string } };
   "GET /api/me": { res: { me: Me | null } };                       // null => signed in, no profile yet => /onboarding
   "PATCH /api/me": { req: { language?: Lang; display_name?: string }; res: { me: Me } };
   "POST /api/crews": { req: { display_name: string; language: Lang; crew_name: string; site_name: string }; res: { me: Me; crew: CrewDTO } };
@@ -139,12 +167,16 @@ export type Api = {
   "DELETE /api/crew/lists": { req: { kind: "place" | "action"; id: string }; res: { crew: CrewDTO } };
   "POST /api/nexconn/token": { res: { user_id: string; token: string | null } };                          // token null in local transport
   "POST /api/conversations": { req: { worker_id: string }; res: { conversation: ConversationDTO } };
-  "GET /api/conversations": { res: { conversations: ConversationDTO[] } };
+  "GET /api/conversations": { res: { conversations: ConversationDTO[] } };   // the crew channel (kind "crew") comes first
+  "POST /api/conversations/crew": { res: { conversation: ConversationDTO } };   // get or create the caller's crew channel
   "GET /api/conversations/:id": { res: { conversation: ConversationDTO; members: Record<string, { id: string; display_name: string; language: Lang; role: Role }> } }; // keyed by nexconn_user_id
   "POST /api/translate": { req: { conversation_id: string; messages: { id: string; text: string }[] }; res: { translations: TranslationDTO[] } }; // max 50 per call
   "POST /api/translate/flag": { req: { conversation_id: string; message_id: string }; res: { ok: true } };
   "POST /api/tasks": { req: { conversation_id: string; action_id: string; object_text: string; place_id: string; due_time: string; quantity?: number | null; unit?: string | null; note?: string | null }; res: { task: TaskDTO } };
-  "GET /api/tasks": { res: { tasks: TaskDTO[] } };                 // supervisor: all of theirs; worker: assigned to them; newest first
+  "GET /api/tasks": { res: { tasks: TaskDTO[] } };
+  "POST /api/broadcasts": { req: { action_id: string; object_text: string; place_id: string; due_time: string; quantity?: number | null; unit?: string | null; note?: string | null; is_safety?: boolean }; res: { broadcast: BroadcastDTO } };
+  "GET /api/broadcasts": { res: { broadcasts: BroadcastSummary[] } };   // supervisor: recent, newest first
+  "GET /api/broadcasts/:id": { res: { broadcast: BroadcastDTO } };      // crew channel members; redacted for workers                 // supervisor: all of theirs; worker: assigned to them; newest first
   "GET /api/tasks/:id": { res: { task: TaskDTO } };
   "GET /api/checks/:id": { res: { check: CheckDTO; task: TaskDTO } };
   "POST /api/tasks/:id/restate": { req: { text: string }; res: { task: TaskDTO; check: CheckDTO } };
@@ -152,6 +184,8 @@ export type Api = {
   "POST /api/tasks/:id/confirm": { res: { task: TaskDTO } };
   "POST /api/tasks/:id/done": { res: { task: TaskDTO } };
   "GET /api/health": { res: HealthDTO };
+  "GET /api/insights": { res: InsightsDTO };                       // supervisor of the crew only; read-only
+  "GET /api/tasks/:id/record": { res: RecordDTO };                 // members of the task's conversation; read-only
   // Local transport only (used when Nexconn keys are not configured):
   "GET /api/local/messages?conversation_id=&after=": { res: { messages: ChatMsg[] } };   // after = ms timestamp, exclusive
   "POST /api/local/messages": { req: { conversation_id: string; text: string }; res: { message: ChatMsg } };
@@ -161,4 +195,46 @@ export type HealthDTO = {
   db_ok: boolean; pending_cards: number;
   timings: Record<string, { n: number; median_ms: number | null; errors: number }>;   // by health_events.kind
   last_errors: { kind: string; code: string | null; at: string }[];
+};
+
+// ---------- Business screens: /insights and /record/:taskId ----------
+/** Every share is a whole percent, or null when its denominator is 0. All numbers come from one query of the crew's own tasks. */
+export type InsightsDTO = {
+  crew: { name: string; site_name: string; is_sandbox: boolean };
+  generated_at: string;
+  totals: {
+    sent: number;
+    restated: number; restated_pct: number | null;          // tasks with >= 1 restatement
+    understood: number; understood_pct: number | null;      // state understood or done
+    checked: number;                                        // tasks with >= 1 check
+    caught: number;                                         // first check mismatch/needs_look, task later understood/done
+    median_minutes_to_understood: number | null;
+  };
+  fields: { field: FieldKey; checked: number; mismatch: number; unclear: number }[];   // first check of each task
+  languages: { language: Lang; tasks: number; retried: number; retried_pct: number | null }[];   // retried = 2+ restatements
+  workers: { id: string; name: string; language: Lang; tasks: number; retried: number }[];       // A-Z by name, never ranked
+  trend: { date: string; sent: number; first_try: number }[];                                    // last 14 days, oldest first (IST days)
+  recent: { id: string; object: string; worker: string; state: TaskState; created_at: string; restatements: number }[];
+};
+export type RecordCheck = {
+  id: string; overall: Overall; created_at: string; unreadable: boolean;
+  rows: CheckRow[];                                          // labels in the reader's language
+  gloss: string;                                             // what the AI understood, reader's language
+  accepted: { field: FieldKey; by: string; at: string }[];
+};
+export type RecordDTO = {
+  task: {
+    id: string; state: TaskState; is_sandbox: boolean; created_at: string; understood_at: string | null; done_at: string | null;
+    due_time: string; quantity: number | null; unit: string | null;
+    supervisor: { id: string; name: string; language: Lang }; worker: { id: string; name: string; language: Lang };
+    reader: { action: string; object: string; place: string; note: string | null };      // reader's language
+    original: { language: Lang; action: string; object: string; place: string; note: string | null };  // as the supervisor wrote it
+  };
+  restatements: {
+    id: string; created_at: string; by: string; language: Lang; text: string;
+    translated: string | null;                               // reader's language; null when same language or never translated
+    checks: RecordCheck[];
+  }[];
+  confirmations: { by: string; at: string }[];
+  events: { id: string; type: string; by: string | null; at: string; detail: string }[];
 };

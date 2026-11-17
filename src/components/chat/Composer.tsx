@@ -7,9 +7,10 @@ import { ClipboardDoodle, SendDoodle } from "./doodles";
 
 const MAX = 2000;
 
-export function Composer({ t, offline, onSend, taskHref }: {
-  t: T; offline: boolean; onSend: (text: string) => void; taskHref?: string;
+export function Composer({ t, offline, onSend, taskHref, taskLabel }: {
+  t: T; offline: boolean; onSend: (text: string) => void; taskHref?: string; taskLabel?: string;
 }) {
+  const tl = taskLabel ?? t("c.sendAsTask");
   const [text, setText] = useState("");
   const ref = useRef<HTMLTextAreaElement>(null);
   const v = text.trim();
@@ -28,10 +29,10 @@ export function Composer({ t, offline, onSend, taskHref }: {
         {offline && <p role="status" className="mb-1 font-hand text-lg leading-tight text-bad">{t("c.offlineReason")}</p>}
         <div className="flex items-end gap-2">
           {taskHref && (
-            <Link href={taskHref} aria-label={t("c.sendAsTask")}
+            <Link href={taskHref} aria-label={tl}
               className="doodle doodle-flat inline-flex min-h-12 shrink-0 items-center gap-1.5 px-2.5 font-display text-sm font-extrabold leading-tight sm:px-3"
               style={{ background: "var(--hi)", boxShadow: "2px 2px 0 var(--ink)" }}>
-              <ClipboardDoodle /><span className="hidden min-[400px]:inline">{t("c.sendAsTask")}</span>
+              <ClipboardDoodle /><span className="hidden min-[400px]:inline">{tl}</span>
             </Link>
           )}
           <label className="sr-only" htmlFor="composer">{t("c.typeMessage")}</label>

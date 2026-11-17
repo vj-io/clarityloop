@@ -71,3 +71,12 @@ export function Tail({ side, fill }: { side: "left" | "right"; fill: string }) {
     </svg>
   );
 }
+
+/** Hand-drawn warning triangle for safety briefings. */
+export function HazardIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" className="shrink-0">
+      <path {...P} d="M16 4 C20 11, 25 19, 29 27 C21 28, 11 28, 3 27 C7 19, 12 11, 15.5 4.5 M16 12 L16.3 19 M16.2 23.5 L16.2 24" stroke="var(--bad)" strokeWidth={3.4} />
+    </svg>
+  );
+}

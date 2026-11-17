@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/client/session";
 import { getTransport, type ChatTransport, type LinkStatus, type Room } from "@/lib/client/transport";
-import { BOT_USER_ID, parseCard, type Api, type ChatMsg, type CheckDTO, type Me, type TaskDTO, type TranslationDTO } from "@/lib/types";
+import { BOT_USER_ID, parseCard, type Api, type BroadcastDTO, type ChatMsg, type CheckDTO, type Me, type TaskDTO, type TranslationDTO } from "@/lib/types";
 
 type ConvRes = Api["GET /api/conversations/:id"]["res"];
 export type Tr = { state: "pending" } | { state: "done"; dto: TranslationDTO } | { state: "error" | "slow" };
@@ -25,6 +25,7 @@ export function useConversation(conversationId: string, me: Me | null) {
   const [pending, setPending] = useState<Pending[]>([]);
   const [tasks, setTasks] = useState<Record<string, TaskDTO>>({});
   const [checks, setChecks] = useState<Record<string, CheckDTO>>({});
+  const [boards, setBoards] = useState<Record<string, BroadcastDTO>>({});   // crew channel: roll-call boards by broadcast id
   const [gone, setGone] = useState<Record<string, true>>({}); // card ids whose task/check no longer exists
   const [tr, setTr] = useState<Record<string, Tr>>({});
 
@@ -61,6 +62,12 @@ export function useConversation(conversationId: string, me: Me | null) {
       setChecks((s) => ({ ...s, [check.id]: check }));
       setTasks((s) => ({ ...s, [task.id]: task }));
     } catch (e) { if (e instanceof ApiError && e.status === 404) setGone((g) => ({ ...g, [checkId]: true })); }
+  }, []);
+  const refreshBoard = useCallback(async (id: string) => {
+    try {
+      const { broadcast } = await api("GET /api/broadcasts/:id", undefined, { id });
+      setBoards((s) => ({ ...s, [id]: broadcast }));
+    } catch (e) { if (e instanceof ApiError && e.status === 404) setGone((g) => ({ ...g, [id]: true })); }
   }, []);
   const putTask = useCallback((task: TaskDTO, check?: CheckDTO) => {
     setTasks((s) => ({ ...s, [task.id]: task }));
@@ -109,22 +116,25 @@ export function useConversation(conversationId: string, me: Me | null) {
   useEffect(() => {
     const taskIds = new Set<string>();
     const checkIds = new Set<string>();
+    const boardIds = new Set<string>();   // a BOARD card, or a "board" ping: refetch that board
     for (const m of msgs) {
       if (seenCards.current.has(m.id)) continue;
       const c = cardOf(m);
       if (!c) continue;
       seenCards.current.add(m.id);
-      if (c.kind === "CHECK") checkIds.add(c.id); else taskIds.add(c.id);
+      if (c.kind === "BOARD" || c.event === "board") boardIds.add(c.id);
+      else if (c.kind === "CHECK") checkIds.add(c.id); else taskIds.add(c.id);
     }
     checkIds.forEach((id) => refreshCheck(id));
     taskIds.forEach((id) => refreshTask(id));
-  }, [msgs, lang, refreshCheck, refreshTask]);
+    boardIds.forEach((id) => refreshBoard(id));
+  }, [msgs, lang, refreshCheck, refreshTask, refreshBoard]);
 
   // language changed: drop translations and card data in the old language
   useEffect(() => {
     if (!lang) return;
     const seen = seenCards.current;
-    return () => { seen.clear(); setTr({}); setTasks({}); setChecks({}); };
+    return () => { seen.clear(); setTr({}); setTasks({}); setChecks({}); setBoards({}); };
   }, [lang]);
 
   // ---- translation: original shows at once; translations batched (<= 50), one request per id at a time
@@ -192,8 +202,8 @@ export function useConversation(conversationId: string, me: Me | null) {
   }, [sendRaw]);
 
   return {
-    conv, loadError, status, kind, msgs, historyReady, pending, tasks, checks, gone, tr,
-    send, retrySend, retryTranslate, flag, refreshTask, refreshCheck, putTask,
+    conv, loadError, status, kind, msgs, historyReady, pending, tasks, checks, boards, gone, tr,
+    send, retrySend, retryTranslate, flag, refreshTask, refreshCheck, refreshBoard, putTask,
   };
 }
 export type ConversationState = ReturnType<typeof useConversation>;

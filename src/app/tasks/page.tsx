@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/client/session";
 import type { TaskDTO } from "@/lib/types";
-import { Card, Screen } from "@/components/ui";
+import { Card, Pill, Screen } from "@/components/ui";
+import { HazardIcon } from "@/components/chat/doodles";
 import { AppHeader } from "@/components/shell/AppHeader";
 import { useRequireMe } from "@/components/shell/guard";
 import { ErrorBox, PageLoading, ago, cx, errMsg } from "@/components/shell/Common";
@@ -13,6 +14,20 @@ import { TaskStatePill } from "@/components/shell/TaskState";
 type Filter = "open" | "understood" | "done";
 const OPEN = ["waiting", "checking", "mismatch", "needs_look", "all_match"];
 const match = (f: Filter, s: string) => (f === "open" ? OPEN.includes(s) : s === f);
+/** One crew task = all its child tasks. Open while any is open; done when all are done; else understood. */
+const groupState = (ks: TaskDTO[]) => (ks.some((k) => OPEN.includes(k.state)) ? "waiting" : ks.every((k) => k.state === "done") ? "done" : "understood");
+type Entry = { key: string; first: TaskDTO; kids: TaskDTO[] | null };
+function entries(tasks: TaskDTO[]): Entry[] {
+  const out: Entry[] = [];
+  const groups = new Map<string, TaskDTO[]>();
+  for (const k of tasks) {
+    if (!k.broadcast_id) { out.push({ key: k.id, first: k, kids: null }); continue; }
+    const g = groups.get(k.broadcast_id);
+    if (g) g.push(k);
+    else { const kids = [k]; groups.set(k.broadcast_id, kids); out.push({ key: k.broadcast_id, first: k, kids }); }
+  }
+  return out;
+}
 
 export default function TasksPage() {
   const { me, t } = useRequireMe({ role: "supervisor" });
@@ -29,7 +44,9 @@ export default function TasksPage() {
   }, [t]);
   useEffect(() => { if (me) load(); }, [me?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const shown = tasks?.filter((x) => match(filter, x.state)) ?? [];
+  const all = tasks ? entries(tasks) : [];
+  const stateOf = (e: Entry) => (e.kids ? groupState(e.kids) : e.first.state);
+  const shown = all.filter((e) => match(filter, stateOf(e)));
   return (
     <>
       <AppHeader title={t("tasks.title")} back="/inbox" />
@@ -40,15 +57,41 @@ export default function TasksPage() {
               {(["open", "understood", "done"] as Filter[]).map((f) => (
                 <button key={f} type="button" aria-pressed={filter === f} onClick={() => setFilter(f)}
                   className={cx("min-h-12 rounded-full border-2 border-ink px-4 font-display text-base font-extrabold", filter === f ? "bg-ink text-paper" : "bg-card")}>
-                  {t(`tasks.f_${f}`)}{tasks && <span className="ml-1 font-mono">{tasks.filter((x) => match(f, x.state)).length}</span>}
+                  {t(`tasks.f_${f}`)}{tasks && <span className="ml-1 font-mono">{all.filter((e) => match(f, stateOf(e))).length}</span>}
                 </button>
               ))}
             </div>
             {err && <div className="mb-4"><ErrorBox message={err} onRetry={load} t={t} /></div>}
             {tasks && shown.length === 0 && <Card><p className="text-lg">{t(tasks.length === 0 ? "tasks.empty" : "tasks.emptyFilter")}</p></Card>}
             <ul className="space-y-3">
-              {shown.map((k) => (
-                <li key={k.id}>
+              {shown.map(({ key, first: k, kids }) => kids ? (
+                <li key={key}>
+                  <details className="doodle group p-0" style={{ background: "var(--card)" }}>
+                    <summary className="flex min-h-12 cursor-pointer list-none flex-col gap-1 p-3 [&::-webkit-details-marker]:hidden">
+                      <span className="flex flex-wrap items-center gap-1">
+                        <Pill tint="hi">{t("x.tasks.group", { n: kids.filter((x) => x.state === "understood" || x.state === "done").length, total: kids.length })}</Pill>
+                        {k.is_safety && <Pill tint="bad"><HazardIcon />{t("x.form.safety")}</Pill>}
+                      </span>
+                      <span className="font-display text-lg font-extrabold leading-tight">{k.action} · {k.object}</span>
+                      <span className="text-base leading-snug">{k.place} · <span className="font-mono">{k.due_time}</span>{k.quantity != null && <> · <span className="font-mono">{k.quantity}</span> {k.unit}</>}</span>
+                      <span className="font-hand text-base text-pen underline underline-offset-4">
+                        <span aria-hidden="true" className="inline-block transition-transform group-open:rotate-90">▸</span> {t("x.tasks.show")} · <span className="text-muted">{ago(k.created_at, t, me.language)}</span>
+                      </span>
+                    </summary>
+                    <ul className="border-t-2 border-dashed border-ink/30">
+                      {kids.map((c) => (
+                        <li key={c.id} className="border-t-2 border-ink/10 first:border-t-0">
+                          <Link href={`/c/${c.conversation_id}`} className="flex min-h-12 flex-wrap items-center justify-between gap-2 px-3 py-2">
+                            <span className="font-display text-base font-extrabold">{c.worker.name}</span>
+                            <TaskStatePill state={c.state} t={t} />
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                </li>
+              ) : (
+                <li key={key}>
                   <Link href={`/c/${k.conversation_id}`} className="doodle block p-3 active:translate-x-[2px] active:translate-y-[2px]">
                     <div className="flex items-start justify-between gap-2">
                       <p className="font-display text-lg font-extrabold leading-tight">{k.action} · {k.object}</p>

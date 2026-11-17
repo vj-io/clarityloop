@@ -12,8 +12,10 @@ type Member = { id: string; display_name: string; language: Lang; role: Role; ne
 export const GET = route(async (req, ctx: { params: Promise<{ id: string }> }) => {
   const me = await requireMe(req);
   const conv = await memberConversation((await ctx.params).id, me.id);
-  const people = ok(await db().from("profiles").select("id, display_name, language, role, nexconn_user_id")
-    .in("id", [conv.supervisor_id, conv.worker_id])) as Member[];
+  const ids = conv.kind === "crew"
+    ? (ok(await db().from("conversation_members").select("profile_id").eq("conversation_id", conv.id)) as { profile_id: string }[]).map((m) => m.profile_id)
+    : [conv.supervisor_id, conv.worker_id!];
+  const people = ok(await db().from("profiles").select("id, display_name, language, role, nexconn_user_id").in("id", ids)) as Member[];
   const members = Object.fromEntries(people.map(({ nexconn_user_id, ...p }) => [nexconn_user_id, p]));
   return json({ conversation: await conversationDTO(conv, me.id), members });
 });

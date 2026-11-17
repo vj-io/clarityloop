@@ -14,6 +14,8 @@ export const metadata: Metadata = {
   title: "ClarityLoop — Read is not understood",
   description:
     "Work chat where each person reads and writes in their own language, and every instruction gets a meaning check before work starts.",
+  manifest: "/manifest.webmanifest",
+  icons: { icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }, { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" }], apple: "/apple-touch-icon.png" },
 };
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#f0ede8" };
 

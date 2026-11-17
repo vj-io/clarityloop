@@ -280,3 +280,37 @@ begin
   return c;
 end $$;
 revoke execute on function rate_add(uuid, text, int, int) from public, anon, authenticated;
+
+-- ---------- Crew scale: one crew channel per crew, tasks sent to the whole crew ----------
+-- Additive only: a new table, a new nullable column, a new partial index, a new policy.
+-- At most one 'crew' conversation per crew (worker_id is null for it).
+create unique index if not exists conversations_one_crew on conversations(crew_id) where kind = 'crew';
+
+-- One crew task ("broadcast"). Each worker gets an ordinary task in their pair conversation
+-- with tasks.broadcast_id pointing here; the roll-call board in the crew channel reads them.
+create table if not exists broadcasts (
+  id uuid primary key default gen_random_uuid(),
+  crew_id uuid not null references crews(id) on delete cascade,
+  conversation_id uuid not null references conversations(id) on delete cascade,   -- the crew channel
+  supervisor_id uuid not null references profiles(id),
+  action_id uuid not null references site_actions(id),
+  object_text text not null,
+  object_i18n jsonb not null default '{}'::jsonb,
+  place_id uuid not null references site_places(id),
+  due_time text not null check (due_time ~ '^[0-2][0-9]:[0-5][0-9]$'),
+  quantity numeric,
+  unit text,
+  note text check (note is null or char_length(note) <= 280),
+  note_i18n jsonb not null default '{}'::jsonb,
+  is_safety boolean not null default false,
+  is_sandbox boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists broadcasts_crew on broadcasts(crew_id, created_at desc);
+alter table broadcasts enable row level security;
+alter table tasks add column if not exists broadcast_id uuid references broadcasts(id) on delete set null;
+create index if not exists tasks_broadcast on tasks(broadcast_id) where broadcast_id is not null;
+do $$ begin
+  drop policy if exists broadcast_read on broadcasts;
+  create policy broadcast_read on broadcasts for select using (is_member(conversation_id));
+end $$;

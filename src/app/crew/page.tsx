@@ -9,6 +9,7 @@ import { AppHeader } from "@/components/shell/AppHeader";
 import { useRequireMe } from "@/components/shell/guard";
 import { Btn, CopyButton, ErrorBox, PageLoading, errMsg } from "@/components/shell/Common";
 import type { T } from "@/lib/i18n";
+import { CrewDoodle } from "@/components/chat/board";
 
 function ListEditor({ kind, items, t, onCrew }: { kind: "place" | "action"; items: ListItem[]; t: T; onCrew: (c: CrewDTO) => void }) {
   const [label, setLabel] = useState("");
@@ -76,6 +77,11 @@ export default function CrewPage() {
     try { router.push(`/c/${(await api("POST /api/conversations", { worker_id: workerId })).conversation.id}`); }
     catch (e) { setErr(errMsg(e, t)); setChatBusy(null); }
   }
+  async function crewChat() {
+    setChatBusy("crew"); setErr(null);
+    try { router.push(`/c/${(await api("POST /api/conversations/crew")).conversation.id}`); }
+    catch (e) { setErr(errMsg(e, t)); setChatBusy(null); }
+  }
   const workers = crew?.members.filter((m) => m.role === "worker") ?? [];
   const link = typeof window === "undefined" || !crew ? "" : `${location.origin}/join?code=${crew.join_code}`;
 
@@ -88,6 +94,12 @@ export default function CrewPage() {
             <div>
               <h2 className="font-display text-2xl font-extrabold leading-tight">{crew.name}</h2>
               <p className="font-hand text-lg text-muted">{t("crew.site")}: {crew.site_name}</p>
+            </div>
+
+            <div className="doodle flex flex-wrap items-center gap-3 p-3">
+              <CrewDoodle size={40} />
+              <p className="min-w-0 flex-1 text-base leading-snug">{t("x.crewChatHint")}</p>
+              <Btn tone="hi" className="w-full sm:w-auto" disabled={chatBusy === "crew"} onClick={crewChat}>{t("x.openCrewChat")}</Btn>
             </div>
 
             <Card className="-rotate-[0.6deg] bg-hi!">

@@ -38,7 +38,7 @@ export function AppHeader({ title, back }: { title?: string; back?: string }) {
   async function out() { await signOut(); router.replace("/"); }
 
   const links: { href: string; label: string }[] = me
-    ? [{ href: "/inbox", label: t("nav.inbox") }, ...(me.role === "supervisor" ? [{ href: "/tasks", label: t("nav.tasks") }, { href: "/crew", label: t("nav.crew") }] : [])]
+    ? [{ href: "/inbox", label: t("nav.inbox") }, ...(me.role === "supervisor" ? [{ href: "/tasks", label: t("nav.tasks") }, { href: "/insights", label: t("b.nav.insights") }, { href: "/crew", label: t("nav.crew") }] : [])]
     : [];
 
   return (
@@ -56,7 +56,7 @@ export function AppHeader({ title, back }: { title?: string; back?: string }) {
           {me && <LanguagePicker value={me.language} onChange={setLang} label={t("nav.language")} busy={busy} />}
         </div>
         {me && (
-          <nav aria-label="main" className={cx("mx-auto max-w-5xl items-center gap-x-1 px-3 pb-1", back ? "hidden sm:flex" : "flex")}>
+          <nav aria-label="main" className={cx("mx-auto max-w-5xl flex-wrap items-center gap-x-1 px-3 pb-1", back ? "hidden sm:flex" : "flex")}>
             {links.map((l) => (
               <Link key={l.href} href={l.href} aria-current={path.startsWith(l.href) ? "page" : undefined}
                 className={cx("inline-flex min-h-12 items-center px-3 font-display text-base font-extrabold", path.startsWith(l.href) && "underline decoration-pen decoration-4 underline-offset-4")}>

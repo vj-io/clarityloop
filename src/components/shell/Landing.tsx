@@ -11,6 +11,7 @@ const SOURCES = [
   { k: "land.ev2", href: "https://pmc.ncbi.nlm.nih.gov/articles/PMC10751618", who: "Meeral et al., 2023" },
   { k: "land.ev3", href: "https://pmc.ncbi.nlm.nih.gov/articles/PMC6590951", who: "Yen & Leasure, 2019" },
 ];
+const BUYERS = [1, 2, 3, 4] as const;
 const PHASES = ["now", "pilot", "site", "scale"] as const;
 const PLANS = ["free", "pro", "ent"] as const;
 const WHO = [["ravi", false], ["murugan", true], ["manager", false]] as const;
@@ -76,7 +77,7 @@ export function Landing() {
           </ol>
         </Section>
 
-        <Section title={t("land.evTitle")}>
+        <Section title={t("b.land.bigTitle")}>
           <p className="mb-3 font-hand text-lg text-muted">{t("land.evSub")}</p>
           <ul className="grid gap-3 md:grid-cols-3">
             {SOURCES.map((s) => (
@@ -86,6 +87,7 @@ export function Landing() {
               </li>
             ))}
           </ul>
+          <p className="mt-3"><Link href="/results" className={linkCls}>{t("b.land.resultsLink")} &#x2192;</Link></p>
         </Section>
 
         <Section title={t("land.whoTitle")}>
@@ -102,19 +104,19 @@ export function Landing() {
           </div>
         </Section>
 
-        <Section title={t("land.roadTitle")}>
-          <ol className="relative ml-3 space-y-4 border-l-4 border-ink pl-6">
-            {PHASES.map((p, i) => (
-              <li key={p} className="relative">
-                <span aria-hidden="true" className={`absolute -left-[2.3rem] top-1 h-5 w-5 rounded-full border-[3px] border-ink ${i === 0 ? "bg-ink" : "bg-card"}`} />
-                <p className="font-display text-lg font-extrabold leading-tight">{t(`land.r_${p}`)}{i === 0 && <> <Pill tint="ok">{t("land.r_built")}</Pill></>}</p>
-                <p className="leading-snug">{t(`land.r_${p}_b`)}</p>
+        <Section title={t("b.land.payTitle")}>
+          <p className="mb-3">{t("b.land.paySub")}</p>
+          <ul className="grid gap-4 sm:grid-cols-2">
+            {BUYERS.map((n) => (
+              <li key={n} className="doodle p-3">
+                <h3 className="font-display text-lg font-extrabold leading-tight">{t(`b.land.pay${n}`)}</h3>
+                <p className="mt-1 leading-snug">{t(`b.land.pay${n}b`)}</p>
               </li>
             ))}
-          </ol>
+          </ul>
         </Section>
 
-        <Section title={<>{t("land.plansTitle")} <Pill tint="warn">{t("land.draft")}</Pill></>}>
+        <Section title={<>{t("land.plansTitle")} <Pill tint="warn">{t("b.land.draftPriced")}</Pill></>}>
           <p className="mb-3">{t("land.plansSub")}</p>
           <div className="grid gap-4 md:grid-cols-3">
             {PLANS.map((p) => (
@@ -125,6 +127,29 @@ export function Landing() {
               </Card>
             ))}
           </div>
+        </Section>
+
+        <Section title={t("b.land.growTitle")}>
+          <ul className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+            {BUYERS.map((n) => (
+              <li key={n} className="rounded-xl border-2 border-dashed border-ink bg-card p-3">
+                <h3 className="font-display text-lg font-extrabold leading-tight">{t(`b.land.grow${n}`)}</h3>
+                <p className="mt-1 leading-snug">{t(`b.land.grow${n}b`)}</p>
+              </li>
+            ))}
+          </ul>
+        </Section>
+
+        <Section title={t("land.roadTitle")}>
+          <ol className="relative ml-3 space-y-4 border-l-4 border-ink pl-6">
+            {PHASES.map((p, i) => (
+              <li key={p} className="relative">
+                <span aria-hidden="true" className={`absolute -left-[2.3rem] top-1 h-5 w-5 rounded-full border-[3px] border-ink ${i === 0 ? "bg-ink" : "bg-card"}`} />
+                <p className="font-display text-lg font-extrabold leading-tight">{t(`land.r_${p}`)}{i === 0 && <> <Pill tint="ok">{t("land.r_built")}</Pill></>}</p>
+                <p className="leading-snug">{t(`land.r_${p}_b`)}</p>
+              </li>
+            ))}
+          </ol>
         </Section>
 
         <Squiggle />
