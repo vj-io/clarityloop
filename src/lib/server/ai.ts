@@ -1,6 +1,7 @@
 // Every model call lives here: translateText and extractFields (PRD "AI design").
 // DB-free and alias-free so scripts/eval.mjs can import it with plain `node`.
 // Only message text and crew list labels go to the model, never names or account data.
+import { google } from "@ai-sdk/google";
 import { generateText } from "ai";
 import { z } from "zod";
 import { ExtractionSchema, LangSchema, type Extraction, type Lang } from "../types.ts";
@@ -11,14 +12,20 @@ export type ModelRequest = { system: string; prompt: string; maxTokens: number }
 /** Injectable model call: returns the raw text answer, throws when the service fails. */
 export type Runner = (req: ModelRequest) => Promise<string>;
 
-export const AI_MODEL = process.env.AI_MODEL ?? "google/gemini-3.5-flash-lite";
+export const AI_MODEL = process.env.AI_MODEL || "google/gemini-3.5-flash-lite";
 const NAME: Record<Lang, string> = { en: "English", hi: "Hindi", ta: "Tamil" };
 
-/** Vercel AI Gateway via a plain model string (auth: VERCEL_OIDC_TOKEN or AI_GATEWAY_API_KEY). */
+/**
+ * Vercel AI Gateway via a plain model string (auth: VERCEL_OIDC_TOKEN or AI_GATEWAY_API_KEY).
+ * If GOOGLE_GENERATIVE_AI_API_KEY is set, "google/..." models go straight to Google instead,
+ * so the app runs without a card on the gateway account.
+ */
 export function gatewayRunner(model: string = AI_MODEL): Runner {
+  const direct = process.env.GOOGLE_GENERATIVE_AI_API_KEY && model.startsWith("google/");
   return async ({ system, prompt, maxTokens }) => {
     const r = await generateText({
-      model, instructions: system || undefined, prompt, temperature: 0,
+      model: direct ? google(model.slice("google/".length)) : model,
+      instructions: system || undefined, prompt, temperature: 0,
       maxOutputTokens: maxTokens, maxRetries: 0, abortSignal: AbortSignal.timeout(10_000),
     });
     return r.text;

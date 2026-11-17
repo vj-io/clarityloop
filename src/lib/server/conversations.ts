@@ -23,6 +23,9 @@ export async function memberConversation(convId: string, profileId: string): Pro
   return conv;
 }
 
+// Groups this server instance has already created/joined on Nexconn: saves three API calls per request.
+const ensuredGroups = new Set<string>();
+
 export async function ensureConversation(sup: ProfileRow, worker: ProfileRow): Promise<ConvRow> {
   const find = async () => ok(await db().from("conversations").select("*")
     .eq("supervisor_id", sup.id).eq("worker_id", worker.id).maybeSingle()) as ConvRow | null;
@@ -39,11 +42,12 @@ export async function ensureConversation(sup: ProfileRow, worker: ProfileRow): P
   ok(await db().from("conversation_members").upsert(
     [{ conversation_id: conv.id, profile_id: sup.id }, { conversation_id: conv.id, profile_id: worker.id }],
     { ignoreDuplicates: true }));
-  if (transport() === "nexconn") {
+  if (transport() === "nexconn" && !ensuredGroups.has(conv.nexconn_group_id)) {
     try {
       await Promise.all([issueToken(sup.nexconn_user_id, sup.display_name), issueToken(worker.nexconn_user_id, worker.display_name)]);
       await ensureGroup(conv.nexconn_group_id, `${sup.display_name} · ${worker.display_name}`, sup.nexconn_user_id,
         [sup.nexconn_user_id, worker.nexconn_user_id]);
+      ensuredGroups.add(conv.nexconn_group_id);
     } catch (e) {
       return fail(503, "nexconn_unavailable", e instanceof Error ? e.message : undefined);
     }
