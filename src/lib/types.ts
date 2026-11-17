@@ -125,12 +125,12 @@ export type TranslationDTO = {
 // `Authorization: Bearer <supabase access token>`. Errors: non-2xx with { error: string(code), message?: string }.
 // Codes: unauthorized 401 · forbidden 403 · not_found 404 · invalid 400 · conflict 409 · locked 423 ·
 //        rate_limited 429 · blocked 409 (confirm while a field is red/unclear) · ai_unavailable 503 · nexconn_unavailable 503
-export type SessionGrant = { email: string; token_hash: string };   // client: supabase.auth.verifyOtp({ token_hash, type: "magiclink" })
+export type SessionGrant = { access_token: string; refresh_token: string };   // client: supabase.auth.setSession(grant)
 export type Api = {
   "GET /api/config": { res: { transport: "nexconn" | "local"; nexconn_app_key: string | null; nexconn_area: "SG" | "NA" | "SA"; ai_ready: boolean } };
   "POST /api/join": { req: { join_code: string; name: string; language: Lang; pin: string }; res: SessionGrant };
   "POST /api/worker-login": { req: { join_code: string; name: string; pin: string }; res: SessionGrant };
-  "POST /api/judge": { req: { role: Role }; res: SessionGrant & { conversation_id: string } };
+  "POST /api/judge": { req: { role: Role; fresh?: boolean }; res: SessionGrant & { conversation_id: string } };
   "GET /api/me": { res: { me: Me | null } };                       // null => signed in, no profile yet => /onboarding
   "PATCH /api/me": { req: { language?: Lang; display_name?: string }; res: { me: Me } };
   "POST /api/crews": { req: { display_name: string; language: Lang; crew_name: string; site_name: string }; res: { me: Me; crew: CrewDTO } };

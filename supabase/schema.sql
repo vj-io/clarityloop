@@ -264,3 +264,19 @@ create table if not exists local_messages (
 );
 create index if not exists local_messages_conv on local_messages(conversation_id, created_at);
 alter table local_messages enable row level security;
+
+-- Restatement translated into each reader's language, made once on first read.
+alter table checks add column if not exists restatement_i18n jsonb not null default '{}'::jsonb;
+
+-- Weighted variant of rate_hit: adds p_n hits at once (a 50-message translate batch counts 50).
+create or replace function rate_add(p_profile uuid, p_bucket text, p_window_seconds int, p_n int)
+returns int language plpgsql as $$
+declare w timestamptz; c int;
+begin
+  w := to_timestamp(floor(extract(epoch from now()) / p_window_seconds) * p_window_seconds);
+  insert into rate_hits(profile_id, bucket, window_start, hits) values (p_profile, p_bucket, w, p_n)
+  on conflict (profile_id, bucket, window_start) do update set hits = rate_hits.hits + p_n
+  returning hits into c;
+  return c;
+end $$;
+revoke execute on function rate_add(uuid, text, int, int) from public, anon, authenticated;

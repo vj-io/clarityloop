@@ -57,7 +57,7 @@ export async function api<K extends Key>(key: K, body?: Req<K>, params?: Record<
 
 /** Turn a server-issued grant (join, worker login, judge) into a browser session. */
 export async function adoptGrant(g: SessionGrant) {
-  const { error } = await supabase().auth.verifyOtp({ token_hash: g.token_hash, type: "magiclink" });
+  const { error } = await supabase().auth.setSession({ access_token: g.access_token, refresh_token: g.refresh_token });
   if (error) throw new ApiError(401, "unauthorized", error.message);
 }
 

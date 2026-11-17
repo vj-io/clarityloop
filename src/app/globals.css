@@ -54,10 +54,13 @@ body {
 
 :focus-visible { outline: 3px solid var(--pen); outline-offset: 2px; border-radius: 6px; }
 
-/* Hand-drawn box: irregular radius + hard offset shadow. */
-.doodle { border: 2.5px solid var(--ink); border-radius: var(--wobble); background: var(--card); box-shadow: var(--shadow); }
-.doodle-2 { border-radius: var(--wobble-2); }
-.doodle-flat { box-shadow: none; }
+/* In the components layer so Tailwind utilities (bg-*, shadow-*) still win. */
+@layer components {
+  /* Hand-drawn box: irregular radius + hard offset shadow. */
+  .doodle { border: 2.5px solid var(--ink); border-radius: var(--wobble); background: var(--card); box-shadow: var(--shadow); }
+  .doodle-2 { border-radius: var(--wobble-2); }
+  .doodle-flat { box-shadow: none; }
+}
 
 /* Highlighter swipe under a key word (signature move, short form). */
 .hl { background: linear-gradient(transparent 55%, var(--hi) 55%, var(--hi) 92%, transparent 92%) no-repeat; background-size: 100% 100%; padding: 0 0.12em; }

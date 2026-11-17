@@ -1,0 +1,165 @@
+"use client";
+// Send as task (supervisor only): action, object, place, 24-hour time, quantity + unit, note.
+// A live preview shows the card the worker will receive, in the worker's language.
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { AppHeader } from "@/components/shell/AppHeader";
+import { useRequireMe } from "@/components/shell/guard";
+import { Button, Field, Input, Pill, Select, Spinner } from "@/components/ui";
+import { BG, TaskFacts } from "@/components/chat/cards";
+import { ClipboardDoodle } from "@/components/chat/doodles";
+import { api, ApiError } from "@/lib/client/session";
+import { makeT, type T } from "@/lib/i18n";
+import { LANG_NAME, type Api, type CrewDTO, type ListItem } from "@/lib/types";
+
+type Conv = Api["GET /api/conversations/:id"]["res"];
+
+export default function NewTaskPage() {
+  const { conversationId } = useParams<{ conversationId: string }>();
+  const { me, t } = useRequireMe();
+  const router = useRouter();
+  const [crew, setCrew] = useState<CrewDTO | null>(null);
+  const [conv, setConv] = useState<Conv | null>(null);
+  const [loadErr, setLoadErr] = useState(false);
+  const [f, setF] = useState({ action: "", object: "", place: "", time: "", qty: "", unit: "", note: "" });
+  const [tried, setTried] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
+
+  useEffect(() => {
+    if (!me) return;
+    if (me.role !== "supervisor") { router.replace(`/c/${conversationId}`); return; }
+    Promise.all([api("GET /api/crew"), api("GET /api/conversations/:id", undefined, { id: conversationId })])
+      .then(([c, v]) => { setCrew(c.crew); setConv(v); })
+      .catch(() => setLoadErr(true));
+  }, [me, conversationId, router]);
+
+  const qtyNum = f.qty.trim() === "" ? null : Number(f.qty);
+  const errors = {
+    action: !f.action ? t("c.form.err.action") : null,
+    object: f.object.length > 80 ? t("c.form.err.object") : null,
+    place: !f.place ? t("c.form.err.place") : null,
+    time: !/^([01]\d|2[0-3]):[0-5]\d$/.test(f.time) ? t("c.form.err.time") : null,
+    qty: qtyNum !== null && (!Number.isFinite(qtyNum) || qtyNum <= 0 || qtyNum > 100000) ? t("c.form.err.qty") : null,
+    note: f.note.length > 280 ? t("c.form.err.note") : null,
+  };
+  const show = (k: keyof typeof errors) => (tried ? errors[k] : null);
+
+  const workerLang = conv?.conversation.other.language ?? me?.language ?? "en";
+  const wt = useMemo(() => makeT(workerLang), [workerLang]);
+  const label = (list: ListItem[] | undefined, id: string) => list?.find((x) => x.id === id)?.labels[workerLang] ?? "";
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setTried(true);
+    if (Object.values(errors).some(Boolean)) return;
+    setBusy(true); setErr(null);
+    try {
+      await api("POST /api/tasks", {
+        conversation_id: conversationId, action_id: f.action, object_text: f.object.trim(), place_id: f.place,
+        due_time: f.time, quantity: qtyNum, unit: qtyNum !== null ? f.unit.trim() || null : null, note: f.note.trim() || null,
+      });
+      router.push(`/c/${conversationId}`);
+    } catch (e) {
+      setErr(e instanceof ApiError ? (e.status === 429 ? t("c.err.slow") : t("c.form.err.send")) : t("c.err.network"));
+      setBusy(false); // inputs stay as typed
+    }
+  }
+
+  const back = `/c/${conversationId}`;
+  if (!me || (!crew && !loadErr)) return <><AppHeader title={t("c.form.title")} back={back} /><div className="p-6"><Spinner label={t("c.loading")} /></div></>;
+  if (loadErr || !crew) return <><AppHeader title={t("c.form.title")} back={back} /><p className="p-6 font-semibold text-bad">{t("c.loadFailed")}</p></>;
+
+  const other = conv?.conversation.other;
+  return (
+    <>
+      <AppHeader title={t("c.form.title")} back={back} />
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-5">
+        {other && <p className="mb-4 font-hand text-xl leading-tight">{t("c.form.to", { name: other.display_name, lang: LANG_NAME[other.language] })}</p>}
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
+          <form onSubmit={submit} noValidate className="space-y-5">
+            <Picker label={t("c.f.action")} items={crew.actions} value={f.action} onChange={set("action")} error={show("action")} t={t} />
+            <Field label={t("c.form.object")} hint={t("c.form.objectHint")} error={show("object")}>
+              <Input value={f.object} maxLength={80} onChange={(e) => set("object")(e.target.value)} placeholder={t("c.form.objectPh")} />
+            </Field>
+            <Picker label={t("c.f.place")} items={crew.places} value={f.place} onChange={set("place")} error={show("place")} t={t} />
+            <Field label={t("c.form.time")} hint={t("c.form.timeHint")} error={show("time")}>
+              <Input type="time" step={300} value={f.time} onChange={(e) => set("time")(e.target.value)} className="max-w-[12rem] font-mono text-lg" />
+            </Field>
+            <div className="flex flex-wrap gap-3">
+              <div className="w-36"><Field label={t("c.form.qty")} hint={t("c.form.optional")} error={show("qty")}>
+                <Input type="number" inputMode="numeric" min={1} value={f.qty} onChange={(e) => set("qty")(e.target.value)} className="font-mono text-lg" />
+              </Field></div>
+              {f.qty.trim() !== "" && <div className="min-w-0 flex-1"><Field label={t("c.form.unit")} hint={t("c.form.unitHint")}>
+                <Input value={f.unit} maxLength={30} onChange={(e) => set("unit")(e.target.value)} placeholder={t("c.form.unitPh")} />
+              </Field></div>}
+            </div>
+            <Field label={t("c.form.note")} hint={t("c.form.optional")} error={show("note")}>
+              <textarea value={f.note} maxLength={280} rows={3} onChange={(e) => set("note")(e.target.value)}
+                className="doodle doodle-flat w-full resize-y bg-card px-3 py-2 text-base" />
+              <span className={`block text-right font-mono text-sm ${f.note.length > 260 ? "text-warn" : "text-muted"}`}>{f.note.length}/280</span>
+            </Field>
+            {err && <p role="alert" className="font-semibold text-bad">{err}</p>}
+            <Button tone="hi" type="submit" disabled={busy} className="w-full text-lg" style={BG.hi}>
+              <ClipboardDoodle />{busy ? <span className="dots">{t("c.form.sending")}</span> : t("c.form.send")}
+            </Button>
+          </form>
+
+          <aside aria-label={t("c.form.preview")} className="lg:sticky lg:top-24 lg:self-start">
+            <p className="mb-1 font-hand text-lg text-muted">{t("c.form.preview", { lang: LANG_NAME[workerLang] })}</p>
+            <div className="doodle overflow-hidden p-0">
+              <div className="flex items-center gap-2 border-b-[2.5px] border-ink bg-pen-soft px-4 py-2">
+                <span className="font-hand text-lg leading-none text-pen">{wt("c.card.task")}</span>
+                {me.is_sandbox && <span className="ml-auto"><Pill tint="warn">{wt("c.sandbox")}</Pill></span>}
+              </div>
+              <div className="p-4" lang={workerLang}>
+                <TaskFacts t={wt} v={{
+                  action: label(crew.actions, f.action), object: f.object.trim(), place: label(crew.places, f.place),
+                  due_time: f.time, quantity: qtyNum !== null && Number.isFinite(qtyNum) ? qtyNum : null,
+                  unit: f.unit.trim() || null, note: f.note.trim() || null, is_sandbox: me.is_sandbox,
+                }} />
+                <p className="mt-3 font-hand text-lg leading-tight text-pen">{wt("c.restate.noOk")}</p>
+              </div>
+            </div>
+            {workerLang !== me.language && <p className="mt-2 text-sm text-muted">{t("c.form.previewNote")}</p>}
+          </aside>
+        </div>
+      </main>
+    </>
+  );
+}
+
+/** Big chips for short lists (<= 8), a select for long ones. */
+function Picker({ label, items, value, onChange, error, t }: {
+  label: string; items: ListItem[]; value: string; onChange: (v: string) => void; error: string | null; t: T;
+}) {
+  if (items.length > 8) {
+    return (
+      <Field label={label} error={error}>
+        <Select value={value} onChange={(e) => onChange(e.target.value)}>
+          <option value="">{t("c.form.pick")}</option>
+          {items.map((i) => <option key={i.id} value={i.id}>{i.label}</option>)}
+        </Select>
+      </Field>
+    );
+  }
+  return (
+    <fieldset>
+      <legend className="font-hand text-lg leading-tight">{label}</legend>
+      <div className="mt-1 flex flex-wrap gap-2" role="radiogroup" aria-label={label}>
+        {items.map((i) => {
+          const on = i.id === value;
+          return (
+            <button key={i.id} type="button" role="radio" aria-checked={on} onClick={() => onChange(i.id)}
+              className={`doodle doodle-flat min-h-12 px-4 py-2 font-display text-base font-extrabold transition-transform ${on ? "text-paper" : ""}`}
+              style={on ? { background: "var(--ink)", boxShadow: "3px 3px 0 var(--pen)" } : undefined}>
+              {i.label}
+            </button>
+          );
+        })}
+      </div>
+      {error && <span role="alert" className="mt-1 block text-sm font-semibold text-bad">{error}</span>}
+    </fieldset>
+  );
+}
