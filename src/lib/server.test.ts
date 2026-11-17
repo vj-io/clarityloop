@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  extractFields, glossary, missingNumbers, quickTranslate, translateText,
+  extractFields, glossary, missingNumbers, parseJsonObject, quickTranslate, translateText,
   type CrewLists, type ModelRequest, type Runner,
 } from "./server/ai.ts";
 import { hashPin, verifyPin } from "./server/pin.ts";
@@ -41,16 +41,22 @@ test("digit runs: Devanagari/Tamil digits count, partial runs do not", () => {
 
 test("glossary maps every spelling of a crew label to the reader's label", () => {
   const g = glossary(lists, "hi");
-  assert.match(g, /^Gate 3 \/ गेट 3 \/ கேட் 3 => गेट 3$/m);
-  assert.match(g, /^Unload \/ उतारना \/ இறக்கு => उतारना$/m);
+  assert.match(g, /^"Gate 3" or "गेट 3" or "கேட் 3" is written "गेट 3"$/m);
+  assert.match(g, /^"Unload" or "उतारना" or "இறக்கு" is written "उतारना"$/m);
+  assert.doesNotMatch(g, /=>/);
 });
 
 test("translate: sends text + glossary only, returns detected source", async () => {
   const f = fake('```json\n{"source_lang":"hi","text":"Unload 40 bags at Gate 3 by 2"}\n```');
   const r = await translateText("40 bori Gate 3 pe utaarna hai, 2 baje tak", "en", lists, f.run);
   assert.deepEqual(r, { text: "Unload 40 bags at Gate 3 by 2", source_lang: "hi" });
-  assert.match(f.calls[0].prompt, /Gate 3 \/ गेट 3 \/ கேட் 3 => Gate 3/);
+  assert.match(f.calls[0].prompt, /"Gate 3" or "गेट 3" or "கேட் 3" is written "Gate 3"/);
   assert.match(f.calls[0].system, /Hinglish/);
+});
+
+test("json: first complete object wins, even with trailing text or a second object", () => {
+  assert.deepEqual(parseJsonObject('note {"a":"x}y","b":{"c":1}} trailing } {"z":2}'), { a: "x}y", b: { c: 1 } });
+  assert.throws(() => parseJsonObject('{"a":1'));
 });
 
 test("translate: detected same language => null", async () => {

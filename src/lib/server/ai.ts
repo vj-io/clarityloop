@@ -77,19 +77,31 @@ export function missingNumbers(src: string, out: string): string[] {
   return (asciiDigits(src).match(/\d+/g) ?? []).filter((n) => !have.has(n));
 }
 
-/** Protected words: every spelling of a crew label maps to the reader's label. */
+/**
+ * Protected words. Place names are fixed labels: every spelling maps to the reader's label.
+ * Action words are verbs, so they are given as preferred wording, to be conjugated naturally
+ * (forcing the bare label into a sentence produced broken text in real model runs).
+ */
 export function glossary(lists: CrewLists, target: Lang): string {
-  return [...lists.places, ...lists.actions].map((it) => {
-    const spellings = [...new Set(Object.values(it.labels))].join(" / ");
-    return `${spellings} => ${it.labels[target]}`;
-  }).join("\n");
+  const line = (it: CrewLists["places"][number]) =>
+    `${[...new Set(Object.values(it.labels))].map((x) => `"${x}"`).join(" or ")} is written "${it.labels[target]}"`;
+  return `Place names (use the exact label):\n${lists.places.map(line).join("\n")}\n\n` +
+    `Task words (prefer this wording, conjugated naturally, normal capitalisation):\n${lists.actions.map(line).join("\n")}`;
 }
 
-/** First {...} block of a model answer, tolerating code fences or chatter around it. */
+/** First complete {...} object in a model answer, tolerating code fences or chatter around it. */
 export function parseJsonObject(raw: string): unknown {
-  const a = raw.indexOf("{"), b = raw.lastIndexOf("}");
-  if (a < 0 || b <= a) throw new Error("no json");
-  return JSON.parse(raw.slice(a, b + 1));
+  const a = raw.indexOf("{");
+  if (a < 0) throw new Error("no json");
+  let depth = 0, inStr = false, esc = false;
+  for (let i = a; i < raw.length; i++) {
+    const c = raw[i];
+    if (inStr) { if (esc) esc = false; else if (c === "\\") esc = true; else if (c === '"') inStr = false; continue; }
+    if (c === '"') inStr = true;
+    else if (c === "{") depth++;
+    else if (c === "}" && --depth === 0) return JSON.parse(raw.slice(a, i + 1));
+  }
+  throw new Error("no json");
 }
 
 const TranslationOut = z.object({ source_lang: LangSchema, text: z.string().min(1) });
@@ -107,11 +119,11 @@ export async function translateText(text: string, target: Lang, lists: CrewLists
     'Languages: "en" English, "hi" Hindi, "ta" Tamil. Hindi typed in Roman letters (Hinglish, e.g. "2 baje tak aa jaana") is Hindi: "hi". Tamil typed in Roman letters is "ta".',
     `Translate the message into ${NAME[target]} in its normal script. Keep it short, plain and in the same tone.`,
     "Keep every number, time and quantity exactly as written, using the digits 0-9. Keep people's names unchanged.",
-    "When the message mentions a site word from the glossary, write exactly the label after =>.",
+    "When the message names a place from the list, write exactly its label. Never copy list notation into the translation.",
     `If the message is already in ${NAME[target]}, return it unchanged.`,
     'Answer with JSON only: {"source_lang":"en|hi|ta","text":"<translation>"}',
   ].join("\n");
-  const prompt = `Glossary:\n${glossary(lists, target)}\n\nMessage:\n${text}`;
+  const prompt = `${glossary(lists, target)}\n\nMessage:\n${text}`;
   let last: unknown;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {

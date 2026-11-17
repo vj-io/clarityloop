@@ -99,6 +99,7 @@ export default function ConversationPage() {
     }
     const tid = plan.taskOf(m);
     const live = tid !== null && plan.lastBig[tid] === i;
+    if (s.gone[c.id]) return null; // deleted task or check: nothing to draw
     if (c.kind === "TASK") {
       const task = tasks[c.id];
       if (!task) return <CardLoading t={t} onRetry={() => s.refreshTask(c.id)} />;

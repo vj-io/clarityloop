@@ -125,6 +125,7 @@ export const shell: Dict = {
   "land.p_ent": d("Enterprise", "एंटरप्राइज़", "எண்டர்பிரைஸ்"),
   "land.p_ent_for": d("Companies on many sites", "कई साइटों वाली कंपनियाँ", "பல தளங்களைக் கொண்ட நிறுவனங்கள்"),
   "land.p_ent_b": d("Everything in Pro, plus multi-site admin, single sign-on, data controls and an API.", "प्रो की सब चीज़ें, साथ में कई साइटों का एडमिन, सिंगल साइन-ऑन, डेटा नियंत्रण और API।", "ப்ரோவில் உள்ளவை அனைத்தும், கூடவே பல தள நிர்வாகம், ஒற்றை உள்நுழைவு, தரவுக் கட்டுப்பாடுகள், API."),
+  "land.team": d("Team Kaching · Vaibhav Jangid · live chat runs on Nexconn", "टीम Kaching · Vaibhav Jangid · लाइव चैट Nexconn पर चलती है", "அணி Kaching · Vaibhav Jangid · நேரலை அரட்டை Nexconn-இல் இயங்குகிறது"),
   "land.foot": d("Built for the Nexconn Build Challenge 2026. A student project, not a safety product.", "Nexconn Build Challenge 2026 के लिए बना। यह छात्र प्रोजेक्ट है, सुरक्षा उत्पाद नहीं।", "Nexconn Build Challenge 2026க்காக உருவாக்கப்பட்டது. இது மாணவர் திட்டம், பாதுகாப்புப் பொருள் அல்ல."),
 
   // ---- demo illustration (landing)
@@ -174,9 +175,9 @@ export const shell: Dict = {
   "login.sub": d("No password. We email you a code.", "पासवर्ड नहीं। हम आपको ईमेल से कोड भेजते हैं।", "கடவுச்சொல் இல்லை. மின்னஞ்சலில் ஒரு குறியீடு அனுப்புவோம்."),
   "login.email": d("Your email", "आपका ईमेल", "உங்கள் மின்னஞ்சல்"),
   "login.send": d("Send me a code", "मुझे कोड भेजें", "குறியீடு அனுப்பு"),
-  "login.sent": d("We sent a code to {email}. Check your inbox and spam.", "हमने {email} पर कोड भेजा है। इनबॉक्स और स्पैम देखें।", "{email} க்கு குறியீடு அனுப்பினோம். இன்பாக்ஸ் மற்றும் ஸ்பேமைப் பாருங்கள்."),
-  "login.code": d("Code from the email", "ईमेल वाला कोड", "மின்னஞ்சலில் உள்ள குறியீடு"),
-  "login.codeHint": d("Type the whole code. You can also tap the link in the email.", "पूरा कोड लिखें। आप ईमेल का लिंक भी दबा सकते हैं।", "முழு குறியீட்டையும் தட்டச்சு செய்யுங்கள். மின்னஞ்சலில் உள்ள இணைப்பையும் தொடலாம்."),
+  "login.sent": d("We sent a sign-in email to {email}. Open the link in it on this device. Check spam too.", "हमने {email} पर साइन-इन ईमेल भेजा है। उसका लिंक इसी फ़ोन या कंप्यूटर पर खोलें। स्पैम भी देखें।", "{email} க்கு உள்நுழைவு மின்னஞ்சல் அனுப்பினோம். அதிலுள்ள இணைப்பை இதே சாதனத்தில் திறக்கவும். ஸ்பேமையும் பாருங்கள்."),
+  "login.code": d("Got a code instead? Type it here", "लिंक की जगह कोड मिला? यहाँ लिखें", "இணைப்புக்குப் பதில் குறியீடு வந்ததா? இங்கே தட்டச்சு செய்யுங்கள்"),
+  "login.codeHint": d("Most emails carry only the link. This page signs you in by itself once you open it.", "ज़्यादातर ईमेल में सिर्फ़ लिंक होता है। लिंक खोलते ही यह पेज अपने आप साइन-इन कर देगा।", "பெரும்பாலான மின்னஞ்சல்களில் இணைப்பு மட்டுமே இருக்கும். அதைத் திறந்ததும் இந்தப் பக்கம் தானாக உள்நுழையும்."),
   "login.verify": d("Sign in", "साइन इन", "உள்நுழை"),
   "login.again": d("Send a new code", "नया कोड भेजें", "புதிய குறியீடு அனுப்பு"),
   "login.other": d("Use another email", "दूसरा ईमेल इस्तेमाल करें", "வேறு மின்னஞ்சல் பயன்படுத்து"),

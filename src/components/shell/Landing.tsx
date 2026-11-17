@@ -135,7 +135,9 @@ export function Landing() {
             <Link href="/login" className={linkCls}>{t("land.supervisor")}</Link>
             <Link href="/join" className={linkCls}>{t("land.worker")}</Link>
             <Link href="/results" className={linkCls}>{t("land.results")}</Link>
+            <a href="https://github.com/vj-io/clarityloop" className={linkCls}>GitHub</a>
           </p>
+          <p className="font-hand text-lg">{t("land.team")}</p>
         </footer>
       </main>
     </>

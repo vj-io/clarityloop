@@ -13,6 +13,7 @@ const Body = z.object({
   conversation_id: z.uuid(),
   messages: z.array(z.object({ id: z.string().min(1).max(128), text: z.string().min(1).max(4000) })).min(1).max(50),
 });
+const MAX_AI = 12, FANOUT = 3;
 const PER_MINUTE = 120; // uncached translations per user; two 50-message history batches fit
 
 type Cached = { nexconn_message_id: string; text: string; source_lang: Lang | null; flagged: boolean };
@@ -40,11 +41,22 @@ export const POST = route(async (req) => {
   }
   const lists = todo.length ? await crewLists(conv.crew_id) : { places: [], actions: [] };
 
+  // The AI provider allows only a few requests per minute on a free key, and a history batch can hold
+  // 50 uncached messages. Translate at most MAX_AI newest ones per call, FANOUT at a time; older ones
+  // come back as error (the reader taps to retry), so a burst can never drain the provider quota.
+  const allowed = new Set(todo.slice(-MAX_AI).map((m) => m.id));
+  let running = 0;
+  const waiters: (() => void)[] = [];
+  const slot = async () => { if (running >= FANOUT) await new Promise<void>((r) => waiters.push(r)); running++; };
+  const free = () => { running--; waiters.shift()?.(); };
+
   const translations: TranslationDTO[] = await Promise.all(b.messages.map(async (m): Promise<TranslationDTO> => {
     if (parseCard(m.text)) return { id: m.id, text: null, source_lang: null, flagged: false };
     const c = cached.get(m.id);
     // A cached "same language" row stores source_lang = target and empty text.
     if (c) return { id: m.id, text: c.source_lang === lang ? null : c.text, source_lang: c.source_lang, flagged: c.flagged };
+    if (!allowed.has(m.id)) return { id: m.id, text: null, source_lang: null, flagged: false, error: true };
+    await slot();
     const t0 = Date.now();
     try {
       const t = await translateText(m.text, lang, lists);
@@ -60,7 +72,7 @@ export const POST = route(async (req) => {
     } catch {
       await logHealth("translate", false, "ai_error", Date.now() - t0);
       return { id: m.id, text: null, source_lang: null, flagged: false, error: true };
-    }
+    } finally { free(); }
   }));
   return json({ translations });
 });

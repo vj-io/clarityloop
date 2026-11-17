@@ -27,6 +27,11 @@ function violations(mustKeep, out, target) {
   });
 }
 
+// Free-tier keys allow only a few requests per minute: EVAL_GAP_MS spaces the cases out.
+// The wait sits outside the timed part, so latency numbers are unaffected.
+const GAP = Number(process.env.EVAL_GAP_MS ?? 0);
+const pace = () => (GAP ? new Promise((r) => setTimeout(r, GAP)) : null);
+
 async function runModel(model) {
   const errors = [];
   const base = gatewayRunner(model);
@@ -39,6 +44,7 @@ async function runModel(model) {
 
   const tr = [];
   for (const m of TR.messages) for (const to of TR.directions[m.lang]) {
+    await pace();
     const t0 = Date.now();
     let out = null, error = null;
     try { out = (await translateText(m.text, to, lists, runner))?.text ?? null; if (out == null) error = "not translated (detected same language)"; }
@@ -51,6 +57,7 @@ async function runModel(model) {
 
   const mc = [];
   for (const c of MEAN.cases) {
+    await pace();
     const t0 = Date.now();
     const ex = await extractFields(c.restatement, c.language, lists.actions, lists.places, runner);
     const ms = Date.now() - t0;

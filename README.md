@@ -118,6 +118,10 @@ The problem is motivated by the research below. These are context for the proble
 - A study in southern Chennai, Tamil Nadu, of 524 construction workers, traces most injuries in its sample to basic language barriers. It covers dental and facial injuries only, so it is supporting context. [Meeral et al., Cureus, 2023](https://pmc.ncbi.nlm.nih.gov/articles/PMC10751618)
 - Teach-back, where the listener repeats an instruction in their own words, is recommended in healthcare. A review of 26 studies found it effective for confirming understanding, with varying results. [Yen & Leasure, Federal Practitioner, 2019](https://pmc.ncbi.nlm.nih.gov/articles/PMC6590951)
 
+## Team
+
+Team **Kaching** — Vaibhav Jangid. Built for the Nexconn Build Challenge 2026 (track: Workplace & Collaboration).
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

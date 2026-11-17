@@ -25,6 +25,7 @@ export function useConversation(conversationId: string, me: Me | null) {
   const [pending, setPending] = useState<Pending[]>([]);
   const [tasks, setTasks] = useState<Record<string, TaskDTO>>({});
   const [checks, setChecks] = useState<Record<string, CheckDTO>>({});
+  const [gone, setGone] = useState<Record<string, true>>({}); // card ids whose task/check no longer exists
   const [tr, setTr] = useState<Record<string, Tr>>({});
 
   const transport = useRef<ChatTransport | null>(null);
@@ -52,14 +53,14 @@ export function useConversation(conversationId: string, me: Me | null) {
       setTasks((s) => ({ ...s, [task.id]: task }));
       if (task.latest_check) { const c = task.latest_check; setChecks((s) => ({ ...s, [c.id]: c })); }
       return task;
-    } catch { return null; }
+    } catch (e) { if (e instanceof ApiError && e.status === 404) setGone((g) => ({ ...g, [taskId]: true })); return null; }
   }, []);
   const refreshCheck = useCallback(async (checkId: string) => {
     try {
       const { check, task } = await api("GET /api/checks/:id", undefined, { id: checkId });
       setChecks((s) => ({ ...s, [check.id]: check }));
       setTasks((s) => ({ ...s, [task.id]: task }));
-    } catch { /* card shows its loading/failed placeholder */ }
+    } catch (e) { if (e instanceof ApiError && e.status === 404) setGone((g) => ({ ...g, [checkId]: true })); }
   }, []);
   const putTask = useCallback((task: TaskDTO, check?: CheckDTO) => {
     setTasks((s) => ({ ...s, [task.id]: task }));
@@ -191,7 +192,7 @@ export function useConversation(conversationId: string, me: Me | null) {
   }, [sendRaw]);
 
   return {
-    conv, loadError, status, kind, msgs, historyReady, pending, tasks, checks, tr,
+    conv, loadError, status, kind, msgs, historyReady, pending, tasks, checks, gone, tr,
     send, retrySend, retryTranslate, flag, refreshTask, refreshCheck, putTask,
   };
 }
