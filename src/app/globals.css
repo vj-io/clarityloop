@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+/* Doodle kit (brag-styles): paper, ink, one lime highlighter — plus violet pen as the complement. */
+:root {
+  --paper: #f0ede8;
+  --card: #fbfaf7;
+  --ink: #0a0a0a;
+  --muted: #5f5c56;
+  --hi: #c8ff00;          /* highlighter: the one loud colour */
+  --pen: #5b3df5;         /* violet pen: complement of the lime, for links, "me" bubbles, focus */
+  --pen-soft: #e7e1ff;
+  --ok: #157f3b;  --ok-soft: #d9f5e0;
+  --warn: #9a5b00; --warn-soft: #ffe9b8;
+  --bad: #c2261c; --bad-soft: #ffdcd6;
+  --grid: rgba(10, 10, 10, 0.07);
+  --shadow: 4px 4px 0 var(--ink);
+  --wobble: 255px 18px 225px 18px / 18px 225px 18px 255px;
+  --wobble-2: 18px 225px 18px 255px / 255px 18px 225px 18px;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-hi: var(--hi);
+  --color-pen: var(--pen);
+  --color-pen-soft: var(--pen-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --font-display: var(--font-archivo), var(--font-deva), var(--font-tamil), system-ui, sans-serif;
+  --font-hand: var(--font-hand-latin), var(--font-deva), var(--font-tamil), cursive;
+  --font-sans: var(--font-archivo), var(--font-deva), var(--font-tamil), system-ui, sans-serif;
+  --font-mono: var(--font-jb), ui-monospace, monospace;
+}
+
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background-color: var(--paper);
+  /* 60px grid at 7% ink, scaled down for phones */
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 30px 30px;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+:focus-visible { outline: 3px solid var(--pen); outline-offset: 2px; border-radius: 6px; }
+
+/* Hand-drawn box: irregular radius + hard offset shadow. */
+.doodle { border: 2.5px solid var(--ink); border-radius: var(--wobble); background: var(--card); box-shadow: var(--shadow); }
+.doodle-2 { border-radius: var(--wobble-2); }
+.doodle-flat { box-shadow: none; }
+
+/* Highlighter swipe under a key word (signature move, short form). */
+.hl { background: linear-gradient(transparent 55%, var(--hi) 55%, var(--hi) 92%, transparent 92%) no-repeat; background-size: 100% 100%; padding: 0 0.12em; }
+@keyframes swipe { from { background-size: 0% 100%; } to { background-size: 100% 100%; } }
+.hl-in { animation: swipe 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* Strokes draw themselves: use on SVG paths with pathLength="1". */
+@keyframes draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.draw { stroke-dasharray: 1; stroke-dashoffset: 0; animation: draw 0.55s ease-out both; }
+
+/* Cards spring in. */
+@keyframes pop { 0% { transform: scale(0.94) rotate(-0.6deg); opacity: 0; } 60% { transform: scale(1.02) rotate(0.3deg); opacity: 1; } 100% { transform: none; opacity: 1; } }
+.pop { animation: pop 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+
+@keyframes wiggle { 0%, 100% { transform: rotate(-1.2deg); } 50% { transform: rotate(1.2deg); } }
+.wiggle { animation: wiggle 0.5s ease-in-out 2; }
+
+@keyframes dots { 0% { content: "."; } 33% { content: ".."; } 66% { content: "..."; } }
+.dots::after { content: "..."; animation: dots 1s steps(1) infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hl-in, .draw, .pop, .wiggle, .dots::after { animation: none; }
+}
