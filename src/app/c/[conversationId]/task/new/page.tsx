@@ -85,7 +85,20 @@ export default function NewTaskPage() {
             </Field>
             <Picker label={t("c.f.place")} items={crew.places} value={f.place} onChange={set("place")} error={show("place")} t={t} />
             <Field label={t("c.form.time")} hint={t("c.form.timeHint")} error={show("time")}>
-              <Input type="time" step={300} value={f.time} onChange={(e) => set("time")(e.target.value)} className="max-w-[12rem] font-mono text-lg" />
+              {/* Two selects, not <input type="time">: that shows AM/PM in 12-hour locales, and the PRD wants 24-hour. */}
+              <div className="flex items-center gap-2 font-mono text-lg">
+                <Select aria-label="HH" value={f.time.slice(0, 2)} className="w-24 font-mono text-lg"
+                  onChange={(e) => set("time")(e.target.value ? `${e.target.value}:${f.time.slice(3, 5) || "00"}` : "")}>
+                  <option value="">--</option>
+                  {Array.from({ length: 24 }, (_, h) => String(h).padStart(2, "0")).map((h) => <option key={h} value={h}>{h}</option>)}
+                </Select>
+                <span aria-hidden="true">:</span>
+                <Select aria-label="MM" value={f.time.slice(3, 5)} disabled={!f.time} className="w-24 font-mono text-lg"
+                  onChange={(e) => set("time")(`${f.time.slice(0, 2)}:${e.target.value}`)}>
+                  {!f.time && <option value="">--</option>}
+                  {Array.from({ length: 12 }, (_, m) => String(m * 5).padStart(2, "0")).map((m) => <option key={m} value={m}>{m}</option>)}
+                </Select>
+              </div>
             </Field>
             <div className="flex flex-wrap gap-3">
               <div className="w-36"><Field label={t("c.form.qty")} hint={t("c.form.optional")} error={show("qty")}>
