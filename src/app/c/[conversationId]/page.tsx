@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { api } from "@/lib/client/session";
 import { AppHeader } from "@/components/shell/AppHeader";
 import { useRequireMe } from "@/components/shell/guard";
 import { Spinner } from "@/components/ui";
@@ -12,6 +13,7 @@ import {
 } from "@/components/chat/cards";
 import { BoardCard } from "@/components/chat/board";
 import { Composer } from "@/components/chat/Composer";
+import { ReceiptLine } from "@/components/chat/receipts";
 import { HelloDoodle } from "@/components/chat/doodles";
 import { cardOf, useConversation } from "@/components/chat/useConversation";
 import { BOT_USER_ID, LANG_NAME, LANGS, type ChatMsg, type TaskDTO } from "@/lib/types";
@@ -49,6 +51,16 @@ export default function ConversationPage() {
   const atBottom = useRef(true);
   const [chip, setChip] = useState(false);
   const seenCount = useRef(0);
+  // "Seen is not understood": tell the server once when the assigned worker has a task on screen.
+  const seenSent = useRef(new Set<string>());
+  useEffect(() => {
+    if (!me || me.role !== "worker") return;
+    for (const task of Object.values(tasks)) {
+      if (task.worker.id !== me.id || task.seen_at || seenSent.current.has(task.id)) continue;
+      seenSent.current.add(task.id);
+      api("POST /api/tasks/:id/seen", undefined, { id: task.id }).catch(() => seenSent.current.delete(task.id));
+    }
+  }, [tasks, me]);
   useEffect(() => {
     const on = () => {
       atBottom.current = innerHeight + scrollY >= document.documentElement.scrollHeight - 160;
@@ -89,15 +101,23 @@ export default function ConversationPage() {
   };
   const restateFor = (task: TaskDTO, live: boolean) =>
     live && me.id === task.worker.id && RESTATE_STATES.includes(task.state)
-      ? <RestateBox task={task} t={t} onResult={(tk, ck) => s.putTask(tk, ck)} />
+      ? <RestateBox task={task} t={t} lang={me.language} onResult={(tk, ck) => s.putTask(tk, ck)} />
       : null;
+  const myNc = me.nexconn_user_id;
+  const names: Record<string, string> = {};
+  for (const [nc, p] of Object.entries(conv?.members ?? {})) names[nc] = p.display_name;
+  const mentionable = isCrew ? Object.entries(names).filter(([nc]) => nc !== myNc && nc !== BOT_USER_ID).map(([id, name]) => ({ id, name })) : undefined;
 
   function renderMsg(m: ChatMsg, i: number) {
     const c = cardOf(m);
     if (!c) {
-      if (m.from === me!.nexconn_user_id) return <Bubble mine text={m.text} at={m.at} t={t} />;
+      if (m.from === myNc) {
+        return <Bubble mine text={m.text} at={m.at} t={t}
+          status={<ReceiptLine r={s.receipts[m.id]} crew={!!isCrew} myId={myNc} names={names} t={t} />} />;
+      }
       const name = m.from === BOT_USER_ID ? "ClarityLoop" : conv?.members[m.from]?.display_name;
-      return <TheirBubble m={m} name={name} tr={s.tr[m.id]} t={t} onRetry={() => s.retryTranslate(m)} onFlag={() => s.flag(m.id)} />;
+      return <TheirBubble m={m} name={name} tr={s.tr[m.id]} t={t} lang={me!.language} atMe={!!m.mentions?.includes(myNc)}
+        onRetry={() => s.retryTranslate(m)} onFlag={() => s.flag(m.id)} />;
     }
     const tid = plan.taskOf(m);
     const live = tid !== null && plan.lastBig[tid] === i;
@@ -110,7 +130,7 @@ export default function ConversationPage() {
     if (c.kind === "TASK") {
       const task = tasks[c.id];
       if (!task) return <CardLoading t={t} onRetry={() => s.refreshTask(c.id)} />;
-      return <TaskCard task={task} live={live} t={t}>{restateFor(task, live)}</TaskCard>;
+      return <TaskCard task={task} live={live} t={t} lang={me!.language} showSeen={me!.id !== task.worker.id}>{restateFor(task, live)}</TaskCard>;
     }
     if (c.kind === "CHECK") {
       if (plan.lastCheckCopy[c.id] !== i) return null;
@@ -125,6 +145,7 @@ export default function ConversationPage() {
       );
     }
     const task = tasks[c.id];
+    if (c.event === "seen") return null; // silent ping: the task card above refetches and shows "Seen"
     if (!task) return c.event === "checking" || c.event === "confirmed" ? null : <CardLoading t={t} onRetry={() => s.refreshTask(c.id)} />;
     switch (c.event) {
       case "checking":
@@ -137,7 +158,7 @@ export default function ConversationPage() {
         return <StateLine tone="ok">{!name ? t("c.confirmedGeneric") : both ? t("c.confirmedOnly", { name }) : t("c.confirmedLine", { name, other: waiting })}</StateLine>;
       }
       case "understood": return <UnderstoodCard task={task} me={me!} live={live} t={t} onTask={onTask} />;
-      case "done": return <DoneCard task={task} live={live} t={t} />;
+      case "done": return <DoneCard task={task} live={live} t={t} isSup={me!.id === task.supervisor.id} />;
       default: return null;
     }
   }
@@ -182,9 +203,9 @@ export default function ConversationPage() {
         </div>
       )}
 
-      <Composer t={t} offline={s.status === "offline"} taskHref={isSup && conv ? `/c/${conversationId}/task/new` : undefined}
-        taskLabel={isCrew ? t("x.crewTask") : undefined}
-        onSend={(text) => { atBottom.current = true; s.send(text); }} />
+      <Composer t={t} lang={me.language} offline={s.status === "offline"} taskHref={isSup && conv ? `/c/${conversationId}/task/new` : undefined}
+        taskLabel={isCrew ? t("x.crewTask") : undefined} members={mentionable}
+        onSend={(text, mentions) => { atBottom.current = true; s.send(text, mentions); }} />
     </Shell>
   );
 }

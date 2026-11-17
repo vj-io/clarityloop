@@ -2,6 +2,11 @@ import type { Dict } from "@/lib/i18n";
 
 // Crew channel, crew tasks, roll-call board (keys start with "x.").
 export const crewx: Dict = {
+  // ---- seen is not understood
+  "x.seen.notYet": { en: "{worker} has not opened this yet", hi: "{worker} ने इसे अभी नहीं खोला", ta: "{worker} இதை இன்னும் திறக்கவில்லை" },
+  "x.seen.at": { en: "Seen {time}", hi: "{time} पर देखा", ta: "{time} மணிக்குப் பார்த்தார்" },
+  "x.seen.notUnderstood": { en: "not yet understood", hi: "अभी समझा नहीं गया", ta: "இன்னும் புரிந்துகொள்ளவில்லை" },
+  "x.seen.understood": { en: "Understood", hi: "समझ लिया", ta: "புரிந்துகொண்டார்" },
   // ---- crew channel
   "x.crewChat": { en: "Crew chat", hi: "टीम चैट", ta: "குழு அரட்டை" },
   "x.openCrewChat": { en: "Open crew chat", hi: "टीम चैट खोलें", ta: "குழு அரட்டையைத் திற" },

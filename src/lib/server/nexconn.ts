@@ -85,7 +85,7 @@ export async function sendGroupText(channelId: string, text: string): Promise<st
   const p = "/v4/group-channel/message/send";
   const b = okOrThrow(p, await post("nexconn_send", p, {
     fromUserId: BOT_USER_ID, toChannelIds: [channelId], messageType: "RC:TxtMsg",
-    content: JSON.stringify({ content: text }), isEchoToSender: 0, shouldPersist: 1,
+    content: JSON.stringify({ content: text }), isEchoToSender: 0, shouldPersist: 1, needReadReceipt: 1,
   }));
   const ids = b.result?.messageIds as { channelId: string; messageId: string }[] | undefined;
   return ids?.[0]?.messageId ?? null;

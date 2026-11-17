@@ -9,6 +9,7 @@ import { LANG_NAME, type CheckDTO, type CheckRow, type FieldKey, type Lang, type
 import { Button, Hl, MarkIcon, Pill } from "@/components/ui";
 import { BigCheck, HazardIcon, MarkerUnderline, NotEqual } from "./doodles";
 import { hhmm } from "./Bubble";
+import { MicButton, MicStatus, SpeakButton, useMic } from "./voice";
 
 const cx = (...a: (string | false | null | undefined)[]) => a.filter(Boolean).join(" ");
 const OVERALL_TINT: Record<Overall, "bad" | "warn" | "ok"> = { mismatch: "bad", needs_look: "warn", all_match: "ok" };
@@ -88,7 +89,29 @@ export function StatePill({ task, t }: { task: TaskDTO; t: T }) {
   return <Pill tint={STATE_TINT[task.state]}>{t(`c.state.${task.state}`, { worker: task.worker.name })}</Pill>;
 }
 
-export function TaskCard({ task, live, t, children }: { task: TaskDTO; live: boolean; t: T; children?: ReactNode }) {
+/** The task as one sentence in the reader's language, for reading aloud. Times are passed as written ("14:00"). */
+export const taskSentence = (v: TaskView, t: T) => [
+  [v.action, v.object].filter(Boolean).join(" "),
+  v.place && `${t("c.f.place")}: ${v.place}`,
+  v.due_time && `${t("c.f.time")}: ${v.due_time}`,
+  qty(v.quantity, v.unit) && `${t("c.f.quantity")}: ${qty(v.quantity, v.unit)}`,
+  v.note,
+].filter(Boolean).join(". ");
+
+/** "Read is not understood", on the card: when the worker opened the task vs whether it is understood yet. */
+function SeenLine({ task, t }: { task: TaskDTO; t: T }) {
+  const understood = task.state === "understood" || task.state === "done";
+  if (!task.seen_at) return <p className="mt-2 font-hand text-base text-muted">{t("x.seen.notYet", { worker: task.worker.name })}</p>;
+  return (
+    <p className={`mt-2 flex flex-wrap items-center gap-x-2 font-hand text-lg ${understood ? "text-ok" : "text-warn"}`}>
+      <span className="inline-flex items-center gap-1"><MarkIcon mark="match" size={20} />{t("x.seen.at", { time: hhmm(task.seen_at) })}</span>
+      <span aria-hidden="true">·</span>
+      <span className="inline-flex items-center gap-1 font-semibold"><MarkIcon mark={understood ? "match" : "unclear"} size={20} />{t(understood ? "x.seen.understood" : "x.seen.notUnderstood")}</span>
+    </p>
+  );
+}
+
+export function TaskCard({ task, live, t, lang, showSeen, children }: { task: TaskDTO; live: boolean; t: T; lang: Lang; showSeen?: boolean; children?: ReactNode }) {
   return (
     <CardFrame tint="pen" label={t("c.card.task")} live={live} earlier={t("c.earlierTask")}
       title={`${task.action} · ${task.place} · ${task.due_time}`}
@@ -97,20 +120,26 @@ export function TaskCard({ task, live, t, children }: { task: TaskDTO; live: boo
         {task.broadcast_id && <Pill tint="hi">{t("x.task.crewBadge")}</Pill>}
         {task.is_sandbox && <Pill tint="warn">{t("c.sandbox")}</Pill>}
       </>}>
-      <p className="mb-2 text-sm text-muted">{t("c.taskFrom", { sup: task.supervisor.name, worker: task.worker.name })}</p>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-sm text-muted">{t("c.taskFrom", { sup: task.supervisor.name, worker: task.worker.name })}</p>
+        <SpeakButton id={`task-${task.id}`} text={taskSentence(task, t)} lang={lang} t={t} className="-my-2 -mr-2" />
+      </div>
       <TaskFacts v={task} t={t} />
       <div className="mt-3"><StatePill task={task} t={t} /></div>
+      {showSeen && <SeenLine task={task} t={t} />}
       {children}
     </CardFrame>
   );
 }
 
 // ---------------------------------------------------------------- restate box (worker, in their language)
-export function RestateBox({ task, t, onResult }: {
-  task: TaskDTO; t: T; onResult: (task: TaskDTO, check: CheckDTO) => void;
+export function RestateBox({ task, t, lang, onResult }: {
+  task: TaskDTO; t: T; lang: Lang; onResult: (task: TaskDTO, check: CheckDTO) => void;
 }) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState("");
+  // speak instead of type: the words land in the box to read and fix; only "Check" sends them
+  const mic = useMic(lang, text, (s) => setText(s.slice(0, 500)));
   const [busy, setBusy] = useState(false);
   const [slow, setSlow] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -136,9 +165,13 @@ export function RestateBox({ task, t, onResult }: {
         {t(again ? "c.restate.again" : "c.restate.prompt")}
       </label>
       <p className="font-hand text-lg leading-tight text-pen">{t("c.restate.noOk")}</p>
-      <textarea id={`restate-${task.id}`} ref={inputRef} value={text} maxLength={500} rows={3} disabled={busy}
-        onChange={(e) => setText(e.target.value)} placeholder={t("c.restate.placeholder")}
-        className="doodle doodle-flat mt-2 w-full resize-y bg-card px-3 py-2 text-base placeholder:text-muted/70" />
+      <div className="mt-2 flex items-start gap-2">
+        <textarea id={`restate-${task.id}`} ref={inputRef} value={text} maxLength={500} rows={3} disabled={busy}
+          onChange={(e) => setText(e.target.value)} placeholder={t("c.restate.placeholder")}
+          className="doodle doodle-flat min-w-0 flex-1 resize-y bg-card px-3 py-2 text-base placeholder:text-muted/70" />
+        <MicButton mic={mic} t={t} disabled={busy} />
+      </div>
+      <MicStatus mic={mic} t={t} />
       {err && <p role="alert" className="mt-1 text-sm font-semibold text-bad">{err}</p>}
       <Button tone="pen" className="mt-2 w-full" style={BG.pen} onClick={submit} disabled={busy}>
         {busy ? <span className="dots">{t("c.restate.checking")}</span> : t("c.restate.submit")}
@@ -279,7 +312,10 @@ export function CheckCard({ check, task, me, live, t, myLang, otherLang, onTask,
       {!check.unreadable && (check.gloss || check.gloss_other) && (
         <div className="mt-3">
           <p className="font-hand text-lg leading-tight">{t(isWorker ? "c.understood.yours" : "c.understood.theirs", { worker: task.worker.name })}</p>
-          <p className="text-base break-words"><Pill>{LANG_NAME[myLang]}</Pill> {check.gloss}</p>
+          <p className="flex items-center gap-1 text-base break-words">
+            <span className="min-w-0 flex-1"><Pill>{LANG_NAME[myLang]}</Pill> {check.gloss}</span>
+            <SpeakButton id={`gloss-${check.id}`} text={check.gloss} lang={myLang} t={t} className="-my-2" />
+          </p>
           {!sameGloss && <p className="mt-1 text-base text-muted break-words"><Pill>{LANG_NAME[otherLang]}</Pill> <span lang={otherLang}>{check.gloss_other}</span></p>}
           {live && isWorker && (
             <button type="button" onClick={onFocusRestate} className="mt-1 inline-flex min-h-12 items-center font-semibold text-pen underline decoration-2 underline-offset-4">
@@ -364,12 +400,17 @@ export function UnderstoodCard({ task, me, live, t, onTask }: { task: TaskDTO; m
           <Link href="/tasks" className="inline-flex min-h-12 items-center font-semibold text-pen underline decoration-2 underline-offset-4">{t("c.seeTaskList")}</Link>
         </div>
       )}
+      {isSup && <RecordLink id={task.id} t={t} />}
       {err && <p role="alert" className="mt-1 text-sm font-semibold text-bad">{err}</p>}
     </CardFrame>
   );
 }
 
-export function DoneCard({ task, live, t }: { task: TaskDTO; live: boolean; t: T }) {
+const RecordLink = ({ id, t }: { id: string; t: T }) => (
+  <Link href={`/record/${id}`} className="mt-1 inline-flex min-h-12 items-center font-semibold text-pen underline decoration-2 underline-offset-4">{t("b.in.record")} →</Link>
+);
+
+export function DoneCard({ task, live, t, isSup }: { task: TaskDTO; live: boolean; t: T; isSup?: boolean }) {
   return (
     <CardFrame tint="ink" label={t("c.card.done")} live={live} earlier={t("c.earlierCheck")} title={t("c.doneTitle")}>
       <div className="flex items-center gap-3">
@@ -380,6 +421,7 @@ export function DoneCard({ task, live, t }: { task: TaskDTO; live: boolean; t: T
         </div>
       </div>
       <p className="mt-3 font-display font-extrabold break-words text-muted">{summary(task)}</p>
+      {isSup && <RecordLink id={task.id} t={t} />}
     </CardFrame>
   );
 }

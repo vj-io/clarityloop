@@ -3,12 +3,12 @@
 // task and check data for cards, connection status. The single place where messages merge.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/client/session";
-import { getTransport, type ChatTransport, type LinkStatus, type Room } from "@/lib/client/transport";
+import { getTransport, type ChatTransport, type LinkStatus, type Receipt, type Room } from "@/lib/client/transport";
 import { BOT_USER_ID, parseCard, type Api, type BroadcastDTO, type ChatMsg, type CheckDTO, type Me, type TaskDTO, type TranslationDTO } from "@/lib/types";
 
 type ConvRes = Api["GET /api/conversations/:id"]["res"];
 export type Tr = { state: "pending" } | { state: "done"; dto: TranslationDTO } | { state: "error" | "slow" };
-export type Pending = { tempId: string; text: string; failed: boolean };
+export type Pending = { tempId: string; text: string; failed: boolean; mentions?: string[] };
 
 /** A message is a card only when it parses AND the server bot sent it (PRD security rule). */
 export const cardOf = (m: ChatMsg) => (m.from === BOT_USER_ID ? parseCard(m.text) : null);
@@ -28,6 +28,7 @@ export function useConversation(conversationId: string, me: Me | null) {
   const [boards, setBoards] = useState<Record<string, BroadcastDTO>>({});   // crew channel: roll-call boards by broadcast id
   const [gone, setGone] = useState<Record<string, true>>({}); // card ids whose task/check no longer exists
   const [tr, setTr] = useState<Record<string, Tr>>({});
+  const [receipts, setReceipts] = useState<Record<string, Receipt>>({});   // Nexconn read receipts by message id
 
   const transport = useRef<ChatTransport | null>(null);
   const room = useRef<Room | null>(null);
@@ -75,12 +76,35 @@ export function useConversation(conversationId: string, me: Me | null) {
     if (c) setChecks((s) => ({ ...s, [c.id]: c }));
   }, []);
 
+  // ---- read receipts: merged by message id; users merged by user id
+  const putReceipts = useCallback((rs: Receipt[] | null) => {
+    if (!rs?.length) return;
+    setReceipts((s) => {
+      const n = { ...s };
+      for (const r of rs) {
+        const users = new Map((n[r.id]?.users ?? []).map((u) => [u.userId, u]));
+        for (const u of r.users ?? []) users.set(u.userId, u);
+        n[r.id] = { ...r, users: [...users.values()] };
+      }
+      return n;
+    });
+  }, []);
+  /** Receipts can only be queried by the sender (Nexconn 26320 otherwise): my own messages, last 20. */
+  const receiptIds = useCallback((list: ChatMsg[]) =>
+    list.filter((m) => m.needReceipt && m.from === myId).slice(-20).map((m) => m.id), [myId]);
+  const fetchReceipts = useCallback(async (list: ChatMsg[]) => {
+    const t = transport.current, r = room.current;
+    if (!t || !r) return;
+    putReceipts(await t.receiptsFor(r, receiptIds(list), true).catch(() => null));
+  }, [putReceipts, receiptIds]);
+
   // ---- load conversation, connect, history, subscribe
   useEffect(() => {
     if (!myId) return;
     let live = true;
     let unsubMsg = () => {};
     let unsubStatus = () => {};
+    let unsubReceipts = () => {};
     (async () => {
       try {
         const c = await api("GET /api/conversations/:id", undefined, { id: conversationId });
@@ -97,20 +121,51 @@ export function useConversation(conversationId: string, me: Me | null) {
           setStatus(s);
           if (s === "offline") wasOffline = true;
           // after a reconnect, re-read history so nothing is missed; merge dedupes
-          if (s === "connected" && wasOffline) { wasOffline = false; t.history(r).then(merge).catch(() => {}); }
+          if (s === "connected" && wasOffline) {
+            wasOffline = false;
+            t.history(r).then((h) => { merge(h); fetchReceipts(h); }).catch(() => {});
+          }
         });
         unsubMsg = t.subscribe(r, (m) => merge([m]));
+        unsubReceipts = t.onReceipts(putReceipts);
         await t.connect().catch(() => {});
         const h = await t.history(r).catch(() => [] as ChatMsg[]);
         if (!live) return;
         merge(h);
         setHistoryReady(true);
+        fetchReceipts(h);
       } catch (e) {
         if (live) setLoadError(e instanceof ApiError ? e.code : "network");
       }
     })();
-    return () => { live = false; unsubMsg(); unsubStatus(); };
-  }, [conversationId, myId, merge]);
+    return () => { live = false; unsubMsg(); unsubStatus(); unsubReceipts(); };
+  }, [conversationId, myId, merge, fetchReceipts, putReceipts]);
+
+  // ---- I read it: one receipt per message that asked for one, batched, only while the tab is visible.
+  // Opening the conversation also clears its Nexconn unread count.
+  const acked = useRef(new Set<string>());
+  useEffect(() => {
+    const t = transport.current, r = room.current;
+    if (!t || !r || !myId || !historyReady) return;
+    const flush = () => {
+      if (document.visibilityState !== "visible") return;
+      const ids = msgs.filter((m) => m.from !== myId && m.needReceipt && !m.sentReceipt && !acked.current.has(m.id)).map((m) => m.id);
+      ids.forEach((id) => acked.current.add(id));
+      t.markRead(r, ids);
+      t.clearUnread(r);
+    };
+    const timer = setTimeout(flush, 400);
+    document.addEventListener("visibilitychange", flush);
+    return () => { clearTimeout(timer); document.removeEventListener("visibilitychange", flush); };
+  }, [msgs, myId, historyReady]);
+
+  // ---- my sends after load: their receipt arrives by push; ask once too, in case it came before we listened
+  const asked = useRef(new Set<string>());
+  useEffect(() => {
+    if (!historyReady || kind !== "nexconn") return;
+    const fresh = msgs.filter((m) => receiptIds([m]).length && !receipts[m.id] && !asked.current.has(m.id));
+    if (fresh.length) { fresh.forEach((m) => asked.current.add(m.id)); fetchReceipts(fresh); }
+  }, [historyReady, kind, msgs, receipts, fetchReceipts, receiptIds]);
 
   // ---- every card that arrives refreshes its task (and check) — both windows stay in step
   useEffect(() => {
@@ -180,29 +235,29 @@ export function useConversation(conversationId: string, me: Me | null) {
   }, [conversationId]);
 
   // ---- sending (failed sends stay in place, marked, tap to retry)
-  const sendRaw = useCallback(async (tempId: string, text: string) => {
+  const sendRaw = useCallback(async (tempId: string, text: string, mentions?: string[]) => {
     const t = transport.current, r = room.current;
     try {
       if (!t || !r) throw new Error("not ready");
-      const m = await t.send(r, text);
+      const m = await t.send(r, text, mentions);
       merge([m]);
       setPending((p) => p.filter((x) => x.tempId !== tempId));
     } catch {
       setPending((p) => p.map((x) => (x.tempId === tempId ? { ...x, failed: true } : x)));
     }
   }, [merge]);
-  const send = useCallback((text: string) => {
+  const send = useCallback((text: string, mentions?: string[]) => {
     const tempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    setPending((p) => [...p, { tempId, text, failed: false }]);
-    return sendRaw(tempId, text);
+    setPending((p) => [...p, { tempId, text, failed: false, mentions }]);
+    return sendRaw(tempId, text, mentions);
   }, [sendRaw]);
   const retrySend = useCallback((p: Pending) => {
     setPending((ps) => ps.map((x) => (x.tempId === p.tempId ? { ...x, failed: false } : x)));
-    return sendRaw(p.tempId, p.text);
+    return sendRaw(p.tempId, p.text, p.mentions);
   }, [sendRaw]);
 
   return {
-    conv, loadError, status, kind, msgs, historyReady, pending, tasks, checks, boards, gone, tr,
+    conv, loadError, status, kind, msgs, historyReady, pending, tasks, checks, boards, gone, tr, receipts,
     send, retrySend, retryTranslate, flag, refreshTask, refreshCheck, refreshBoard, putTask,
   };
 }

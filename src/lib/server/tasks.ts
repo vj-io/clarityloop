@@ -17,7 +17,7 @@ export type TaskRow = {
   action_id: string; object_text: string; object_i18n: I18n; place_id: string; due_time: string;
   quantity: number | string | null; unit: string | null; note: string | null; note_i18n: I18n;
   state: TaskState; is_sandbox: boolean; created_at: string; understood_at: string | null; done_at: string | null;
-  broadcast_id?: string | null;
+  broadcast_id?: string | null; seen_at?: string | null;
 };
 export type CheckDbRow = {
   id: string; restatement_id: string; task_id: string; extracted: unknown; field_marks: FieldMarks;
@@ -63,6 +63,14 @@ export async function setState(task: TaskRow, state: TaskState, actor: string, t
  * A child task of a crew task changed: tell the crew channel so every open board refetches.
  * Sent at once (so "Checking" shows while the AI runs); `after` keeps the function alive until it lands.
  */
+/** First time the worker has the task card on screen. Tells the other window through a silent ping. */
+export async function markSeen(task: TaskRow, conv: ConvRow) {
+  if (task.seen_at) return;
+  const done = ok(await db().from("tasks").update({ seen_at: new Date().toISOString() }).eq("id", task.id).is("seen_at", null).select("id")) as { id: string }[];
+  if (!done.length) return; // another tab got there first
+  await postCard(conv.id, `${CARD.STATE}${task.id}:seen`);
+}
+
 function pingBoard(broadcastId: string) {
   const p = (async () => {
     const b = ok(await db().from("broadcasts").select("conversation_id").eq("id", broadcastId).maybeSingle()) as { conversation_id: string } | null;
@@ -149,7 +157,7 @@ export async function taskDTO(task: TaskRow, conv: ConvRow, reader: ProfileRow, 
     supervisor: name(task.supervisor_id), worker: name(task.worker_id),
     confirmations: ok(confs) as { profile_id: string; confirmed_at: string }[],
     latest_check: latest ? await checkDTO(latest, task, reader, cx) : null,
-    understood_at: task.understood_at, done_at: task.done_at,
+    understood_at: task.understood_at, done_at: task.done_at, seen_at: task.seen_at ?? null,
     broadcast_id: task.broadcast_id ?? null, is_safety: Boolean((bc && (ok(bc) as { is_safety: boolean } | null))?.is_safety),
   };
 }

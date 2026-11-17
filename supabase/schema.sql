@@ -314,3 +314,6 @@ do $$ begin
   drop policy if exists broadcast_read on broadcasts;
   create policy broadcast_read on broadcasts for select using (is_member(conversation_id));
 end $$;
+
+-- When the assigned worker first had the task card on screen ("seen" is not "understood").
+alter table tasks add column if not exists seen_at timestamptz;

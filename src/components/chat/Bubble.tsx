@@ -2,18 +2,23 @@
 // One chat message. Theirs: translated in place, original one tap away. Mine: as I typed it.
 import { useState } from "react";
 import type { T } from "@/lib/i18n";
-import { LANG_NAME, type ChatMsg } from "@/lib/types";
+import { LANG_NAME, type ChatMsg, type Lang } from "@/lib/types";
 import type { Tr } from "./useConversation";
 import { Tail } from "./doodles";
+import { SpeakButton } from "./voice";
 
 export const hhmm = (ms: number | string) =>
   new Date(ms).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
 
 const linkBtn = "inline-flex min-h-12 items-center text-left font-semibold text-pen underline decoration-2 underline-offset-4";
 
-export function Bubble({ mine, text, at, name, children, failed, onRetry, t }: {
+export function Bubble({ mine, text, at, name, children, failed, onRetry, t, tool, status, atMe }: {
   mine: boolean; text: string; at?: number; name?: string; children?: React.ReactNode;
   failed?: boolean; onRetry?: () => void; t: T;
+  /** footer: a button on the left (read aloud), a status before the time (read receipt) */
+  tool?: React.ReactNode; status?: React.ReactNode;
+  /** this message @mentions me: lime highlighter + tag */
+  atMe?: boolean;
 }) {
   const fill = mine ? "var(--pen-soft)" : "var(--card)";
   return (
@@ -23,10 +28,20 @@ export function Bubble({ mine, text, at, name, children, failed, onRetry, t }: {
           className={`doodle doodle-flat px-3.5 pb-1.5 pt-2 ${mine ? "doodle-2" : ""} ${failed ? "border-dashed !border-bad" : ""}`}
           style={{ background: fill, boxShadow: "2px 2px 0 var(--ink)" }}
         >
-          {!mine && name && <div className="font-hand text-base leading-tight text-pen">{name}</div>}
-          <p className="whitespace-pre-wrap break-words text-base leading-snug">{text}</p>
+          {!mine && (name || atMe) && (
+            <div className="flex flex-wrap items-center gap-x-2 font-hand text-base leading-tight text-pen">
+              {name}{atMe && <span className="rounded-full border-2 border-ink bg-hi px-1.5 font-display text-xs font-extrabold text-ink">{t("v.atYou")}</span>}
+            </div>
+          )}
+          <p className="whitespace-pre-wrap break-words text-base leading-snug"><span className={atMe ? "hl" : undefined}>{text}</span></p>
           {children}
-          {at !== undefined && <div className="mt-0.5 text-right font-mono text-xs text-muted">{hhmm(at)}</div>}
+          {(at !== undefined || tool || status) && (
+            <div className="mt-0.5 flex flex-wrap items-center justify-end gap-x-2">
+              {tool && <span className="-my-1 -ml-2.5 mr-auto">{tool}</span>}
+              {status}
+              {at !== undefined && <span className="font-mono text-xs text-muted">{hhmm(at)}</span>}
+            </div>
+          )}
         </div>
         <Tail side={mine ? "right" : "left"} fill={fill} />
         {failed && (
@@ -40,16 +55,20 @@ export function Bubble({ mine, text, at, name, children, failed, onRetry, t }: {
 }
 
 /** A message from the other person (or a non-card bot line), with its translation state. */
-export function TheirBubble({ m, name, tr, t, onRetry, onFlag }: {
+export function TheirBubble({ m, name, tr, t, onRetry, onFlag, lang, atMe }: {
   m: ChatMsg; name?: string; tr: Tr | undefined; t: T;
   onRetry: () => void; onFlag: () => Promise<void>;
+  lang: Lang; atMe?: boolean;
 }) {
   const [showOrig, setShowOrig] = useState(false);
   const [flagState, setFlagState] = useState<"idle" | "busy" | "err">("idle");
   const translated = tr?.state === "done" && tr.dto.text !== null ? tr.dto : null;
+  // read aloud only text in the reader's language: the translation, or the original when it already is
+  const readable = tr?.state === "done" ? (translated ? translated.text! : m.text) : null;
 
   return (
-    <Bubble mine={false} name={name} at={m.at} text={translated ? translated.text! : m.text} t={t}>
+    <Bubble mine={false} name={name} at={m.at} text={translated ? translated.text! : m.text} t={t} atMe={atMe}
+      tool={readable ? <SpeakButton id={`m-${m.id}`} text={readable} lang={lang} t={t} /> : undefined}>
       {(!tr || tr.state === "pending") && (
         <div role="status" className="font-hand text-base text-muted"><span className="dots">{t("c.translating")}</span></div>
       )}

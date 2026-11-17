@@ -31,6 +31,11 @@ const STALE_MS = 20 * 60_000;
  */
 async function resetSandbox(convs: ConvRow[]) {
   const ids = convs.map((c) => c.id);
+  // Visitors who joined the demo crew with its public code would otherwise sit on every roll-call board.
+  const visitors = ok(await db().from("profiles").select("id").eq("crew_id", CREW_ID)
+    .not("id", "in", `(${[RAVI.id, MURUGAN.id, LAKSHMI.id].join(",")})`)) as { id: string }[];
+  if (visitors.length) ok(await db().from("tasks").delete().in("worker_id", visitors.map((v) => v.id)).select("id"));
+  await Promise.all(visitors.map((v) => db().auth.admin.deleteUser(v.id))); // profile and pair chat cascade
   await Promise.all([
     db().from("tasks").delete().in("conversation_id", ids),
     db().from("broadcasts").delete().eq("crew_id", CREW_ID),

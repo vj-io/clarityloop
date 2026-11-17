@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/client/session";
+import { getTransport, type Unread } from "@/lib/client/transport";
 import { LANG_NAME, type ConversationDTO } from "@/lib/types";
 import { Card, Pill, Screen } from "@/components/ui";
 import { AppHeader } from "@/components/shell/AppHeader";
@@ -32,6 +33,33 @@ export default function InboxPage() {
     const id = setInterval(() => { if (document.visibilityState === "visible") load(); }, 10_000);
     return () => clearInterval(id);
   }, [me?.id, load]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Nexconn unread counts and @mentions per channel (nothing shown on the local transport or if the SDK gives none)
+  const [unread, setUnread] = useState<Unread | null>(null);
+  useEffect(() => {
+    if (!me) return;
+    let live = true, off = () => {};
+    (async () => {
+      const tr = await getTransport();
+      if (tr.kind !== "nexconn" || !live) return;
+      await tr.connect().catch(() => {});
+      if (!live) return;
+      const refresh = () => tr.unread().then((u) => { if (live) setUnread(u); }).catch(() => {});
+      // a reconnect replays missed messages one by one: one refresh per burst
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const unsub = tr.onAnyMessage(() => { clearTimeout(timer); timer = setTimeout(refresh, 500); });
+      off = () => { clearTimeout(timer); unsub(); };
+      await refresh();
+    })().catch(() => {});
+    return () => { live = false; off(); };
+  }, [me?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const badges = (c: ConversationDTO) => {
+    const u = unread?.[c.nexconn_group_id];
+    return <>
+      {u?.mention && <Pill tint="hi">{t("v.atYou")}</Pill>}
+      {u && u.n > 0 && <Pill tint="pen">{t("v.unread", { n: u.n > 99 ? "99+" : u.n })}</Pill>}
+    </>;
+  };
 
   const router = useRouter();
   const [opening, setOpening] = useState(false);
@@ -77,6 +105,7 @@ export default function InboxPage() {
                         <span className="font-hand text-base text-muted">· {ago(c.last_activity_at, t, me.language)}</span>
                       </p>
                     </div>
+                    <span className="flex shrink-0 flex-col items-end gap-1">{badges(c)}</span>
                   </Link>
                 </li>
               ) : (
@@ -89,7 +118,10 @@ export default function InboxPage() {
                         <span className="font-hand text-base text-muted">{ago(c.last_activity_at, t, me.language)}</span>
                       </p>
                     </div>
-                    {c.open_tasks > 0 && <Pill tint="warn">{t("inbox.open", { n: c.open_tasks })}</Pill>}
+                    <span className="flex shrink-0 flex-col items-end gap-1">
+                      {badges(c)}
+                      {c.open_tasks > 0 && <Pill tint="warn">{t("inbox.open", { n: c.open_tasks })}</Pill>}
+                    </span>
                   </Link>
                 </li>
               ))}

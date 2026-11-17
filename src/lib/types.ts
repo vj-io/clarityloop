@@ -67,7 +67,7 @@ export type FieldMarks = Record<FieldKey, FieldMark>;
 export const BOT_USER_ID = "clarityloopbot";
 export const CARD = { TASK: "[[CL:TASK]]", CHECK: "[[CL:CHECK]]", STATE: "[[CL:STATE]]", BOARD: "[[CL:BOARD]]" } as const;
 export type CardKind = keyof typeof CARD;
-export type StateEvent = "checking" | "confirmed" | "understood" | "done" | "board";
+export type StateEvent = "checking" | "confirmed" | "understood" | "done" | "board" | "seen";
 export function parseCard(text: string): { kind: CardKind; id: string; event?: StateEvent } | null {
   for (const kind of Object.keys(CARD) as CardKind[]) {
     if (!text.startsWith(CARD[kind])) continue;
@@ -80,7 +80,11 @@ export function parseCard(text: string): { kind: CardKind; id: string; event?: S
 }
 
 /** One chat message as the UI sees it, whatever transport carried it. */
-export type ChatMsg = { id: string; from: string; text: string; at: number };
+export type ChatMsg = {
+  id: string; from: string; text: string; at: number;
+  /** Nexconn only: the sender asked for read receipts / this client already sent its receipt / @mentioned user ids */
+  needReceipt?: boolean; sentReceipt?: boolean; mentions?: string[];
+};
 
 // ---------- API DTOs (already resolved to the reader's language) ----------
 export type Me = {
@@ -117,6 +121,7 @@ export type TaskDTO = {
   confirmations: { profile_id: string; confirmed_at: string }[];
   latest_check: CheckDTO | null;
   understood_at: string | null; done_at: string | null;
+  seen_at?: string | null;          // when the worker first had the task card on screen
   broadcast_id?: string | null; is_safety?: boolean;   // set when the task is one worker's copy of a crew task
 };
 /**
@@ -183,6 +188,7 @@ export type Api = {
   "POST /api/tasks/:id/accept-field": { req: { field: FieldKey }; res: { task: TaskDTO } };
   "POST /api/tasks/:id/confirm": { res: { task: TaskDTO } };
   "POST /api/tasks/:id/done": { res: { task: TaskDTO } };
+  "POST /api/tasks/:id/seen": { res: { ok: true } };                // assigned worker: the task card was on screen
   "GET /api/health": { res: HealthDTO };
   "GET /api/insights": { res: InsightsDTO };                       // supervisor of the crew only; read-only
   "GET /api/tasks/:id/record": { res: RecordDTO };                 // members of the task's conversation; read-only

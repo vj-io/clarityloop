@@ -29,6 +29,10 @@ function entries(tasks: TaskDTO[]): Entry[] {
   return out;
 }
 
+const RecordLink = ({ id, label }: { id: string; label: string }) => (
+  <Link href={`/record/${id}`} className="inline-flex min-h-12 shrink-0 items-center px-3 font-semibold text-pen underline decoration-2 underline-offset-4">{label} →</Link>
+);
+
 export default function TasksPage() {
   const { me, t } = useRequireMe({ role: "supervisor" });
   const [tasks, setTasks] = useState<TaskDTO[] | null>(null);
@@ -80,11 +84,12 @@ export default function TasksPage() {
                     </summary>
                     <ul className="border-t-2 border-dashed border-ink/30">
                       {kids.map((c) => (
-                        <li key={c.id} className="border-t-2 border-ink/10 first:border-t-0">
-                          <Link href={`/c/${c.conversation_id}`} className="flex min-h-12 flex-wrap items-center justify-between gap-2 px-3 py-2">
+                        <li key={c.id} className="flex items-center border-t-2 border-ink/10 first:border-t-0">
+                          <Link href={`/c/${c.conversation_id}`} className="flex min-h-12 min-w-0 flex-1 flex-wrap items-center justify-between gap-2 px-3 py-2">
                             <span className="font-display text-base font-extrabold">{c.worker.name}</span>
                             <TaskStatePill state={c.state} t={t} />
                           </Link>
+                          <RecordLink id={c.id} label={t("b.in.record")} />
                         </li>
                       ))}
                     </ul>
@@ -100,6 +105,7 @@ export default function TasksPage() {
                     <p className="mt-1 text-base leading-snug">{k.place} · <span className="font-mono">{k.due_time}</span>{k.quantity != null && <> · <span className="font-mono">{k.quantity}</span> {k.unit}</>}</p>
                     <p className="font-hand text-base text-muted">{k.worker.name} · {ago(k.created_at, t, me.language)}</p>
                   </Link>
+                  <div className="flex justify-end"><RecordLink id={k.id} label={t("b.in.record")} /></div>
                 </li>
               ))}
             </ul>
