@@ -176,7 +176,7 @@ export const shell: Dict = {
   "login.send": d("Send me a code", "मुझे कोड भेजें", "குறியீடு அனுப்பு"),
   "login.sent": d("We sent a code to {email}. Check your inbox and spam.", "हमने {email} पर कोड भेजा है। इनबॉक्स और स्पैम देखें।", "{email} க்கு குறியீடு அனுப்பினோம். இன்பாக்ஸ் மற்றும் ஸ்பேமைப் பாருங்கள்."),
   "login.code": d("Code from the email", "ईमेल वाला कोड", "மின்னஞ்சலில் உள்ள குறியீடு"),
-  "login.codeHint": d("6 digits. You can also tap the link in the email.", "6 अंक। आप ईमेल का लिंक भी दबा सकते हैं।", "6 இலக்கங்கள். மின்னஞ்சலில் உள்ள இணைப்பையும் தொடலாம்."),
+  "login.codeHint": d("Type the whole code. You can also tap the link in the email.", "पूरा कोड लिखें। आप ईमेल का लिंक भी दबा सकते हैं।", "முழு குறியீட்டையும் தட்டச்சு செய்யுங்கள். மின்னஞ்சலில் உள்ள இணைப்பையும் தொடலாம்."),
   "login.verify": d("Sign in", "साइन इन", "உள்நுழை"),
   "login.again": d("Send a new code", "नया कोड भेजें", "புதிய குறியீடு அனுப்பு"),
   "login.other": d("Use another email", "दूसरा ईमेल इस्तेमाल करें", "வேறு மின்னஞ்சல் பயன்படுத்து"),

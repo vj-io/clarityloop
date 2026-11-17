@@ -73,7 +73,7 @@ export default function LoginPage() {
           <form onSubmit={verify} className="mt-5 space-y-4">
             <p role="status" className="doodle doodle-flat bg-ok-soft! p-3 font-semibold">{t("login.sent", { email })}</p>
             <Field label={t("login.code")} hint={t("login.codeHint")} error={err}>
-              <Input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6,8}" maxLength={8} required placeholder="123456"
+              <Input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6,8}" maxLength={8} required placeholder="12345678"
                 value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} className="text-center font-mono text-2xl tracking-[0.3em]" />
             </Field>
             <Btn type="submit" tone="hi" disabled={busy || code.length < 6} className="w-full min-h-14 text-lg">{busy ? t("common.wait") : t("login.verify")}</Btn>
