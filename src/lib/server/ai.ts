@@ -4,7 +4,8 @@
 import { google } from "@ai-sdk/google";
 import { generateText } from "ai";
 import { z } from "zod";
-import { ExtractionSchema, LangSchema, type Extraction, type Lang } from "../types.ts";
+import { ExtractionSchema, LangSchema, type Extraction, type Lang, type TaskDraft } from "../types.ts";
+import { resolveTime } from "../compare.ts";
 
 export type LabelledItem = { id: string; labels: Record<Lang, string> };
 export type CrewLists = { places: LabelledItem[]; actions: LabelledItem[] };
@@ -136,13 +137,38 @@ export function inScript(out: string, target: Lang): boolean {
   return letters.filter((c) => want.test(c)).length / letters.length >= (target === "en" ? 0.6 : 0.45);
 }
 
+// ---------- site words: the crew's own glossary ----------
+export type SiteTerm = { term: string; meanings: Record<Lang, string> };
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/**
+ * The site words that occur in `text`, case-insensitively. A word must start at a word edge in every script.
+ * Latin-script words must also end at one (an English plural "s"/"es" is allowed: "JCBs"); Hindi and Tamil
+ * endings attach to the word ("மேஸ்திரியிடம்", "सरियों" is not matched but "सरिया को" is), so there only the start is checked.
+ */
+export function matchTerms<T extends { term: string }>(text: string, terms: T[]): T[] {
+  return terms.filter(({ term }) => {
+    const w = term.trim();
+    if (!w) return false;
+    const latinEnd = /[A-Za-z0-9.]$/.test(w);
+    return new RegExp(`(?<![\\p{L}\\p{M}\\p{N}])${escapeRe(w)}${latinEnd ? "(?:e?s)?(?![\\p{L}\\p{M}\\p{N}])" : ""}`, "iu").test(text);
+  });
+}
+/** Prompt block for the site words found in the message; "" when none. Kept apart from the list glossary. */
+export function siteWordsBlock(terms: SiteTerm[], target: Lang): string {
+  if (!terms.length) return "";
+  return "Site words (this crew's own words; when the message uses one, it means what is given here: translate accordingly, " +
+    "and keep the word itself recognisable where natural):\n" +
+    terms.map((t) => `"${t.term}" means "${t.meanings[target]}"`).join("\n");
+}
+
 const TranslationOut = z.object({ source_lang: LangSchema, text: z.string().min(1) });
 
 /**
  * Translate one chat message (or task text) for a reader.
  * null => already in the reader's language, show as is. Throws when the AI fails twice.
+ * `terms`: the crew's site words; only those that occur in the message are sent.
  */
-export async function translateText(text: string, target: Lang, lists: CrewLists, runner: Runner = defaultRunner()): Promise<Translation | null> {
+export async function translateText(text: string, target: Lang, lists: CrewLists, runner: Runner = defaultRunner(), terms: SiteTerm[] = []): Promise<Translation | null> {
   if (!text.trim()) return null;
   const quick = quickTranslate(text, target);
   if (quick !== undefined) return quick;
@@ -155,7 +181,8 @@ export async function translateText(text: string, target: Lang, lists: CrewLists
     `If the message is already in ${NAME[target]}, return it unchanged.`,
     'Answer with JSON only: {"source_lang":"en|hi|ta","text":"<translation>"}',
   ].join("\n");
-  const prompt = `${glossary(lists, target)}\n\nMessage:\n${text}`;
+  const site = siteWordsBlock(matchTerms(text, terms), target);
+  const prompt = `${glossary(lists, target)}\n\n${site ? `${site}\n\n` : ""}Message:\n${text}`;
   let last: unknown;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
@@ -244,6 +271,66 @@ export async function extractFields(text: string, language: Lang, actions: Label
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       return parseExtraction(await runner({ system, prompt, maxTokens: 400 }), A.codes, P.codes);
+    } catch { /* invalid answer or AI down: one retry, then null */ }
+  }
+  return null;
+}
+
+/**
+ * "Make this a task": an extraction of a chat message turned into form fields. The supervisor checks and sends;
+ * nothing here creates a task. A bare hour follows the same work-hours rule as the comparison (resolveTime):
+ * 1–6 => afternoon (time_assumed), 12 => noon, 7–11 => left empty because it cannot be settled.
+ * null when nothing usable was found.
+ */
+export function draftFields(ex: Extraction | null): TaskDraft | null {
+  if (!ex) return null;
+  const r = ex.time ? resolveTime(ex.time, ex.time_ambiguous) : null;
+  const d: TaskDraft = {
+    action_id: ex.action === "unknown" ? null : ex.action,
+    object_text: ex.object?.trim() && !ex.object_maybe_same ? ex.object.trim().slice(0, 80) : null,
+    place_id: ex.place === "unknown" ? null : ex.place,
+    due_time: r?.settled ?? null, time_assumed: Boolean(r?.settled && r.assumed),
+    quantity: ex.quantity != null && ex.quantity > 0 ? ex.quantity : null,
+    unit: ex.quantity != null && ex.quantity > 0 ? ex.unit?.trim().slice(0, 20) || null : null,
+  };
+  return d.action_id || d.object_text || d.place_id || d.due_time || d.quantity != null ? d : null;
+}
+
+// ---------- safety briefing: which listed safety points did the worker say? ----------
+export type SafetyExtraction = { said: string[]; gloss_en: string };
+const SafetyOut = z.object({ said: z.array(z.string()).max(50), gloss_en: z.string().min(1).max(300) });
+
+/** Validate a raw answer; codes (S1, S2…) map back to point ids. Throws on a code outside the list. */
+export function parseSafety(raw: string, codes: Map<string, string>): SafetyExtraction {
+  const o = SafetyOut.parse(parseJsonObject(raw));
+  const said = o.said.map((code) => {
+    const id = codes.get(code.trim().toUpperCase());
+    if (!id) throw new Error(`code not in list: ${code}`);
+    return id;
+  });
+  return { said: [...new Set(said)], gloss_en: o.gloss_en };
+}
+
+/**
+ * Read a worker's say-back of a safety briefing against the crew's WHOLE safety list. The model is never
+ * told which points the supervisor picked, so it cannot be nudged into agreeing; code compares afterwards.
+ * null => the answer was invalid twice (or the AI is down): the card says "couldn't check".
+ */
+export async function extractSafetyPoints(text: string, language: Lang, points: LabelledItem[], runner: Runner = defaultRunner()): Promise<SafetyExtraction | null> {
+  const S = listing(points, "S");
+  const system = [
+    "A construction worker was told some site safety points and now says them back in their own words. Write down which of the listed safety points the worker clearly said.",
+    "The worker may write Hindi, Hinglish (Hindi in Roman letters), Tamil, Tamil in Roman letters, or English, and may use very different words for the same point (\"topi\" or \"sar ki suraksha\" for the helmet, \"belt\" for the harness).",
+    "A point counts only when the worker clearly expressed its meaning. Do not count a point that is only hinted at, half said, or contradicted (\"no need for gloves\"). Never guess or fill in.",
+    "Ignore anything the worker said that is not in the list.",
+    'Return JSON only: {"said":["S1",...],"gloss_en":"<one plain English sentence of what the worker said>"}. "said" lists codes from SAFETY POINTS only, and may be empty.',
+    "",
+    `SAFETY POINTS:\n${S.text}`,
+  ].join("\n");
+  const prompt = `Worker's language: ${language === "hi" ? "Hindi or Hinglish" : NAME[language]}\nWhat the worker said:\n${text}`;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return parseSafety(await runner({ system, prompt, maxTokens: 300 }), S.codes);
     } catch { /* invalid answer or AI down: one retry, then null */ }
   }
   return null;

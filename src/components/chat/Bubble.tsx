@@ -1,18 +1,21 @@
 "use client";
 // One chat message. Theirs: translated in place, original one tap away. Mine: as I typed it.
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { api } from "@/lib/client/session";
 import type { T } from "@/lib/i18n";
-import { LANG_NAME, type ChatMsg, type Lang } from "@/lib/types";
+import { LANG_NAME, type ChatMsg, type Lang, type TaskDraft } from "@/lib/types";
 import type { Tr } from "./useConversation";
 import { Tail } from "./doodles";
 import { SpeakButton } from "./voice";
+import { WhichWord } from "./terms";
 
 export const hhmm = (ms: number | string) =>
   new Date(ms).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
 
 const linkBtn = "inline-flex min-h-12 items-center text-left font-semibold text-pen underline decoration-2 underline-offset-4";
 
-export function Bubble({ mine, text, at, name, children, failed, waiting, onRetry, t, tool, status, atMe }: {
+export function Bubble({ mine, text, at, name, children, failed, waiting, onRetry, t, tool, status, atMe, actions }: {
   mine: boolean; text: string; at?: number; name?: string; children?: React.ReactNode;
   /** failed: refused, tap to retry · waiting: queued until the connection is live */
   failed?: boolean; waiting?: boolean; onRetry?: () => void; t: T;
@@ -20,11 +23,22 @@ export function Bubble({ mine, text, at, name, children, failed, waiting, onRetr
   tool?: React.ReactNode; status?: React.ReactNode;
   /** this message @mentions me: lime highlighter + tag */
   atMe?: boolean;
+  /** small text actions under the bubble ("Make this a task"): shown on hover, or after a tap on the bubble */
+  actions?: React.ReactNode;
 }) {
   const fill = mine ? "var(--pen-soft)" : "var(--card)";
+  const [open, setOpen] = useState(false);
+  // a tap on the bubble (not on a button or link inside it) shows its actions
+  const toggle = actions ? (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest("button, a, input, textarea")) return;
+    const row = e.currentTarget.querySelector<HTMLElement>("[data-actions]");
+    setOpen((v) => !v);
+    // the last bubble's row would open under the sticky composer: bring it into view (scroll-margin keeps it above)
+    requestAnimationFrame(() => row?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
+  } : undefined;
   return (
-    <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-      <div className="mb-3 max-w-[85%] sm:max-w-[70%]">
+    <div className={`group flex ${mine ? "justify-end" : "justify-start"}`}>
+      <div className="mb-3 max-w-[85%] rounded-xl sm:max-w-[70%]" onClick={toggle} tabIndex={actions ? 0 : undefined}>
         {/* bubble and tail share a box, so the tail stays under the bubble even with a retry line below it */}
         <div className="relative">
         <div
@@ -48,6 +62,11 @@ export function Bubble({ mine, text, at, name, children, failed, waiting, onRetr
         </div>
         <Tail side={mine ? "right" : "left"} fill={fill} />
         </div>
+        {actions && (
+          <div data-actions className={`${open ? "flex" : "hidden"} mt-2 scroll-mb-28 flex-wrap gap-x-3 group-hover:flex group-focus-within:flex ${mine ? "justify-end" : "justify-start"}`}>
+            {actions}
+          </div>
+        )}
         {failed && (
           <button type="button" onClick={onRetry} className="mt-3 inline-flex min-h-12 items-center gap-1 font-semibold text-bad underline decoration-2 underline-offset-4">
             {t("c.notSent")}
@@ -59,19 +78,21 @@ export function Bubble({ mine, text, at, name, children, failed, waiting, onRetr
 }
 
 /** A message from the other person (or a non-card bot line), with its translation state. */
-export function TheirBubble({ m, name, tr, t, onRetry, onFlag, lang, atMe }: {
+export function TheirBubble({ m, name, tr, t, onRetry, onFlag, lang, atMe, actions, onSuggest }: {
   m: ChatMsg; name?: string; tr: Tr | undefined; t: T;
   onRetry: () => void; onFlag: () => Promise<void>;
-  lang: Lang; atMe?: boolean;
+  lang: Lang; atMe?: boolean; actions?: React.ReactNode;
+  /** after "Translation looks wrong": which word, and what it means (goes to the supervisor's site words) */
+  onSuggest?: (word: string, meaning: string) => Promise<void>;
 }) {
   const [showOrig, setShowOrig] = useState(false);
-  const [flagState, setFlagState] = useState<"idle" | "busy" | "err">("idle");
+  const [flagState, setFlagState] = useState<"idle" | "busy" | "err" | "done">("idle");
   const translated = tr?.state === "done" && tr.dto.text !== null ? tr.dto : null;
   // read aloud only text in the reader's language: the translation, or the original when it already is
   const readable = tr?.state === "done" ? (translated ? translated.text! : m.text) : null;
 
   return (
-    <Bubble mine={false} name={name} at={m.at} text={translated ? translated.text! : m.text} t={t} atMe={atMe}
+    <Bubble mine={false} name={name} at={m.at} text={translated ? translated.text! : m.text} t={t} atMe={atMe} actions={actions}
       tool={readable ? <SpeakButton id={`m-${m.id}`} text={readable} lang={lang} t={t} /> : undefined}>
       {(!tr || tr.state === "pending") && (
         <div role="status" className="font-hand text-base text-muted"><span className="dots">{t("c.translating")}</span></div>
@@ -93,10 +114,13 @@ export function TheirBubble({ m, name, tr, t, onRetry, onFlag, lang, atMe }: {
             <div className="mb-1 rounded-lg border-2 border-ink/30 bg-paper px-2.5 py-1.5">
               <p lang={translated.source_lang ?? undefined} className="whitespace-pre-wrap break-words font-hand text-lg leading-snug">{m.text}</p>
               {translated.flagged ? (
-                <p role="status" className="py-2 text-sm font-semibold text-[#0f6b31]">{t("c.flagged")}</p>
+                <>
+                  <p role="status" className="py-2 text-sm font-semibold text-[#0f6b31]">{t("c.flagged")}</p>
+                  {flagState === "done" && onSuggest && <WhichWord t={t} onSend={onSuggest} />}
+                </>
               ) : (
                 <button type="button" disabled={flagState === "busy"} className={`${linkBtn} text-sm text-muted`}
-                  onClick={async () => { setFlagState("busy"); try { await onFlag(); setFlagState("idle"); } catch { setFlagState("err"); } }}>
+                  onClick={async () => { setFlagState("busy"); try { await onFlag(); setFlagState("done"); } catch { setFlagState("err"); } }}>
                   {t(flagState === "err" ? "c.flagFailed" : "c.flag")}
                 </button>
               )}
@@ -105,5 +129,26 @@ export function TheirBubble({ m, name, tr, t, onRetry, onFlag, lang, atMe }: {
         </>
       )}
     </Bubble>
+  );
+}
+
+/** "Make this a task": reads the message into a draft, then opens the task form filled from it (via sessionStorage). */
+export const draftKey = (conversationId: string) => `cl_task_draft_${conversationId}`;
+export type StoredDraft = { draft: TaskDraft | null; text: string };
+export function MakeTaskButton({ conversationId, text, language, t }: { conversationId: string; text: string; language: Lang; t: T }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  async function go() {
+    setBusy(true);
+    let draft: TaskDraft | null = null;
+    try { draft = (await api("POST /api/tasks/draft", { conversation_id: conversationId, text, language })).draft; } catch { /* the form opens empty with a calm note */ }
+    try { sessionStorage.setItem(draftKey(conversationId), JSON.stringify({ draft, text } satisfies StoredDraft)); } catch { /* storage blocked: empty form */ }
+    router.push(`/c/${conversationId}/task/new`);
+  }
+  return (
+    <button type="button" onClick={go} disabled={busy} className={`${linkBtn} gap-1 text-base`}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 4h10v17H7zM10 9h4M10 13h4M10 17h2" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      {busy ? <span className="dots">{t("g.making")}</span> : t("g.makeTask")}
+    </button>
   );
 }

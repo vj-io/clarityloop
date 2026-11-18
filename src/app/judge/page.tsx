@@ -102,6 +102,8 @@ function Chooser({ t }: { t: T }) {
     }
     return pending.current;
   }, []);
+  // Ask for the room while the judge is still reading, so "Open" does not wait for it.
+  useEffect(() => { void getRoom(); }, [getRoom]);
 
   function fresh() {
     try { sessionStorage.removeItem(ROOM_KEY); } catch { /* ignore */ }

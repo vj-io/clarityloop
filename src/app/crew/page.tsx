@@ -10,8 +10,11 @@ import { useRequireMe } from "@/components/shell/guard";
 import { Btn, CopyButton, ErrorBox, PageLoading, errMsg } from "@/components/shell/Common";
 import type { T } from "@/lib/i18n";
 import { CrewDoodle } from "@/components/chat/board";
+import { HazardIcon } from "@/components/chat/doodles";
+import { SiteWords } from "@/components/chat/terms";
 
-function ListEditor({ kind, items, t, onCrew }: { kind: "place" | "action"; items: ListItem[]; t: T; onCrew: (c: CrewDTO) => void }) {
+function ListEditor({ kind, items, t, onCrew }: { kind: "place" | "action" | "safety"; items: ListItem[]; t: T; onCrew: (c: CrewDTO) => void }) {
+  const safety = kind === "safety";
   const [label, setLabel] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -30,8 +33,8 @@ function ListEditor({ kind, items, t, onCrew }: { kind: "place" | "action"; item
   }
   return (
     <Card>
-      <h2 className="font-display text-xl font-extrabold">{t(`crew.${kind}s`)}</h2>
-      <p className="font-hand text-base text-muted">{t("crew.listHint")}</p>
+      <h2 className="flex items-center gap-2 font-display text-xl font-extrabold">{safety && <HazardIcon size={22} />}{t(safety ? "s.list.title" : `crew.${kind}s`)}</h2>
+      <p className="font-hand text-base text-muted">{t(safety ? "s.list.hint" : "crew.listHint")}</p>
       <ul className="mt-2 divide-y-2 divide-dashed divide-ink/30">
         {items.map((it) => (
           <li key={it.id} className="flex items-center justify-between gap-2 py-1">
@@ -49,8 +52,8 @@ function ListEditor({ kind, items, t, onCrew }: { kind: "place" | "action"; item
       </ul>
       <form onSubmit={add} className="mt-3 flex items-end gap-2">
         <div className="min-w-0 flex-1">
-          <Field label={t(`crew.add_${kind}`)} error={err}>
-            <Input value={label} onChange={(e) => setLabel(e.target.value)} maxLength={40} />
+          <Field label={t(safety ? "s.list.add" : `crew.add_${kind}`)} error={err}>
+            <Input value={label} onChange={(e) => setLabel(e.target.value)} maxLength={safety ? 80 : 40} />
           </Field>
         </div>
         <Btn type="submit" disabled={busy || !label.trim()} className="shrink-0">{t("crew.add")}</Btn>
@@ -138,6 +141,8 @@ export default function CrewPage() {
 
             <ListEditor kind="place" items={crew.places} t={t} onCrew={setCrew} />
             <ListEditor kind="action" items={crew.actions} t={t} onCrew={setCrew} />
+            <ListEditor kind="safety" items={crew.safety_points ?? []} t={t} onCrew={setCrew} />
+            <SiteWords t={t} lang={me.language} />
           </div>
         )}
       </Screen>

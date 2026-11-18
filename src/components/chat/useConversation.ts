@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/client/session";
 import { getTransport, type ChatTransport, type LinkStatus, type Receipt, type Room } from "@/lib/client/transport";
-import { BOT_USER_ID, parseCard, type Api, type BroadcastDTO, type ChatMsg, type CheckDTO, type Me, type TaskDTO, type TranslationDTO } from "@/lib/types";
+import { BOT_USER_ID, parseCard, type Api, type BriefingDTO, type BroadcastDTO, type ChatMsg, type CheckDTO, type Me, type TaskDTO, type TranslationDTO } from "@/lib/types";
 
 type ConvRes = Api["GET /api/conversations/:id"]["res"];
 export type Tr = { state: "pending" } | { state: "done"; dto: TranslationDTO } | { state: "error" | "slow" };
@@ -31,6 +31,7 @@ export function useConversation(conversationId: string, me: Me | null) {
   const [tasks, setTasks] = useState<Record<string, TaskDTO>>({});
   const [checks, setChecks] = useState<Record<string, CheckDTO>>({});
   const [boards, setBoards] = useState<Record<string, BroadcastDTO>>({});   // crew channel: roll-call boards by broadcast id
+  const [briefings, setBriefings] = useState<Record<string, BriefingDTO>>({});   // safety briefings by id (roll call or my card)
   const [gone, setGone] = useState<Record<string, true>>({}); // card ids whose task/check no longer exists
   const [tr, setTr] = useState<Record<string, Tr>>({});
   const [receipts, setReceipts] = useState<Record<string, Receipt>>({});   // Nexconn read receipts by message id
@@ -82,6 +83,15 @@ export function useConversation(conversationId: string, me: Me | null) {
       setBoards((s) => ({ ...s, [id]: broadcast }));
     } catch (e) { if (e instanceof ApiError && e.status === 404) setGone((g) => ({ ...g, [id]: true })); }
   }, []);
+  const refreshBriefing = useCallback(async (id: string) => {
+    const g = gen.current;
+    try {
+      const { briefing } = await api("GET /api/briefings/:id", undefined, { id });
+      if (g !== gen.current) return;
+      setBriefings((s) => ({ ...s, [id]: briefing }));
+    } catch (e) { if (e instanceof ApiError && e.status === 404) setGone((g) => ({ ...g, [id]: true })); }
+  }, []);
+  const putBriefing = useCallback((b: BriefingDTO) => setBriefings((s) => ({ ...s, [b.id]: b })), []);
   /** Fetch the data of every card in `list` not fetched yet, all in parallel. Resolves when every card in `list`
    *  has its data (also those another call is already fetching). */
   const cardFetch = useRef(new Map<string, Promise<unknown>>());   // "t:id" | "c:id" | "b:id" -> latest fetch
@@ -92,17 +102,17 @@ export function useConversation(conversationId: string, me: Me | null) {
       const c = cardOf(m);
       if (!c) continue;
       // a BOARD card, or a "board" ping: that board; a CHECK: the check (and its task); anything else: the task
-      const key = c.kind === "BOARD" || c.event === "board" ? `b:${c.id}` : c.kind === "CHECK" ? `c:${c.id}` : `t:${c.id}`;
+      const key = c.kind === "BOARD" || c.event === "board" ? `b:${c.id}` : c.kind === "BRIEF" || c.event === "brief" ? `r:${c.id}` : c.kind === "CHECK" ? `c:${c.id}` : `t:${c.id}`;
       if (!seenCards.current.has(m.id) && !started.has(key)) {
         started.add(key);
-        const go = key[0] === "b" ? refreshBoard : key[0] === "c" ? refreshCheck : refreshTask;
+        const go = key[0] === "b" ? refreshBoard : key[0] === "r" ? refreshBriefing : key[0] === "c" ? refreshCheck : refreshTask;
         cardFetch.current.set(key, go(c.id));
       }
       seenCards.current.add(m.id);
       wait.push(cardFetch.current.get(key)!);
     }
     await Promise.all(wait);
-  }, [refreshCheck, refreshTask, refreshBoard]);
+  }, [refreshCheck, refreshTask, refreshBoard, refreshBriefing]);
   const putTask = useCallback((task: TaskDTO, check?: CheckDTO) => {
     setTasks((s) => ({ ...s, [task.id]: task }));
     const c = check ?? task.latest_check;
@@ -324,8 +334,8 @@ export function useConversation(conversationId: string, me: Me | null) {
   }, []);
 
   return {
-    conv, loadError, status, kind, msgs, historyReady, pending, tasks, checks, boards, gone, tr, receipts,
-    send, retrySend, retryTranslate, flag, refreshTask, refreshCheck, refreshBoard, putTask,
+    conv, loadError, status, kind, msgs, historyReady, pending, tasks, checks, boards, briefings, gone, tr, receipts,
+    send, retrySend, retryTranslate, flag, refreshTask, refreshCheck, refreshBoard, refreshBriefing, putBriefing, putTask,
   };
 }
 export type ConversationState = ReturnType<typeof useConversation>;

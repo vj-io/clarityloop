@@ -322,3 +322,121 @@ alter table tasks add column if not exists seen_at timestamptz;
 -- supervisor's own words when the task is created. Code compares the worker's object against them.
 alter table tasks add column if not exists object_aliases jsonb not null default '[]'::jsonb;
 alter table broadcasts add column if not exists object_aliases jsonb not null default '[]'::jsonb;
+
+-- ---------- Site words (crew glossary), suggestions from "Translation looks wrong", reminders ----------
+-- Additive only: two new tables, nullable / defaulted columns, one function. Deployed code ignores them.
+create table if not exists crew_terms (
+  id uuid primary key default gen_random_uuid(),
+  crew_id uuid not null references crews(id) on delete cascade,
+  term text not null check (char_length(term) between 1 and 40),   -- as people on this site write it, any script
+  meaning_en text not null check (char_length(meaning_en) <= 120),
+  meaning_hi text not null check (char_length(meaning_hi) <= 120),
+  meaning_ta text not null check (char_length(meaning_ta) <= 120),
+  note text check (note is null or char_length(note) <= 200),
+  source text not null default 'manual' check (source in ('manual','flag')),
+  created_by uuid references profiles(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+create unique index if not exists crew_terms_unique on crew_terms(crew_id, lower(term));
+alter table crew_terms enable row level security;
+
+create table if not exists term_suggestions (
+  id uuid primary key default gen_random_uuid(),
+  crew_id uuid not null references crews(id) on delete cascade,
+  conversation_id uuid not null references conversations(id) on delete cascade,
+  nexconn_message_id text not null,
+  word text not null check (char_length(word) between 1 and 40),
+  meaning text check (meaning is null or char_length(meaning) <= 120),
+  lang text not null check (lang in ('en','hi','ta')),
+  suggested_by uuid references profiles(id) on delete set null,
+  status text not null default 'open' check (status in ('open','added','dismissed')),
+  created_at timestamptz not null default now()
+);
+create index if not exists term_suggestions_open on term_suggestions(crew_id, created_at desc) where status = 'open';
+alter table term_suggestions enable row level security;
+do $$ begin
+  drop policy if exists term_read on crew_terms;
+  create policy term_read on crew_terms for select using (crew_id = my_crew());
+end $$;
+
+-- Bumped on every glossary change. A cached translation made under an older version is re-made when its
+-- message contains a current site word (see src/app/api/translate/route.ts).
+alter table crews add column if not exists terms_version int not null default 0;
+alter table message_translations add column if not exists terms_version int;
+create or replace function bump_terms_version(p_crew uuid) returns int language sql as
+$$ update crews set terms_version = terms_version + 1 where id = p_crew returning terms_version $$;
+revoke execute on function bump_terms_version(uuid) from public, anon, authenticated;
+
+-- Last "Remind" from the supervisor: at most one per task per 10 minutes, enforced by the server.
+alter table tasks add column if not exists nudged_at timestamptz;
+
+-- ---------- Safety briefing check ("the toolbox talk, with proof it was understood") ----------
+-- Additive only. Each crew keeps its own safety points list (like places and actions). A briefing sends
+-- 2-5 of them to the crew; every worker says them back once in their own words; code compares the points
+-- the AI read in the reply with the points picked. Points are never hard-deleted (removed_at), so an old
+-- briefing record still shows the words the crew was briefed with.
+create table if not exists site_safety_points (
+  id uuid primary key default gen_random_uuid(),
+  crew_id uuid not null references crews(id) on delete cascade,
+  key text,                                  -- default point key (helmet, harness, ...) for templates; null when added by hand
+  label_en text not null,
+  label_hi text not null,
+  label_ta text not null,
+  sort int not null default 0,
+  removed_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create unique index if not exists site_safety_points_crew_key on site_safety_points(crew_id, key);   -- defaults seed once (nulls never clash)
+create index if not exists site_safety_points_crew on site_safety_points(crew_id, sort);
+alter table site_safety_points enable row level security;
+
+create table if not exists briefings (
+  id uuid primary key default gen_random_uuid(),
+  crew_id uuid not null references crews(id) on delete cascade,
+  conversation_id uuid not null references conversations(id) on delete cascade,   -- the crew channel
+  supervisor_id uuid not null references profiles(id),
+  point_ids jsonb not null,                  -- ordered array of site_safety_points ids (2-5)
+  place_id uuid references site_places(id) on delete set null,
+  note text check (note is null or char_length(note) <= 200),
+  note_i18n jsonb not null default '{}'::jsonb,
+  is_sandbox boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists briefings_crew on briefings(crew_id, created_at desc);
+alter table briefings enable row level security;
+
+-- One row per worker, made at send time (waiting); updated on every reply. `attempts` keeps every reply:
+-- [{ at, text, language, said: [point ids], unreadable, gloss_en, model_id, ms }].
+create table if not exists briefing_replies (
+  id uuid primary key default gen_random_uuid(),
+  briefing_id uuid not null references briefings(id) on delete cascade,
+  worker_id uuid not null references profiles(id) on delete cascade,
+  conversation_id uuid not null references conversations(id) on delete cascade,   -- the worker's pair chat
+  state text not null default 'waiting' check (state in ('waiting', 'missed', 'understood')),
+  original_text text,                        -- latest reply
+  language text,
+  said_point_ids jsonb not null default '[]'::jsonb,   -- every listed point said so far (all replies)
+  gloss jsonb not null default '{}'::jsonb,            -- latest "what we understood", by language
+  model_id text,
+  ms int,
+  attempts jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  understood_at timestamptz,
+  unique (briefing_id, worker_id)
+);
+create index if not exists briefing_replies_worker on briefing_replies(worker_id, created_at desc);
+alter table briefing_replies enable row level security;
+do $$ begin
+  drop policy if exists safety_point_read on site_safety_points;
+  create policy safety_point_read on site_safety_points for select using (crew_id = my_crew());
+  drop policy if exists briefing_read on briefings;
+  create policy briefing_read on briefings for select using (is_member(conversation_id));
+  -- a worker reads only their own reply; the supervisor who sent the briefing reads all
+  drop policy if exists briefing_reply_read on briefing_replies;
+  create policy briefing_reply_read on briefing_replies for select using (
+    worker_id = auth.uid() or exists (select 1 from briefings b where b.id = briefing_id and b.supervisor_id = auth.uid()));
+end $$;
+
+-- Demo rooms: when someone last used this sandbox crew (the room idle longest is handed to the next visitor).
+alter table crews add column if not exists touched_at timestamptz;

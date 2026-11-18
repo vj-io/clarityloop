@@ -67,9 +67,18 @@ export type FieldMarks = Record<FieldKey, FieldMark>;
 // [[CL:STATE]]<broadcastId>:board          ping: a child task of that crew task changed; refetch the board
 // A card-looking text whose sender is not BOT_USER_ID is ordinary chat and must be drawn as text.
 export const BOT_USER_ID = "clarityloopbot";
-export const CARD = { TASK: "[[CL:TASK]]", CHECK: "[[CL:CHECK]]", STATE: "[[CL:STATE]]", BOARD: "[[CL:BOARD]]" } as const;
+// [[CL:BRIEF]]<briefingId>                 safety briefing: roll call in the crew channel; the worker's card in each pair chat (re-posted there after each reply)
+// [[CL:STATE]]<briefingId>:brief           ping: a reply to that briefing changed; refetch it
+export const CARD = { TASK: "[[CL:TASK]]", CHECK: "[[CL:CHECK]]", STATE: "[[CL:STATE]]", BOARD: "[[CL:BOARD]]", BRIEF: "[[CL:BRIEF]]" } as const;
 export type CardKind = keyof typeof CARD;
-export type StateEvent = "checking" | "confirmed" | "understood" | "done" | "board" | "seen";
+// [[CL:STATE]]<taskId>:nudge               the supervisor's "Remind": a stored, visible line (not silent)
+export type StateEvent = "checking" | "confirmed" | "understood" | "done" | "board" | "seen" | "nudge" | "brief";
+/** "Remind": only while the task still needs a say-back, at most once per task per NUDGE_GAP_MS (server-enforced). */
+export const NUDGE_GAP_MS = 10 * 60_000;
+export const NUDGE_STATES: TaskState[] = ["waiting", "mismatch", "needs_look"];
+/** Seconds until another reminder is allowed (0 = now). */
+export const nudgeWait = (nudgedAt: string | null | undefined, now = Date.now()) =>
+  nudgedAt ? Math.max(0, Math.ceil((Date.parse(nudgedAt) + NUDGE_GAP_MS - now) / 1000)) : 0;
 export function parseCard(text: string): { kind: CardKind; id: string; event?: StateEvent } | null {
   for (const kind of Object.keys(CARD) as CardKind[]) {
     if (!text.startsWith(CARD[kind])) continue;
@@ -98,6 +107,8 @@ export type CrewDTO = {
   id: string; name: string; site_name: string; join_code: string;
   members: { id: string; display_name: string; role: Role; language: Lang }[];
   places: ListItem[]; actions: ListItem[];
+  /** Safety points list (optional for backward compatibility). `key` names a default point, for templates. */
+  safety_points?: (ListItem & { key: string | null })[];
 };
 export type ConversationDTO = {
   id: string; nexconn_group_id: string;
@@ -124,6 +135,7 @@ export type TaskDTO = {
   latest_check: CheckDTO | null;
   understood_at: string | null; done_at: string | null;
   seen_at?: string | null;          // when the worker first had the task card on screen
+  nudged_at?: string | null;        // the supervisor's last "Remind"
   broadcast_id?: string | null; is_safety?: boolean;   // set when the task is one worker's copy of a crew task
 };
 /**
@@ -148,11 +160,54 @@ export type BroadcastDTO = {
   progress: { understood: number; total: number };   // understood counts understood + done
   redacted: boolean;
 };
-export type BroadcastSummary = Pick<BroadcastDTO, "id" | "conversation_id" | "created_at" | "is_safety" | "action" | "object" | "place" | "due_time" | "progress">;
+// ---------- Safety briefing check (labels already in the reader's language) ----------
+export type BriefingState = "waiting" | "missed" | "understood";
+/** Roll-call row. Redacted for workers looking at others: status only "understood" / "not_yet", no points, no chat id. */
+export type BriefingRow = {
+  worker: { id: string; name: string; language: Lang };
+  status: BriefingState | "not_yet"; is_me: boolean;
+  said: number | null;              // picked points said so far; null when redacted
+  missing: string[];                // picked point ids not said yet; empty when redacted
+  conversation_id: string | null;   // the worker's pair chat; null when redacted
+};
+export type BriefingAttemptDTO = {
+  at: string; text: string; language: Lang;
+  said_point_ids: string[];         // listed points this reply mentioned (any of the crew's list)
+  unreadable: boolean;              // the AI could not check this reply: nothing changed
+  gloss: string | null;             // "what we understood", reader's language (English if not translated)
+};
+export type BriefingReplyDTO = {
+  worker: { id: string; name: string; language: Lang }; conversation_id: string;
+  state: BriefingState; understood_at: string | null;
+  said: string[]; missing: string[]; extra: string[];   // picked said / picked not said / mentioned but not in this briefing
+  attempts: BriefingAttemptDTO[];   // oldest first
+};
+export type BriefingDTO = {
+  id: string; conversation_id: string; created_at: string; is_sandbox: boolean;
+  supervisor: { id: string; name: string; language: Lang };
+  points: { id: string; label: string; labels: Record<Lang, string> }[];   // picked, in order
+  /** every listed point a reply mentioned that is not in `points` (for "also mentioned") */
+  other_points: { id: string; label: string }[];
+  place: string | null; note: string | null;
+  rows: BriefingRow[];
+  progress: { understood: number; total: number };
+  redacted: boolean;
+  replies: BriefingReplyDTO[];      // supervisor: every worker; worker: only their own
+};
+export type BriefingSummary = Pick<BriefingDTO, "id" | "conversation_id" | "created_at" | "points" | "progress">;
+export type BroadcastSummary = Pick<BroadcastDTO,"id" | "conversation_id" | "created_at" | "is_safety" | "action" | "object" | "place" | "due_time" | "progress">;
 export type TranslationDTO = {
   id: string;                      // nexconn message id
   text: string | null;             // null => same language, show the original
   source_lang: Lang | null; flagged: boolean; error?: boolean;
+};
+/** A site word: how people on this site write a thing, and what it means in each language. */
+export type TermDTO = { id: string; term: string; meanings: Record<Lang, string>; note: string | null; source: "manual" | "flag"; created_at: string };
+export type SuggestionDTO = { id: string; word: string; meaning: string | null; lang: Lang; by: string; created_at: string };
+/** "Make this a task": fields read from a chat message. null = not found. Never saved by the server. */
+export type TaskDraft = {
+  action_id: string | null; object_text: string | null; place_id: string | null;
+  due_time: string | null; time_assumed: boolean; quantity: number | null; unit: string | null;
 };
 
 // ---------- HTTP contract ----------
@@ -171,8 +226,8 @@ export type Api = {
   "PATCH /api/me": { req: { language?: Lang; display_name?: string }; res: { me: Me } };
   "POST /api/crews": { req: { display_name: string; language: Lang; crew_name: string; site_name: string }; res: { me: Me; crew: CrewDTO } };
   "GET /api/crew": { res: { crew: CrewDTO } };
-  "POST /api/crew/lists": { req: { kind: "place" | "action"; label: string }; res: { crew: CrewDTO } };   // label in caller's language; server fills the other two
-  "DELETE /api/crew/lists": { req: { kind: "place" | "action"; id: string }; res: { crew: CrewDTO } };
+  "POST /api/crew/lists": { req: { kind: "place" | "action" | "safety"; label: string }; res: { crew: CrewDTO } };   // label in caller's language; server fills the other two
+  "DELETE /api/crew/lists": { req: { kind: "place" | "action" | "safety"; id: string }; res: { crew: CrewDTO } };
   "POST /api/nexconn/token": { res: { user_id: string; token: string | null } };                          // token null in local transport
   "POST /api/conversations": { req: { worker_id: string }; res: { conversation: ConversationDTO } };
   "GET /api/conversations": { res: { conversations: ConversationDTO[] } };   // the crew channel (kind "crew") comes first
@@ -192,9 +247,23 @@ export type Api = {
   "POST /api/tasks/:id/confirm": { res: { task: TaskDTO } };
   "POST /api/tasks/:id/done": { res: { task: TaskDTO } };
   "POST /api/tasks/:id/seen": { res: { ok: true } };                // assigned worker: the task card was on screen
+  // Site words, "Make this a task", reminders
+  "GET /api/glossary": { res: { terms: TermDTO[]; suggestions: SuggestionDTO[] } };   // crew members; suggestions: supervisor only ([] for workers)
+  "POST /api/glossary": { req: { term: string; meaning: string; lang?: Lang; suggestion_id?: string }; res: { term: TermDTO } };   // supervisor; other two meanings filled by translation
+  "PATCH /api/glossary": { req: { id: string; term?: string; meaning_en?: string; meaning_hi?: string; meaning_ta?: string; note?: string | null }; res: { term: TermDTO } };
+  "DELETE /api/glossary": { req: { id: string }; res: { ok: true } };
+  "POST /api/glossary/suggestions": { req: { conversation_id: string; message_id: string; word: string; meaning?: string | null }; res: { ok: true } };   // any member, in their language
+  "PATCH /api/glossary/suggestions": { req: { id: string; status: "dismissed" }; res: { ok: true } };   // supervisor
+  "POST /api/tasks/draft": { req: { conversation_id: string; text: string; language?: Lang }; res: { draft: TaskDraft | null } };   // supervisor; nothing is saved
+  "POST /api/tasks/:id/nudge": { res: { task: TaskDTO } };          // task's supervisor; 429 rate_limited within 10 min of the last one
   "GET /api/health": { res: HealthDTO };
   "GET /api/insights": { res: InsightsDTO };                       // supervisor of the crew only; read-only
   "GET /api/tasks/:id/record": { res: RecordDTO };                 // members of the task's conversation; read-only
+  // Safety briefing check: 2-5 points from the crew's safety list; each worker says them back once.
+  "POST /api/briefings": { req: { point_ids: string[]; place_id?: string | null; note?: string | null }; res: { briefing: BriefingDTO } };   // supervisor
+  "GET /api/briefings": { res: { briefings: BriefingSummary[] } };   // supervisor: recent, newest first
+  "GET /api/briefings/:id": { res: { briefing: BriefingDTO } };      // crew channel members; redacted for workers; the full record
+  "POST /api/briefings/:id/reply": { req: { text: string }; res: { briefing: BriefingDTO } };   // the worker: one reply covering all points
   // Local transport only (used when Nexconn keys are not configured):
   "GET /api/local/messages?conversation_id=&after=": { res: { messages: ChatMsg[] } };   // after = ms timestamp, exclusive
   "POST /api/local/messages": { req: { conversation_id: string; text: string }; res: { message: ChatMsg } };

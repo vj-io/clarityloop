@@ -8,6 +8,7 @@ import { AppHeader } from "@/components/shell/AppHeader";
 import { useRequireMe } from "@/components/shell/guard";
 import { Button, Field, Input, Pill, Select, Spinner } from "@/components/ui";
 import { BG, TaskFacts } from "@/components/chat/cards";
+import { draftKey, type StoredDraft } from "@/components/chat/Bubble";
 import { ClipboardDoodle } from "@/components/chat/doodles";
 import { api, ApiError } from "@/lib/client/session";
 import { makeT, type T } from "@/lib/i18n";
@@ -28,13 +29,35 @@ export default function NewTaskPage() {
   const [err, setErr] = useState<string | null>(null);
   const [safety, setSafety] = useState(false);
   const [pick, setPick] = useState<Lang | null>(null);   // crew: which worker language the preview shows
-  const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
+  // "Make this a task": fields filled from a chat message stay marked until the supervisor changes them
+  const [filled, setFilled] = useState<Set<string>>(new Set());
+  const [fromMsg, setFromMsg] = useState<{ text: string; found: boolean; assumed: boolean } | null>(null);
+  const set = (k: keyof typeof f) => (v: string) => {
+    setF((s) => ({ ...s, [k]: v }));
+    setFilled((m) => { if (!m.has(k)) return m; const n = new Set(m); n.delete(k); return n; });
+  };
 
   useEffect(() => {
     if (!me) return;
     if (me.role !== "supervisor") { router.replace(`/c/${conversationId}`); return; }
     Promise.all([api("GET /api/crew"), api("GET /api/conversations/:id", undefined, { id: conversationId })])
-      .then(([c, v]) => { setCrew(c.crew); setConv(v); })
+      .then(([c, v]) => {
+        setCrew(c.crew); setConv(v);
+        let stored: StoredDraft | null = null;
+        try { stored = JSON.parse(sessionStorage.getItem(draftKey(conversationId)) ?? "null"); sessionStorage.removeItem(draftKey(conversationId)); } catch { /* none */ }
+        if (!stored) return;
+        const d = stored.draft;
+        const pre: Partial<Record<keyof typeof f, string>> = {};
+        if (d?.action_id && c.crew.actions.some((a) => a.id === d.action_id)) pre.action = d.action_id;
+        if (d?.object_text) pre.object = d.object_text;
+        if (d?.place_id && c.crew.places.some((p) => p.id === d.place_id)) pre.place = d.place_id;
+        if (d?.due_time && Number(d.due_time.slice(3)) % 5 === 0) pre.time = d.due_time;   // the minute picker has 5-minute steps
+        if (d?.quantity != null) { pre.qty = String(d.quantity); if (d.unit) pre.unit = d.unit; }
+        setF((s) => ({ ...s, ...pre }));
+        setFilled(new Set(Object.keys(pre)));
+        setFromMsg({ text: stored.text, found: Object.keys(pre).length > 0, assumed: Boolean(pre.time && d?.time_assumed) });
+        if (Object.keys(pre).length) setTried(true);   // the required fields still missing show at once
+      })
       .catch(() => setLoadErr(true));
   }, [me, conversationId, router]);
 
@@ -88,11 +111,21 @@ export default function NewTaskPage() {
           : other && <p className="mb-4 font-hand text-xl leading-tight">{t("c.form.to", { name: other.display_name, lang: LANG_NAME[other.language] })}</p>}
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
           <form onSubmit={submit} noValidate className="space-y-5">
+            {fromMsg && (
+              <div role="status" className="doodle doodle-flat px-3 py-2" style={{ background: fromMsg.found ? "var(--hi)" : "var(--card)" }}>
+                <p className="font-display text-base font-extrabold leading-snug">{t(fromMsg.found ? "g.draftFilled" : "g.draftNone")}</p>
+                <p className="mt-1 text-sm leading-snug break-words"><span className="text-muted">{t("g.draftFrom")}</span> “{fromMsg.text}”</p>
+              </div>
+            )}
+            <Filled on={filled.has("action")} t={t} />
             <Picker label={t("c.f.action")} items={crew.actions} value={f.action} onChange={set("action")} error={show("action")} t={t} />
+            <Filled on={filled.has("object")} t={t} />
             <Field label={t("c.form.object")} hint={t("c.form.objectHint")} error={show("object")}>
               <Input value={f.object} maxLength={80} onChange={(e) => set("object")(e.target.value)} placeholder={t("c.form.objectPh")} />
             </Field>
+            <Filled on={filled.has("place")} t={t} />
             <Picker label={t("c.f.place")} items={crew.places} value={f.place} onChange={set("place")} error={show("place")} t={t} />
+            <Filled on={filled.has("time")} t={t} text={fromMsg?.assumed ? t("g.timeAssumed") : undefined} />
             <Field label={t("c.form.time")} hint={t("c.form.timeHint")} error={show("time")}>
               {/* Two selects, not <input type="time">: that shows AM/PM in 12-hour locales, and the PRD wants 24-hour. */}
               <div className="flex items-center gap-2 font-mono text-lg">
@@ -109,6 +142,7 @@ export default function NewTaskPage() {
                 </Select>
               </div>
             </Field>
+            <Filled on={filled.has("qty")} t={t} />
             <div className="flex flex-wrap gap-3">
               <div className="w-36"><Field label={t("c.form.qty")} hint={t("c.form.optional")} error={show("qty")}>
                 <Input type="number" inputMode="numeric" min={1} value={f.qty} onChange={(e) => set("qty")(e.target.value)} className="font-mono text-lg" />
@@ -173,6 +207,17 @@ export default function NewTaskPage() {
         </div>
       </main>
     </>
+  );
+}
+
+/** Mark on a field filled from a chat message: icon + words + colour, gone once the supervisor changes the field. */
+function Filled({ on, t, text }: { on: boolean; t: T; text?: string }) {
+  if (!on) return null;
+  return (
+    <p className="mb-1 flex items-center gap-1.5 font-hand text-lg leading-tight text-pen">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20l4-1 11-11-3-3L5 16zM14 6l3 3" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      {text ?? t("g.filledMark")}
+    </p>
   );
 }
 

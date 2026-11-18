@@ -1,5 +1,6 @@
 // Crew tasks ("broadcasts"): one instruction, one ordinary task per worker, one roll-call board.
 import { FIELDS, type BroadcastDTO, type FieldMarks, type I18n, type Lang, type TaskState } from "../types.ts";
+import { localUnit } from "../units.ts";
 import type { ProfileRow } from "./auth.ts";
 import { boardView, type BoardItem } from "./board.ts";
 import { memberConversation } from "./conversations.ts";
@@ -61,7 +62,7 @@ export async function broadcastDTO(b: BroadcastRowDb, reader: ProfileRow): Promi
     id: b.id, conversation_id: b.conversation_id, created_at: b.created_at, is_safety: b.is_safety, is_sandbox: b.is_sandbox,
     action: label(lists, "actions", b.action_id, lang), object: pickI18n(b.object_i18n, lang, b.object_text),
     place: label(lists, "places", b.place_id, lang), due_time: b.due_time,
-    quantity: b.quantity == null ? null : Number(b.quantity), unit: b.unit,
+    quantity: b.quantity == null ? null : Number(b.quantity), unit: localUnit(b.unit, lang),
     note: b.note == null ? null : pickI18n(b.note_i18n, lang, b.note),
     supervisor: { id: b.supervisor_id, name: (ok(sup) as { display_name: string }).display_name },
     ...view,

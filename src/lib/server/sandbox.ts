@@ -92,6 +92,7 @@ export async function resetRoom(r: number): Promise<Room> {
   await Promise.all([
     db().from("tasks").delete().in("conversation_id", ids),
     db().from("broadcasts").delete().eq("crew_id", cid),
+    db().from("briefings").delete().eq("crew_id", cid),   // replies cascade
     db().from("card_outbox").delete().in("conversation_id", ids),
     db().from("local_messages").delete().in("conversation_id", ids),
     db().from("message_translations").delete().in("conversation_id", ids),
@@ -114,13 +115,25 @@ export async function resetRoom(r: number): Promise<Room> {
 
 /** Latest activity in a room's chats (0 if the room does not exist yet). */
 async function lastActive(r: number): Promise<number> {
-  const rows = ok(await db().from("conversations").select("last_activity_at").eq("crew_id", crewId(r))) as { last_activity_at: string }[];
-  return Math.max(0, ...rows.map((c) => Date.parse(c.last_activity_at)));
+  const [c, k] = await Promise.all([
+    db().from("conversations").select("last_activity_at").eq("crew_id", crewId(r)),
+    db().from("crews").select("touched_at").eq("id", crewId(r)).maybeSingle(),
+  ]);
+  const rows = ok(c) as { last_activity_at: string }[];
+  const touched = (k.data as { touched_at: string | null } | null)?.touched_at;
+  return Math.max(0, touched ? Date.parse(touched) : 0, ...rows.map((x) => Date.parse(x.last_activity_at)));
 }
 
 /** Mark a room as in use (each window a judge opens calls this). */
 export async function touchRoom(room: Room) {
-  await db().from("conversations").update({ last_activity_at: new Date().toISOString() }).eq("id", room.crew.id);
+  await touchSandboxCrew(room.ravi.crew_id!);
+}
+
+/** Someone in this sandbox crew is active (called on sign-in, connect and inbox polls; at most one write a minute). */
+export async function touchSandboxCrew(crew: string) {
+  const now = Date.now();
+  await db().from("crews").update({ touched_at: new Date(now).toISOString() }).eq("id", crew).eq("is_sandbox", true)
+    .or(`touched_at.is.null,touched_at.lt.${new Date(now - 60_000).toISOString()}`);
 }
 
 /** Hand out the room that has been idle longest (rooms 1..7; room 0 stays for old links), reset to clean. */
@@ -128,7 +141,7 @@ export async function pickRoom(): Promise<number> {
   const rs = Array.from({ length: ROOMS - 1 }, (_, i) => i + 1);
   const idle = await Promise.all(rs.map(async (r) => ({ r, at: await lastActive(r) })));
   idle.sort((a, b) => a.at - b.at || a.r - b.r);
-  const r = idle[0].r;
+  const r = idle[0].r; // oldest activity first, so a room in use is only taken when all seven are busy
   await resetRoom(r);
   return r;
 }

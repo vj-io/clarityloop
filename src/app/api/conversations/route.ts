@@ -3,6 +3,7 @@ import { requireMe, type ProfileRow } from "@/lib/server/auth";
 import { conversationDTO, ensureConversation, type ConvRow } from "@/lib/server/conversations";
 import { db, ok } from "@/lib/server/db";
 import { body, json, notFound, route } from "@/lib/server/http";
+import { touchSandboxCrew } from "@/lib/server/sandbox";
 
 export const runtime = "nodejs";
 
@@ -20,6 +21,7 @@ export const POST = route(async (req) => {
 export const GET = route(async (req) => {
   const me = await requireMe(req);
   const ids = (ok(await db().from("conversation_members").select("conversation_id").eq("profile_id", me.id)) as { conversation_id: string }[]).map((r) => r.conversation_id);
+  if (me.is_sandbox && me.crew_id) await touchSandboxCrew(me.crew_id).catch(() => {}); // keeps a demo room from being handed to someone else while in use
   if (!ids.length) return json({ conversations: [] });
   const convs = (ok(await db().from("conversations").select("*").in("id", ids).order("last_activity_at", { ascending: false })) as ConvRow[])
     .sort((a, b) => Number(b.kind === "crew") - Number(a.kind === "crew"));

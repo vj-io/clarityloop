@@ -5,6 +5,7 @@ import { requireMe } from "@/lib/server/auth";
 import { memberConversation } from "@/lib/server/conversations";
 import { crewLists } from "@/lib/server/crew";
 import { db, logHealth, ok } from "@/lib/server/db";
+import { cachedIsStale, crewTerms, siteTerm } from "@/lib/server/terms";
 import { body, fail, json, route } from "@/lib/server/http";
 
 export const runtime = "nodejs";
@@ -16,7 +17,7 @@ const Body = z.object({
 const MAX_AI = 12, FANOUT = 3;
 const PER_MINUTE = 120; // uncached translations per user; two 50-message history batches fit
 
-type Cached = { nexconn_message_id: string; text: string; source_lang: Lang | null; flagged: boolean };
+type Cached = { nexconn_message_id: string; text: string; source_lang: Lang | null; flagged: boolean; terms_version: number | null };
 
 /**
  * FR-7: the reader's translation of each message, cached per (message id, reader language).
@@ -30,8 +31,15 @@ export const POST = route(async (req) => {
   const conv = await memberConversation(b.conversation_id, me.id);
   const lang = me.language;
 
-  const cached = new Map((ok(await db().from("message_translations").select("nexconn_message_id, text, source_lang, flagged")
-    .eq("conversation_id", conv.id).eq("target_lang", lang).in("nexconn_message_id", b.messages.map((m) => m.id))) as Cached[])
+  // the crew's site words, loaded once: they steer new translations and mark stale cached ones (see cachedIsStale)
+  const [rows, glossary] = await Promise.all([
+    db().from("message_translations").select("nexconn_message_id, text, source_lang, flagged, terms_version")
+      .eq("conversation_id", conv.id).eq("target_lang", lang).in("nexconn_message_id", b.messages.map((m) => m.id)),
+    crewTerms(conv.crew_id),
+  ]);
+  const terms = glossary.rows.map(siteTerm);
+  const cached = new Map((ok(rows) as Cached[])
+    .filter((c) => !cachedIsStale(c.terms_version, glossary.version, b.messages.find((m) => m.id === c.nexconn_message_id)!.text, terms))
     .map((c) => [c.nexconn_message_id, c]));
   const todo = b.messages.filter((m) => !cached.has(m.id) && !parseCard(m.text)); // cards are drawn from data, never translated
   if (todo.length) {
@@ -59,13 +67,14 @@ export const POST = route(async (req) => {
     await slot();
     const t0 = Date.now();
     try {
-      const t = await translateText(m.text, lang, lists);
+      const t = await translateText(m.text, lang, lists, undefined, terms);
       const ms = Date.now() - t0;
       await Promise.all([
         db().from("message_translations").upsert({
           nexconn_message_id: m.id, conversation_id: conv.id, target_lang: lang,
           source_lang: t?.source_lang ?? lang, text: t?.text ?? "", model_id: AI_MODEL, ms,
-        }, { ignoreDuplicates: true }),
+          terms_version: glossary.version, flagged: false,
+        }),   // overwrites a stale row; a parallel first translation of the same message writes the same thing
         logHealth("translate", true, null, ms),
       ]);
       return { id: m.id, text: t?.text ?? null, source_lang: t?.source_lang ?? lang, flagged: false };

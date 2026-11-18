@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api, ApiError } from "@/lib/client/session";
 import type { T } from "@/lib/i18n";
-import { LANG_NAME, type CheckDTO, type CheckRow, type FieldKey, type Lang, type Me, type Overall, type TaskDTO, type TaskState } from "@/lib/types";
+import { LANG_NAME, NUDGE_GAP_MS, NUDGE_STATES, type CheckDTO, type CheckRow, type FieldKey, type Lang, type Me, type Overall, type TaskDTO, type TaskState } from "@/lib/types";
 import { Button, Hl, MarkIcon, Pill } from "@/components/ui";
 import { BigCheck, HazardIcon, MarkerUnderline, NotEqual } from "./doodles";
 import { hhmm } from "./Bubble";
@@ -130,6 +130,7 @@ export function TaskCard({ task, live, t, lang, showSeen, children }: { task: Ta
       <TaskFacts v={task} t={t} />
       <div className="mt-3"><StatePill task={task} t={t} /></div>
       {showSeen && <SeenLine task={task} t={t} />}
+      {showSeen && live && <RemindButton task={task} t={t} />}
       {children}
     </CardFrame>
   );
@@ -328,6 +329,7 @@ export function CheckCard({ check, task, me, live, t, myLang, otherLang, onTask,
         </div>
       )}
 
+      {live && isSup && <RemindButton task={task} t={t} onTask={onTask} />}
       {/* restating comes first while anything is red or unclear */}
       {!canConfirm && children}
       {/* confirm — open only when every row matches or is accepted */}
@@ -439,4 +441,78 @@ export function CardLoading({ t, onRetry }: { t: T; onRetry?: () => void }) {
         : <button type="button" onClick={onRetry} className="min-h-12 font-semibold text-pen underline underline-offset-4">{t("c.cardRetry")}</button>}
     </div>
   );
+}
+
+// ---------------------------------------------------------------- reminders
+
+/** Supervisor: "Remind {worker}" while the task still needs a say-back; "Reminded 14:10" after. One per 10 minutes. */
+export function RemindButton({ task, t, onTask }: { task: TaskDTO; t: T; onTask?: (task: TaskDTO) => void }) {
+  const [mine, setNudgedAt] = useState<string | null>(null);   // set by my own click before the task refetch lands
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const nudgedAt = [task.nudged_at ?? null, mine].filter(Boolean).sort().pop() ?? null;
+  const next = nudgedAt ? Date.parse(nudgedAt) + NUDGE_GAP_MS : 0;
+  useEffect(() => {
+    if (next <= now) return;
+    const id = setTimeout(() => setNow(Date.now()), next - now + 500);
+    return () => clearTimeout(id);
+  }, [next, now]);
+  if (!NUDGE_STATES.includes(task.state)) return null;
+  const wait = next > now;
+
+  async function remind() {
+    setBusy(true); setErr(null);
+    try {
+      const r = await api("POST /api/tasks/:id/nudge", undefined, { id: task.id });
+      setNudgedAt(r.task.nudged_at ?? new Date().toISOString());
+      onTask?.(r.task);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 429) {
+        // reminded meanwhile (another tab): show when, from the server's copy
+        try { const r = await api("GET /api/tasks/:id", undefined, { id: task.id }); setNudgedAt(r.task.nudged_at ?? null); onTask?.(r.task); } catch { /* keep */ }
+      } else setErr(errText(t, e));
+    } finally { setBusy(false); setNow(Date.now()); }
+  }
+
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+      {!wait && (
+        <Button tone="ghost" className="min-h-12 px-4" disabled={busy} onClick={remind}>
+          <BellIcon />{busy ? <span className="dots">{t("g.reminding")}</span> : t("g.remind", { worker: task.worker.name })}
+        </Button>
+      )}
+      {nudgedAt && (
+        <p className="flex flex-wrap items-center gap-x-2 font-hand text-lg leading-tight text-pen">
+          <span className="inline-flex items-center gap-1"><BellIcon />{t("g.reminded", { time: hhmm(nudgedAt) })}</span>
+          {wait && <span className="text-base text-muted">{t("g.remindAgain", { time: hhmm(next) })}</span>}
+        </p>
+      )}
+      {err && <p role="alert" className="w-full text-sm font-semibold text-bad">{err}</p>}
+    </div>
+  );
+}
+
+const BellIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+/** The stored "Remind" card, in the reader's language. The worker gets a button to the say-back box while it is open. */
+export function NudgeLine({ task, me, at, t, onGo }: { task: TaskDTO; me: Me; at: number; t: T; onGo: () => void }) {
+  if (me.id === task.supervisor.id) return <StateLine><BellIcon />{t("g.nudge.sup", { worker: task.worker.name, time: hhmm(at) })}</StateLine>;
+  if (me.id === task.worker.id && RESTATE_STATES.includes(task.state)) {
+    return (
+      <div role="status" className="my-3 flex justify-center">
+        <div className="doodle doodle-flat flex max-w-md flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-2 text-center" style={BG.hi}>
+          <span className="inline-flex items-center gap-2 font-display text-lg font-extrabold leading-tight"><BellIcon />{t("g.nudge.worker", { sup: task.supervisor.name })}</span>
+          <button type="button" onClick={onGo} className="inline-flex min-h-12 items-center font-semibold text-ink underline decoration-2 underline-offset-4">
+            {t("g.nudge.go")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return <StateLine><BellIcon />{t("g.nudge.past", { sup: task.supervisor.name, time: hhmm(at) })}</StateLine>;
 }

@@ -1,7 +1,7 @@
 // Task / check loading and DTOs in the reader's language (FR-11, FR-15).
 import { after } from "next/server";
 import {
-  CARD, FIELDS, LANGS, type CheckDTO, type CheckRow, type FieldMarks, type I18n, type Lang,
+  CARD, FIELDS, LANGS, NUDGE_GAP_MS, nudgeWait, type CheckDTO, type CheckRow, type FieldMarks, type I18n, type Lang,
   type Overall, type Role, type TaskDTO, type TaskState,
 } from "../types.ts";
 import { translateText, type CrewLists } from "./ai.ts";
@@ -11,13 +11,14 @@ import { crewLists } from "./crew.ts";
 import { postCard } from "./cards.ts";
 import { audit, db, logHealth, ok } from "./db.ts";
 import { notFound } from "./http.ts";
+import { localQty, localUnit } from "../units.ts";
 
 export type TaskRow = {
   id: string; conversation_id: string; supervisor_id: string; worker_id: string;
   action_id: string; object_text: string; object_i18n: I18n; place_id: string; due_time: string;
   quantity: number | string | null; unit: string | null; note: string | null; note_i18n: I18n;
   state: TaskState; is_sandbox: boolean; created_at: string; understood_at: string | null; done_at: string | null;
-  broadcast_id?: string | null; seen_at?: string | null; object_aliases?: string[];
+  broadcast_id?: string | null; seen_at?: string | null; object_aliases?: string[]; nudged_at?: string | null;
 };
 export type CheckDbRow = {
   id: string; restatement_id: string; task_id: string; extracted: unknown; field_marks: FieldMarks;
@@ -71,6 +72,25 @@ export async function markSeen(task: TaskRow, conv: ConvRow) {
   await postCard(conv.id, `${CARD.STATE}${task.id}:seen`);
 }
 
+/** "Remind": see NUDGE_GAP_MS / NUDGE_STATES in types.ts. */
+/**
+ * Claim the reminder slot atomically (a second click or tab within the gap updates nothing) and post a stored,
+ * visible card into the pair conversation, so the worker sees it later and it counts as unread.
+ * Returns the seconds to wait when refused; otherwise `posted` settles once the audit row and the card are in.
+ */
+export async function nudge(task: TaskRow, conv: ConvRow, actor: string): Promise<{ wait: number; posted?: Promise<unknown> }> {
+  const now = new Date();
+  const claimed = ok(await db().from("tasks").update({ nudged_at: now.toISOString() }).eq("id", task.id)
+    .or(`nudged_at.is.null,nudged_at.lt.${new Date(now.getTime() - NUDGE_GAP_MS).toISOString()}`).select("nudged_at")) as { nudged_at: string }[];
+  if (!claimed.length) {
+    const cur = ok(await db().from("tasks").select("nudged_at").eq("id", task.id).single()) as { nudged_at: string | null };
+    return { wait: Math.max(1, nudgeWait(cur.nudged_at, now.getTime())) };
+  }
+  task.nudged_at = claimed[0].nudged_at;
+  // the caller awaits `posted` alongside its own reply work, so the card send does not add to the round trip
+  return { wait: 0, posted: Promise.all([audit(task.id, actor, "nudged", { state: task.state }), postCard(conv.id, `${CARD.STATE}${task.id}:nudge`)]) };
+}
+
 function pingBoard(broadcastId: string) {
   const p = (async () => {
     const b = ok(await db().from("broadcasts").select("conversation_id").eq("id", broadcastId).maybeSingle()) as { conversation_id: string } | null;
@@ -101,6 +121,9 @@ async function checkDTO(check: CheckDbRow, task: TaskRow, reader: ProfileRow, cx
       field === "action" ? label(cx.lists, "actions", v, lang)
       : field === "place" ? label(cx.lists, "places", v, lang)
       : field === "object" && who === "supervisor" ? pickI18n(task.object_i18n, lang, task.object_text)
+      // the worker named the same thing (match or accepted): show it the way the reader knows it
+      : field === "object" && (m.mark === "match" || m.accepted) ? pickI18n(task.object_i18n, lang, v ?? "")
+      : field === "quantity" && v ? localQty(v, lang)
       : v ?? "";
     return {
       field, mark: m.mark, supervisor: show(m.supervisor, "supervisor"), worker: show(m.worker, "worker"),
@@ -152,12 +175,12 @@ export async function taskDTO(task: TaskRow, conv: ConvRow, reader: ProfileRow, 
     id: task.id, conversation_id: task.conversation_id, state: task.state, is_sandbox: task.is_sandbox, created_at: task.created_at,
     action: label(cx.lists, "actions", task.action_id, lang), object: pickI18n(task.object_i18n, lang, task.object_text),
     place: label(cx.lists, "places", task.place_id, lang), due_time: task.due_time,
-    quantity: task.quantity == null ? null : Number(task.quantity), unit: task.unit,
+    quantity: task.quantity == null ? null : Number(task.quantity), unit: localUnit(task.unit, lang),
     note: task.note == null ? null : pickI18n(task.note_i18n, lang, task.note),
     supervisor: name(task.supervisor_id), worker: name(task.worker_id),
     confirmations: ok(confs) as { profile_id: string; confirmed_at: string }[],
     latest_check: latest ? await checkDTO(latest, task, reader, cx) : null,
-    understood_at: task.understood_at, done_at: task.done_at, seen_at: task.seen_at ?? null,
+    understood_at: task.understood_at, done_at: task.done_at, seen_at: task.seen_at ?? null, nudged_at: task.nudged_at ?? null,
     broadcast_id: task.broadcast_id ?? null, is_safety: Boolean((bc && (ok(bc) as { is_safety: boolean } | null))?.is_safety),
   };
 }

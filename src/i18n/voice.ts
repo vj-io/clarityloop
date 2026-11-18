@@ -20,7 +20,11 @@ export const voice: Dict = {
   "v.read": { en: "Read {time}", hi: "पढ़ लिया {time}", ta: "படித்தார் {time}" },
   "v.readBy": { en: "Read by {n} of {total}", hi: "{total} में से {n} ने पढ़ा", ta: "{total} பேரில் {n} பேர் படித்தனர்" },
   // ---- unread and mentions
-  "v.unread": { en: "{n} new", hi: "{n} नए", ta: "{n} புதியவை" },
+  // counts every new item in the chat: messages and cards
+  "v.unread": { en: "{n} updates", hi: "{n} नई बातें", ta: "{n} புதுப்பிப்புகள்" },
+  "v.board.confirm": { en: "Confirm", hi: "पक्का करें", ta: "உறுதிசெய்" },
+  "v.board.confirmed": { en: "You confirmed · waiting for {worker} to confirm", hi: "आपने पक्का किया · {worker} के पक्का करने का इंतज़ार", ta: "நீங்கள் உறுதிசெய்தீர்கள் · {worker} உறுதிசெய்யக் காத்திருக்கிறோம்" },
+  "v.board.confirmFail": { en: "Could not confirm. Open the chat and try there.", hi: "पक्का नहीं हो पाया। चैट खोलकर वहाँ कोशिश करें।", ta: "உறுதிசெய்ய முடியவில்லை. அரட்டையைத் திறந்து அங்கே முயலுங்கள்." },
   "v.atYou": { en: "@ you", hi: "@ आप", ta: "@ நீங்கள்" },
   "v.mention": { en: "Mention someone", hi: "किसी का नाम जोड़ें", ta: "ஒருவரைக் குறிப்பிடுங்கள்" },
 };

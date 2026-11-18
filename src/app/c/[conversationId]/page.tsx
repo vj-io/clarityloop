@@ -7,11 +7,13 @@ import { api } from "@/lib/client/session";
 import { AppHeader } from "@/components/shell/AppHeader";
 import { useRequireMe } from "@/components/shell/guard";
 import { Spinner } from "@/components/ui";
-import { Bubble, TheirBubble } from "@/components/chat/Bubble";
+import { Bubble, MakeTaskButton, TheirBubble } from "@/components/chat/Bubble";
+import { SiteWordsLink } from "@/components/chat/terms";
 import {
-  CardLoading, CheckCard, DoneCard, RESTATE_STATES, RestateBox, StateLine, TaskCard, UnderstoodCard,
+  CardLoading, CheckCard, DoneCard, NudgeLine, RESTATE_STATES, RestateBox, StateLine, TaskCard, UnderstoodCard,
 } from "@/components/chat/cards";
 import { BoardCard } from "@/components/chat/board";
+import { BriefingCard, BriefingEntry, BriefingRollCard } from "@/components/chat/briefing";
 import { Composer } from "@/components/chat/Composer";
 import { ReceiptLine } from "@/components/chat/receipts";
 import { HelloDoodle } from "@/components/chat/doodles";
@@ -20,7 +22,7 @@ import { BOT_USER_ID, LANG_NAME, LANGS, type ChatMsg, type TaskDTO } from "@/lib
 
 const BIG = new Set(["TASK", "CHECK", "understood", "done"]);
 /** Cards that, when they arrive, are brought into view top first (ordinary messages only stick to the bottom). */
-const FOCUS = new Set(["TASK", "CHECK", "BOARD", "understood", "done"]);
+const FOCUS = new Set(["TASK", "CHECK", "BOARD", "BRIEF", "understood", "done"]);
 const OK_INK = "text-[#0f6b31]";   // --ok darkened: 4.5:1 or better on paper, card and the soft tints
 const smooth = (): ScrollBehavior => (matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth");
 /** Height covered at the top (sticky header) and bottom (sticky composer) of the window. */
@@ -62,14 +64,16 @@ export default function ConversationPage() {
     const confirmIdx: Record<string, number> = {};
     const confirmCount: Record<string, number> = {};
     const lastCheckCopy: Record<string, number> = {}; // a CHECK is re-posted after each acceptance: draw only its newest copy
+    const lastBriefCopy: Record<string, number> = {}; // a BRIEF is re-posted in the pair chat after each reply: same rule
     msgs.forEach((m, i) => {
       const c = cardOf(m), tid = taskOf(m);
       if (c?.kind === "CHECK") lastCheckCopy[c.id] = i;
+      if (c?.kind === "BRIEF") lastBriefCopy[c.id] = i;
       if (!c || !tid) return;
       if (BIG.has(c.kind === "STATE" ? c.event ?? "" : c.kind)) lastBig[tid] = i;
       if (c.event === "confirmed") { confirmIdx[m.id] = confirmCount[tid] ?? 0; confirmCount[tid] = (confirmCount[tid] ?? 0) + 1; }
     });
-    return { taskOf, lastBig, confirmIdx, lastCheckCopy };
+    return { taskOf, lastBig, confirmIdx, lastCheckCopy, lastBriefCopy };
   }, [msgs, checks]);
 
   // ---- scrolling: stick to the newest unless the reader scrolled up
@@ -123,7 +127,7 @@ export default function ConversationPage() {
     }
     if (first || atBottom.current) toBottom(!first);
     else if (grew) setChip(true);
-  }, [msgs, s.pending.length, s.historyReady, tasks, checks, s.boards]);
+  }, [msgs, s.pending.length, s.historyReady, tasks, checks, s.boards, s.briefings]);
 
   if (!me) return <Shell><div className="p-6"><Spinner label={t("c.loading")} /></div></Shell>;
   if (s.loadError) {
@@ -141,6 +145,9 @@ export default function ConversationPage() {
   const isCrew = conv?.conversation.kind === "crew";
   const isSup = me.role === "supervisor";
   const onTask = (task: TaskDTO) => s.putTask(task);
+  // "Make this a task" (supervisor): under my own messages and the other person's
+  const makeTask = (text: string, language: (typeof LANGS)[number]) =>
+    isSup ? <MakeTaskButton conversationId={conversationId} text={text} language={language} t={t} /> : undefined;
   const focusRestate = (taskId: string) => {
     const el = document.getElementById(`restate-${taskId}`);
     el?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -161,17 +168,27 @@ export default function ConversationPage() {
     const c = cardOf(m);
     if (!c) {
       if (m.from === myNc) {
-        return <Bubble mine text={m.text} at={m.at} t={t}
+        return <Bubble mine text={m.text} at={m.at} t={t} actions={makeTask(m.text, me!.language)}
           status={<ReceiptLine r={s.receipts[m.id]} crew={!!isCrew} myId={myNc} names={names} t={t} />} />;
       }
       const name = m.from === BOT_USER_ID ? "ClarityLoop" : conv?.members[m.from]?.display_name;
       return <TheirBubble m={m} name={name} tr={s.tr[m.id]} t={t} lang={me!.language} atMe={!!m.mentions?.includes(myNc)}
-        onRetry={() => s.retryTranslate(m)} onFlag={() => s.flag(m.id)} />;
+        onRetry={() => s.retryTranslate(m)} onFlag={() => s.flag(m.id)}
+        actions={m.from === BOT_USER_ID ? undefined : makeTask(m.text, conv?.members[m.from]?.language ?? me!.language)}
+        onSuggest={async (word, meaning) => { await api("POST /api/glossary/suggestions", { conversation_id: conversationId, message_id: m.id, word, meaning: meaning || null }); }} />;
     }
     const tid = plan.taskOf(m);
     const live = tid !== null && plan.lastBig[tid] === i;
     if (s.gone[c.id]) return null; // deleted task or check: nothing to draw
     if (c.event === "board") return null; // ping only: the board above refetches itself
+    if (c.event === "brief") return null; // ping only: the briefing roll call refetches itself
+    if (c.kind === "BRIEF") {
+      if (plan.lastBriefCopy[c.id] !== i) return null;
+      const b = s.briefings[c.id];
+      if (!b) return loading(() => s.refreshBriefing(c.id));
+      return isCrew ? <BriefingRollCard b={b} isSup={isSup} t={t} />
+        : <BriefingCard b={b} conversationId={conversationId} me={me!} t={t} onBriefing={s.putBriefing} />;
+    }
     if (c.kind === "BOARD") {
       const b = s.boards[c.id];
       return b ? <BoardCard b={b} isSup={isSup} t={t} /> : loading(() => s.refreshBoard(c.id));
@@ -209,6 +226,7 @@ export default function ConversationPage() {
       }
       case "understood": return <UnderstoodCard task={task} me={me!} live={live} t={t} onTask={onTask} />;
       case "done": return <DoneCard task={task} live={live} t={t} isSup={me!.id === task.supervisor.id} />;
+      case "nudge": return <NudgeLine task={task} me={me!} at={m.at} t={t} onGo={() => focusRestate(task.id)} />;
       default: return null;
     }
   }
@@ -219,9 +237,11 @@ export default function ConversationPage() {
       {/* who I'm talking to, and whether the line is live */}
       <div className="border-b-2 border-ink/20 bg-paper">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1.5">
+          {isCrew && <SiteWordsLink t={t} lang={me.language} />}
           {isCrew && conv ? <CrewSummary members={Object.values(conv.members)} t={t} />
             : other && <span className="font-hand text-lg leading-tight">{t("c.readsIn", { name: other.display_name, lang: LANG_NAME[other.language] })}</span>}
           <LinkChip status={s.status} t={t} />
+          {isCrew && isSup && <BriefingEntry href={`/c/${conversationId}/briefing/new`} t={t} />}
           {s.kind === "local" && <span className="text-xs text-muted">{t("c.localTransport")}</span>}
         </div>
       </div>

@@ -16,7 +16,7 @@ async function deliver(row: OutboxRow): Promise<string | null> {
   }
   const c = ok(await db().from("conversations").select("nexconn_group_id").eq("id", row.conversation_id).single());
   const card = parseCard(row.body);
-  const silent = card?.kind === "STATE" && (card.event === "board" || card.event === "seen" || card.event === "checking");
+  const silent = card?.kind === "STATE" && (card.event === "board" || card.event === "seen" || card.event === "checking" || card.event === "brief");
   return sendGroupText(c.nexconn_group_id as string, row.body, silent);
 }
 

@@ -6,14 +6,25 @@ import { api } from "@/lib/client/session";
 import type { TaskDTO } from "@/lib/types";
 import { Card, Pill, Screen } from "@/components/ui";
 import { HazardIcon } from "@/components/chat/doodles";
+import { RemindButton } from "@/components/chat/cards";
 import { AppHeader } from "@/components/shell/AppHeader";
 import { useRequireMe } from "@/components/shell/guard";
 import { ErrorBox, PageLoading, ago, cx, errMsg } from "@/components/shell/Common";
 import { TaskStatePill } from "@/components/shell/TaskState";
 
-type Filter = "open" | "understood" | "done";
+type Filter = "open" | "overdue" | "understood" | "done";
 const OPEN = ["waiting", "checking", "mismatch", "needs_look", "all_match"];
 const match = (f: Filter, s: string) => (f === "open" ? OPEN.includes(s) : s === f);
+/** Not said back yet and either waiting 15+ minutes or past its time today. Reminders are by hand: the host has no frequent cron. */
+const OVERDUE_MS = 15 * 60_000;
+const hm = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+function overdue(k: TaskDTO, now: number) {
+  if (k.state !== "waiting") return null;
+  const made = new Date(k.created_at), today = new Date(now).toDateString() === made.toDateString();
+  const mins = Math.floor((now - made.getTime()) / 60_000);
+  const past = today && hm(new Date(now)) > k.due_time && hm(made) <= k.due_time;
+  return now - made.getTime() >= OVERDUE_MS || past ? { mins, past } : null;
+}
 /** One crew task = all its child tasks. Open while any is open; done when all are done; else understood. */
 const groupState = (ks: TaskDTO[]) => (ks.some((k) => OPEN.includes(k.state)) ? "waiting" : ks.every((k) => k.state === "done") ? "done" : "understood");
 type Entry = { key: string; first: TaskDTO; kids: TaskDTO[] | null };
@@ -38,6 +49,8 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<TaskDTO[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("open");
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 60_000); return () => clearInterval(id); }, []);
 
   const load = useCallback(async () => {
     try {
@@ -51,6 +64,8 @@ export default function TasksPage() {
   const all = tasks ? entries(tasks) : [];
   const stateOf = (e: Entry) => (e.kids ? groupState(e.kids) : e.first.state);
   const shown = all.filter((e) => match(filter, stateOf(e)));
+  const late = (tasks ?? []).filter((k) => overdue(k, now));   // one row per worker, crew-task copies included
+  const count = (f: Filter) => (f === "overdue" ? late.length : all.filter((e) => match(f, stateOf(e))).length);
   return (
     <>
       <AppHeader title={t("tasks.title")} back="/inbox" />
@@ -58,17 +73,42 @@ export default function TasksPage() {
         {!me || (!tasks && !err) ? <PageLoading t={t} /> : (
           <>
             <div role="group" aria-label={t("tasks.filter")} className="mb-4 flex flex-wrap gap-2">
-              {(["open", "understood", "done"] as Filter[]).map((f) => (
+              {(["open", "overdue", "understood", "done"] as Filter[]).map((f) => (
                 <button key={f} type="button" aria-pressed={filter === f} onClick={() => setFilter(f)}
-                  className={cx("min-h-12 rounded-full border-2 border-ink px-4 font-display text-base font-extrabold", filter === f ? "bg-ink text-paper" : "bg-card")}>
-                  {t(`tasks.f_${f}`)}{tasks && <span className="ml-1 font-mono">{all.filter((e) => match(f, stateOf(e))).length}</span>}
+                  className={cx("min-h-12 rounded-full border-2 border-ink px-4 font-display text-base font-extrabold", filter === f ? "bg-ink text-paper" : f === "overdue" && late.length ? "bg-warn-soft" : "bg-card")}>
+                  {t(f === "overdue" ? "g.overdue" : `tasks.f_${f}`)}{tasks && <span className="ml-1 font-mono">{count(f)}</span>}
                 </button>
               ))}
             </div>
             {err && <div className="mb-4"><ErrorBox message={err} onRetry={load} t={t} /></div>}
-            {tasks && shown.length === 0 && <Card><p className="text-lg">{t(tasks.length === 0 ? "tasks.empty" : "tasks.emptyFilter")}</p></Card>}
+            {filter === "overdue" && tasks && (
+              <>
+                <p className="mb-3 font-hand text-lg leading-tight text-muted">{t("g.overdueHint")}</p>
+                {late.length === 0 ? <Card><p className="text-lg">{t("g.overdueEmpty")}</p></Card> : (
+                  <ul className="space-y-3">
+                    {late.map((k) => {
+                      const o = overdue(k, now)!;
+                      return (
+                        <li key={k.id} className="doodle p-3">
+                          <Link href={`/c/${k.conversation_id}`} className="block min-h-12">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="font-display text-lg font-extrabold leading-tight">{k.worker.name} · {k.action} · {k.object}</p>
+                              <TaskStatePill state={k.state} t={t} />
+                            </div>
+                            <p className="mt-1 text-base leading-snug">{k.place} · <span className="font-mono">{k.due_time}</span></p>
+                            <p className="font-hand text-base text-warn">{t("g.waitingFor", { min: o.mins })}{o.past && <> · {t("g.pastDue", { time: k.due_time })}</>}</p>
+                          </Link>
+                          <RemindButton task={k} t={t} onTask={(n) => setTasks((l) => l && l.map((x) => (x.id === n.id ? n : x)))} />
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </>
+            )}
+            {filter !== "overdue" && tasks && shown.length === 0 && <Card><p className="text-lg">{t(tasks.length === 0 ? "tasks.empty" : "tasks.emptyFilter")}</p></Card>}
             <ul className="space-y-3">
-              {shown.map(({ key, first: k, kids }) => kids ? (
+              {filter !== "overdue" && shown.map(({ key, first: k, kids }) => kids ? (
                 <li key={key}>
                   <details className="doodle group p-0" style={{ background: "var(--card)" }}>
                     <summary className="flex min-h-12 cursor-pointer list-none flex-col gap-1 p-3 [&::-webkit-details-marker]:hidden">

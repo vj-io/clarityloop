@@ -102,7 +102,6 @@ Copy `.env.example` to `.env.local`. Never commit `.env.local`.
 - Phone-number sign-in
 - A site glossary learned from "Translation looks wrong" flags
 - Nudges and reminders for tasks nobody has said back
-- An offline queue
 - Photos
 - Multi-site admin
 - SMS or WhatsApp reach for workers without the app
@@ -122,7 +121,7 @@ These are planned, not built. Everything under "What it does" and "At crew scale
 **Pilot-ready**
 - Voice messages (transcribed and translated) and phone-number sign-in
 - A site glossary learned from "Translation looks wrong" flags
-- Reminders for unrestated tasks, an offline queue, and a "Make this a task" action from chat
+- Reminders for unrestated tasks and a "Make this a task" action from chat
 
 **Site product**
 - Photos on tasks, safety templates for high-risk work, and a shift handover check

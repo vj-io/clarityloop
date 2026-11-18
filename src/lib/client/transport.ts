@@ -121,7 +121,7 @@ const BACKOFF = [2000, 5000, 15000, 30000];
 /** True for the server's silent pings (no one needs to look at them): board / seen / checking. */
 const isSilentPing = (from: string, text: string) => {
   const c = from === BOT_USER_ID ? parseCard(text) : null;
-  return c?.kind === "STATE" && (c.event === "board" || c.event === "seen" || c.event === "checking");
+  return c?.kind === "STATE" && (c.event === "board" || c.event === "seen" || c.event === "checking" || c.event === "brief");
 };
 
 function nexconn(cfg: Config): ChatTransport {

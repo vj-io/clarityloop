@@ -2,6 +2,8 @@
 // Roll-call board: one crew task, one row per worker, live. Every state is icon + word + colour.
 // Workers see other workers only as "Understood" / "Not yet" (the server redacts; this only draws).
 import Link from "next/link";
+import { useState } from "react";
+import { api } from "@/lib/client/session";
 import type { T } from "@/lib/i18n";
 import { LANG_NAME, type BoardRow, type BoardStatus, type BroadcastDTO } from "@/lib/types";
 import { MarkIcon, Pill } from "@/components/ui";
@@ -73,6 +75,13 @@ export function CrewDoodle({ size = 28 }: { size?: number }) {
 }
 
 function Row({ r, t, isSup }: { r: BoardRow; t: T; isSup: boolean }) {
+  // The supervisor can confirm a matching reply right here, without opening each worker's chat.
+  const [conf, setConf] = useState<"idle" | "busy" | "done" | "failed">("idle");
+  async function confirm() {
+    if (!r.task_id) return;
+    setConf("busy");
+    try { await api("POST /api/tasks/:id/confirm", undefined, { id: r.task_id }); setConf("done"); } catch { setConf("failed"); }
+  }
   const needsMe = r.is_me && !isSup && r.conversation_id && r.status !== "understood" && r.status !== "done";
   return (
     <li className={cx("border-t-2 border-ink/15 px-4 py-3", TONE[r.status].row)}>
@@ -95,6 +104,17 @@ function Row({ r, t, isSup }: { r: BoardRow; t: T; isSup: boolean }) {
             </li>
           ))}
         </ul>
+      )}
+      {isSup && r.task_id && r.status === "all_match" && (
+        <div className="mt-2">
+          {conf === "done" ? <p className="font-hand text-lg text-[#0f6b31]">{t("v.board.confirmed", { worker: r.worker.name })}</p> : (
+            <button type="button" onClick={confirm} disabled={conf === "busy"}
+              className="doodle doodle-2 inline-flex min-h-12 items-center gap-2 bg-ok! px-5 font-display text-base font-extrabold text-white disabled:opacity-50">
+              <MarkIcon mark="match" size={20} />{t("v.board.confirm")}
+            </button>
+          )}
+          {conf === "failed" && <p role="alert" className="mt-1 text-base font-semibold text-bad">{t("v.board.confirmFail")}</p>}
+        </div>
       )}
       {isSup && r.conversation_id && (
         <Link href={`/c/${r.conversation_id}`} className="mt-1 inline-flex min-h-12 items-center gap-1 font-semibold text-pen underline decoration-2 underline-offset-4">
