@@ -75,7 +75,7 @@ export default function BriefingRecordPage() {
           <div className="[overflow-wrap:anywhere]">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
-                <h1 className="font-display text-3xl font-extrabold leading-tight">{t("s.rec.title")}</h1>
+                <h2 className="font-display text-3xl font-extrabold leading-tight">{t("s.rec.title")}</h2>
                 <p className="mt-1 flex flex-wrap items-center gap-2 text-base">
                   <span>{t("s.rec.sent", { time: whenFull(b.created_at, lang), sup: b.supervisor.name })}</span>
                   {b.is_sandbox && <Pill tint="warn">{t("b.rec.sandbox")}</Pill>}

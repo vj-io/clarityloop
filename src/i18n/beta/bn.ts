@@ -48,6 +48,7 @@ export const bn: Record<string, string> = {
   "nav.signout": "সাইন আউট",
   "nav.back": "পিছনে",
   "nav.language": "ভাষা",
+  "nav.skip": "সরাসরি মূল অংশে যান",
   "nav.sandbox": "স্যান্ডবক্স: এটা ডেমো ডেটা, আসল লোক বা আসল কাজ নয়।",
   "role.supervisor": "সুপারভাইজার",
   "role.worker": "কর্মী",

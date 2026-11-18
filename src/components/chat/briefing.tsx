@@ -379,7 +379,7 @@ export function BriefingForm({ crew, conversationId, me, t }: { crew: CrewDTO; c
   const chipStyle = (on: boolean) => (on ? { background: "var(--ink)", boxShadow: "3px 3px 0 var(--pen)" } : undefined);
 
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-5">
+    <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-4 py-5">
       <p className="mb-4 font-hand text-xl leading-tight">{workers.length ? t("s.form.to", { n: workers.length }) : <span className="text-bad">{t("x.form.noWorkers")}</span>}</p>
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
         <form onSubmit={submit} noValidate className="space-y-6">

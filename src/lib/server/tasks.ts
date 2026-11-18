@@ -22,7 +22,7 @@ export type TaskRow = {
 };
 export type CheckDbRow = {
   id: string; restatement_id: string; task_id: string; extracted: unknown; field_marks: FieldMarks;
-  overall: Overall; gloss: I18n; restatement_i18n: Partial<Record<Lang, string | null>>; created_at: string;
+  overall: Overall; gloss: I18n; restatement_i18n: Partial<Record<Lang, string | null>>; created_at: string; model_id?: string | null;
 };
 type Person = { id: string; display_name: string; language: Lang; role: Role };
 
@@ -185,6 +185,7 @@ export async function taskDTO(task: TaskRow, conv: ConvRow, reader: ProfileRow, 
     latest_check: latest ? await checkDTO(latest, task, reader, cx) : null,
     understood_at: task.understood_at, done_at: task.done_at, seen_at: task.seen_at ?? null, nudged_at: task.nudged_at ?? null,
     broadcast_id: task.broadcast_id ?? null, is_safety: Boolean((bc && (ok(bc) as { is_safety: boolean } | null))?.is_safety),
+    ...(latest?.model_id === "sample" ? { is_sample: true } : {}),   // see sample-history.ts
   };
 }
 

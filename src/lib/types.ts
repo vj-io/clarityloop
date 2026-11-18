@@ -147,6 +147,7 @@ export type TaskDTO = {
   seen_at?: string | null;          // when the worker first had the task card on screen
   nudged_at?: string | null;        // the supervisor's last "Remind"
   broadcast_id?: string | null; is_safety?: boolean;   // set when the task is one worker's copy of a crew task
+  is_sample?: boolean;              // sandbox sample history (not sent by the visitor)
 };
 /**
  * Roll-call board row. Workers see other workers redacted: status is only "understood" or "not_yet",
@@ -243,7 +244,7 @@ export type Api = {
   "GET /api/conversations": { res: { conversations: ConversationDTO[] } };   // the crew channel (kind "crew") comes first
   "POST /api/conversations/crew": { res: { conversation: ConversationDTO } };   // get or create the caller's crew channel
   "GET /api/conversations/:id": { res: { conversation: ConversationDTO; members: Record<string, { id: string; display_name: string; language: Lang; role: Role }> } }; // keyed by nexconn_user_id
-  "POST /api/translate": { req: { conversation_id: string; messages: { id: string; text: string }[] }; res: { translations: TranslationDTO[] } }; // max 50 per call
+  "POST /api/translate": { req: { conversation_id: string; messages: { id: string; text: string }[]; cached_only?: boolean }; res: { translations: TranslationDTO[] } }; // max 50 per call
   "POST /api/translate/flag": { req: { conversation_id: string; message_id: string }; res: { ok: true } };
   "POST /api/tasks": { req: { conversation_id: string; action_id: string; object_text: string; place_id: string; due_time: string; quantity?: number | null; unit?: string | null; note?: string | null }; res: { task: TaskDTO } };
   "GET /api/tasks": { res: { tasks: TaskDTO[] } };
@@ -260,7 +261,7 @@ export type Api = {
   // Site words, "Make this a task", reminders
   "GET /api/glossary": { res: { terms: TermDTO[]; suggestions: SuggestionDTO[] } };   // crew members; suggestions: supervisor only ([] for workers)
   "POST /api/glossary": { req: { term: string; meaning: string; lang?: Lang; suggestion_id?: string }; res: { term: TermDTO } };   // supervisor; other two meanings filled by translation
-  "PATCH /api/glossary": { req: { id: string; term?: string; meaning_en?: string; meaning_hi?: string; meaning_ta?: string; note?: string | null }; res: { term: TermDTO } };
+  "PATCH /api/glossary": { req: { id: string; term?: string; meaning_en?: string; meaning_hi?: string; meaning_ta?: string; meanings_beta?: Partial<Record<BetaLang, string>>; note?: string | null }; res: { term: TermDTO } };
   "DELETE /api/glossary": { req: { id: string }; res: { ok: true } };
   "POST /api/glossary/suggestions": { req: { conversation_id: string; message_id: string; word: string; meaning?: string | null }; res: { ok: true } };   // any member, in their language
   "PATCH /api/glossary/suggestions": { req: { id: string; status: "dismissed" }; res: { ok: true } };   // supervisor

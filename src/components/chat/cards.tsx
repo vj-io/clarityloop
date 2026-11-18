@@ -461,6 +461,8 @@ export function RemindButton({ task, t, onTask }: { task: TaskDTO; t: T; onTask?
   }, [next, now]);
   if (!NUDGE_STATES.includes(task.state)) return null;
   const wait = next > now;
+  // a say-back that came after the reminder answered it: "Reminded 13:56" would point at something already dealt with
+  const answered = !!nudgedAt && !!task.latest_check && Date.parse(task.latest_check.created_at) > Date.parse(nudgedAt);
 
   async function remind() {
     setBusy(true); setErr(null);
@@ -483,7 +485,7 @@ export function RemindButton({ task, t, onTask }: { task: TaskDTO; t: T; onTask?
           <BellIcon />{busy ? <span className="dots">{t("g.reminding")}</span> : t("g.remind", { worker: task.worker.name })}
         </Button>
       )}
-      {nudgedAt && (
+      {nudgedAt && !answered && (
         <p className="flex flex-wrap items-center gap-x-2 font-hand text-lg leading-tight text-pen">
           <span className="inline-flex items-center gap-1"><BellIcon />{t("g.reminded", { time: hhmm(nudgedAt) })}</span>
           {wait && <span className="text-base text-muted">{t("g.remindAgain", { time: hhmm(next) })}</span>}

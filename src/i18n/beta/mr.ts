@@ -49,6 +49,7 @@ export const mr: Record<string, string> = {
   "nav.signout": "साइन आउट",
   "nav.back": "मागे",
   "nav.language": "भाषा",
+  "nav.skip": "थेट मुख्य भागाकडे जा",
   "nav.sandbox": "सँडबॉक्स: हा डेमो डेटा आहे, खरी माणसे किंवा खरे काम नाही.",
   "role.supervisor": "सुपरवायझर",
   "role.worker": "कामगार",

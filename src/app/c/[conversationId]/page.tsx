@@ -246,7 +246,7 @@ export default function ConversationPage() {
         </div>
       </div>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-3 pb-4 pt-3 sm:px-4" aria-live="polite" aria-relevant="additions">
+      <main id="main" className="mx-auto w-full max-w-3xl flex-1 px-3 pb-4 pt-3 sm:px-4" aria-live="polite" aria-relevant="additions">
         {!s.historyReady && <div className="py-6 text-center"><Spinner label={t("c.loadingHistory")} /></div>}
         {empty && (
           <div className="pop mx-auto mt-6 flex max-w-sm flex-col items-center text-center">

@@ -44,3 +44,12 @@ test("definitions", () => {
   assert.equal(r.trend[13].first_try, 1);
   assert.equal(r.recent[0].id, "d");
 });
+
+test("languages: a task counts under the language its say-back was written in, not the worker's current one", () => {
+  const tasks = [
+    { id: "a", worker_id: "w2", object_text: "x", state: "understood" as const, created_at: iso(60), understood_at: iso(40) },   // said back in Marathi, worker now reads Hindi
+    { id: "b", worker_id: "w2", object_text: "y", state: "waiting" as const, created_at: iso(10), understood_at: null },          // no say-back: worker's language
+  ];
+  const r = computeInsights(tasks, [{ task_id: "a", language: "mr" as const }], [], workers, crew, NOW);
+  assert.deepEqual(r.languages.map((l) => [l.language, l.tasks]), [["hi", 1], ["mr", 1]]);
+});

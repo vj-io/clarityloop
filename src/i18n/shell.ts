@@ -36,6 +36,7 @@ export const shell: Dict = {
   "nav.signout": d("Sign out", "साइन आउट", "வெளியேறு"),
   "nav.back": d("Back", "पीछे", "பின்"),
   "nav.language": d("Language", "भाषा", "மொழி"),
+  "nav.skip": d("Skip to content", "सीधे मुख्य हिस्से पर जाएँ", "உள்ளடக்கத்துக்குச் செல்லுங்கள்"),
   "nav.sandbox": d("Sandbox: demo data, not real people or real work.", "सैंडबॉक्स: यह डेमो डेटा है, असली लोग या असली काम नहीं।", "சாண்ட்பாக்ஸ்: இது டெமோ தரவு, உண்மையான நபர்கள் அல்லது வேலை அல்ல."),
   "role.supervisor": d("Supervisor", "सुपरवाइज़र", "மேற்பார்வையாளர்"),
   "role.worker": d("Worker", "कामगार", "தொழிலாளர்"),

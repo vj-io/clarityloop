@@ -25,6 +25,9 @@ export function AppHeader({ title, back }: { title?: string; back?: string }) {
     return () => window.removeEventListener(ME_CHANGED, on);
   }, []);
 
+  // the static route titles are English (for crawlers); a signed-in reader gets the page title in their language
+  useEffect(() => { if (me && title) document.title = `${title} · ClarityLoop`; }, [me, title]);
+
   async function setLang(language: Lang) {
     setBusy(true);
     try {

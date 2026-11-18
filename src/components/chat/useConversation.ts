@@ -235,10 +235,10 @@ export function useConversation(conversationId: string, me: Me | null) {
   }, [lang, fetchCards]);
 
   // ---- translation: original shows at once; translations batched (<= 50), one request per id at a time
-  const sendBatch = useCallback(async (batch: { id: string; text: string }[]) => {
+  const sendBatch = useCallback(async (batch: { id: string; text: string }[], cachedOnly?: boolean) => {
     const g = gen.current;
     try {
-      const { translations } = await api("POST /api/translate", { conversation_id: conversationId, messages: batch });
+      const { translations } = await api("POST /api/translate", { conversation_id: conversationId, messages: batch, ...(cachedOnly ? { cached_only: true } : {}) });
       if (g !== gen.current) return;
       const got = new Map(translations.map((d) => [d.id, d]));
       setTr((s) => {
@@ -255,8 +255,14 @@ export function useConversation(conversationId: string, me: Me | null) {
       setTr((s) => { const n = { ...s }; for (const b of batch) n[b.id] = { state: st }; return n; });
     }
   }, [conversationId]);
+  // Newest first, three per request: each request is one AI round on the server, so what is on screen gets its
+  // translation after one round instead of waiting for the whole batch (and one slow message holds back only its
+  // own three). As before only the newest 12 may cost an AI call; older ones are answered from the cache.
   const flush = useCallback(() => {
-    while (trQueue.current.length) void sendBatch(trQueue.current.splice(0, 50));
+    const q = trQueue.current.splice(0);
+    const fresh = q.splice(-12);
+    while (fresh.length) void sendBatch(fresh.splice(-3));
+    while (q.length) void sendBatch(q.splice(0, 50), true);
   }, [sendBatch]);
   const enqueue = useCallback((items: { id: string; text: string }[]) => {
     if (!items.length) return;

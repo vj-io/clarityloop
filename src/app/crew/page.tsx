@@ -145,7 +145,7 @@ export default function CrewPage() {
             <ListEditor kind="place" items={crew.places} t={t} onCrew={setCrew} sandbox={me.is_sandbox} />
             <ListEditor kind="action" items={crew.actions} t={t} onCrew={setCrew} sandbox={me.is_sandbox} />
             <ListEditor kind="safety" items={crew.safety_points ?? []} t={t} onCrew={setCrew} sandbox={me.is_sandbox} />
-            <SiteWords t={t} lang={me.language} />
+            <SiteWords t={t} lang={me.language} crewLangs={crew.members.map((m) => m.language)} />
           </div>
         )}
       </Screen>

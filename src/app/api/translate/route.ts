@@ -14,6 +14,7 @@ export const runtime = "nodejs";
 const Body = z.object({
   conversation_id: z.uuid(),
   messages: z.array(z.object({ id: z.string().min(1).max(128), text: z.string().min(1).max(4000) })).min(1).max(50),
+  cached_only: z.boolean().optional(),   // answer from the cache; uncached messages come back as error, no AI call
 });
 const MAX_AI = 12, FANOUT = 3;
 const PER_MINUTE = 120; // uncached translations per user; two 50-message history batches fit
@@ -56,7 +57,7 @@ export const POST = route(async (req) => {
   // The AI provider allows only a few requests per minute on a free key, and a history batch can hold
   // 50 uncached messages. Translate at most MAX_AI newest ones per call, FANOUT at a time; older ones
   // come back as error (the reader taps to retry), so a burst can never drain the provider quota.
-  const allowed = new Set(todo.slice(-MAX_AI).map((m) => m.id));
+  const allowed = new Set(b.cached_only ? [] : todo.slice(-MAX_AI).map((m) => m.id));
   let running = 0;
   const waiters: (() => void)[] = [];
   const slot = async () => { if (running >= FANOUT) await new Promise<void>((r) => waiters.push(r)); running++; };

@@ -41,12 +41,12 @@ export default function NewTaskPage() {
   useEffect(() => {
     if (!me) return;
     if (me.role !== "supervisor") { router.replace(`/c/${conversationId}`); return; }
-    Promise.all([api("GET /api/crew"), api("GET /api/conversations/:id", undefined, { id: conversationId })])
-      .then(([c, v]) => {
+    // "Send again" is a shortcut: the form works without it. It loads with the form, so its chips never push the form down later.
+    Promise.all([api("GET /api/crew"), api("GET /api/conversations/:id", undefined, { id: conversationId }), api("GET /api/tasks/recent").catch(() => ({ recent: [] }))])
+      .then(([c, v, r]) => {
         setCrew(c.crew); setConv(v);
-        // "Send again" is a shortcut: the form works without it, and a chip whose action or place left the lists is dropped
-        api("GET /api/tasks/recent").then((r) => setRecent(r.recent.filter((x) =>
-          c.crew.actions.some((a) => a.id === x.action_id) && c.crew.places.some((p) => p.id === x.place_id)))).catch(() => {});
+        // a chip whose action or place left the lists is dropped
+        setRecent(r.recent.filter((x) => c.crew.actions.some((a) => a.id === x.action_id) && c.crew.places.some((p) => p.id === x.place_id)));
         let stored: StoredDraft | null = null;
         try { stored = JSON.parse(sessionStorage.getItem(draftKey(conversationId)) ?? "null"); sessionStorage.removeItem(draftKey(conversationId)); } catch { /* none */ }
         if (!stored) return;
@@ -110,7 +110,7 @@ export default function NewTaskPage() {
   return (
     <>
       <AppHeader title={t(isCrew ? "x.form.title" : "c.form.title")} back={back} />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-5">
+      <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-4 py-5">
         {isCrew ? <p className="mb-4 font-hand text-xl leading-tight">{workers.length ? t("x.form.to", { n: workers.length }) : <span className="text-bad">{t("x.form.noWorkers")}</span>}</p>
           : other && <p className="mb-4 font-hand text-xl leading-tight">{t("c.form.to", { name: other.display_name, lang: LANG_NAME[other.language] })}</p>}
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">

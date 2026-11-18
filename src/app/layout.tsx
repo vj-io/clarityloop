@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, Patrick_Hand, Kalam, Noto_Sans_Tamil, Noto_Sans_Bengali, Noto_Sans_Telugu, JetBrains_Mono } from "next/font/google";
+import { SkipLink } from "@/components/shell/Common";
 import "./globals.css";
 
 // Doodle set type: Archivo for claims, Patrick Hand for handwriting, JetBrains Mono for numbers.
@@ -25,7 +26,7 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, them
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${archivo.variable} ${hand.variable} ${deva.variable} ${tamil.variable} ${bengali.variable} ${telugu.variable} ${mono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col"><SkipLink />{children}</body>
     </html>
   );
 }

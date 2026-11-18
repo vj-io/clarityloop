@@ -136,7 +136,7 @@ function Chooser({ t }: { t: T }) {
   }
 
   return (
-    <main className="mx-auto w-full max-w-xl flex-1 px-4 py-6">
+    <main id="main" className="mx-auto w-full max-w-xl flex-1 px-4 py-6">
       <Pill tint="warn">{t("judge.sandbox")}</Pill>
       <h1 className="mt-3 font-display text-3xl font-extrabold leading-tight">{t("judge.title")}</h1>
       <ol className="mt-3 list-none space-y-2 text-lg leading-snug">

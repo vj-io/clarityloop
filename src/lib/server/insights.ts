@@ -9,7 +9,7 @@ import { forbidden } from "./http.ts";
 import type { CheckDbRow, TaskRow } from "./tasks.ts";
 
 export type InTask = { id: string; worker_id: string; object_text: string; state: TaskState; created_at: string; understood_at: string | null };
-export type InRestatement = { task_id: string };
+export type InRestatement = { task_id: string; language?: Lang };
 export type InCheck = { task_id: string; overall: Overall; field_marks: Partial<FieldMarks> | null; created_at: string };
 export type InWorker = { id: string; display_name: string; language: Lang };
 
@@ -93,8 +93,10 @@ export function computeInsights(
     return { field, checked, mismatch, unclear };
   });
 
+  // a task counts under the language its (latest) say-back was written in; the worker may have switched since
+  const saidIn = new Map(restatements.flatMap((r) => (r.language ? [[r.task_id, r.language] as const] : [])));
   const languages = LANGS.flatMap((language) => {
-    const own = tasks.filter((t) => person.get(t.worker_id)?.language === language);
+    const own = tasks.filter((t) => (saidIn.get(t.id) ?? person.get(t.worker_id)?.language) === language);
     if (own.length === 0) return [];
     const retried = own.filter((t) => rc(t) >= 2).length;
     return [{ language, tasks: own.length, retried, retried_pct: pct(retried, own.length) }];
@@ -154,7 +156,7 @@ async function crewData(me: ProfileRow) {
     pages<TaskRow>((a, b) => db().from("tasks").select("*").in("conversation_id", ids).order("created_at").range(a, b))))).flat();
   const ids = tasks.map((t) => t.id);
   const [restatements, checks, workers] = await Promise.all([
-    Promise.all(chunks(ids, 100).map((c) => pages<InRestatement>((a, b) => db().from("restatements").select("task_id").in("task_id", c).order("created_at").range(a, b)))).then((x) => x.flat()),
+    Promise.all(chunks(ids, 100).map((c) => pages<InRestatement>((a, b) => db().from("restatements").select("task_id, language").in("task_id", c).order("created_at").range(a, b)))).then((x) => x.flat()),
     Promise.all(chunks(ids, 100).map((c) => pages<InCheck>((a, b) => db().from("checks").select("task_id, overall, field_marks, created_at").in("task_id", c).order("created_at").range(a, b)))).then((x) => x.flat()),
     db().from("profiles").select("id, display_name, language").eq("crew_id", crewId).then((r) => ok(r) as InWorker[]),
   ]);

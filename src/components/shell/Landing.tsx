@@ -38,7 +38,7 @@ export function Landing() {
   return (
     <>
       <PublicHeader lang={lang} setLang={setLang} t={t} />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-16 pt-6 [overflow-wrap:anywhere]">
+      <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-4 pb-16 pt-6 [overflow-wrap:anywhere]">
         <Suspense><SignInNotice t={t} /></Suspense>
         {/* Hero: claim, promise, one big button, honest notes + the demo case */}
         <div className="grid grid-cols-[minmax(0,1fr)] gap-8 md:grid-cols-[1.1fr_1fr] md:items-start">

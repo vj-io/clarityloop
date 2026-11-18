@@ -65,6 +65,14 @@ export async function adoptGrant(g: SessionGrant) {
 
 export async function signOut() { await supabase().auth.signOut(); }
 
+/** useMe callers that ask at the same moment (the page guard and the header) share one request; nothing is kept once it settles. */
+const meFlights = new Map<string, Promise<{ me: Me | null }>>();
+function fetchMe(token: string) {
+  let p = meFlights.get(token);
+  if (!p) { p = api("GET /api/me").finally(() => meFlights.delete(token)); meFlights.set(token, p); }
+  return p;
+}
+
 /** undefined = loading · null = signed out, or signed in without a profile (see `needsOnboarding`). */
 export function useMe() {
   const [me, setMe] = useState<Me | null | undefined>(undefined);
@@ -76,7 +84,7 @@ export function useMe() {
       const { data } = await supabase().auth.getSession();
       if (!data.session) { if (live) { setMe(null); setNeeds(false); } return; }
       try {
-        const r = await api("GET /api/me");
+        const r = await fetchMe(data.session.access_token);
         if (live) { setMe(r.me); setNeeds(r.me === null); }
       } catch { if (live) setMe(null); }
     })();

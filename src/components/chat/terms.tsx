@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/client/session";
 import type { T } from "@/lib/i18n";
-import { CORE_LANGS, inLang, LANG_NAME, LANGS, type Lang, type SuggestionDTO, type TermDTO } from "@/lib/types";
+import { BETA_LANGS, CORE_LANGS, inLang, LANG_NAME, LANGS, type Lang, type SuggestionDTO, type TermDTO } from "@/lib/types";
 import { Card, Field, Input, Pill } from "@/components/ui";
 import { Btn, ErrorBox, errMsg } from "@/components/shell/Common";
 
@@ -73,7 +73,7 @@ export function SiteWordsLink({ t, lang }: { t: T; lang: Lang }) {
 type Prefill = { term: string; meaning: string; lang: Lang; suggestion: SuggestionDTO } | null;
 
 /** /crew: add, edit and remove site words; the crew's flagged words on top, one tap to add. */
-export function SiteWords({ t, lang }: { t: T; lang: Lang }) {
+export function SiteWords({ t, lang, crewLangs }: { t: T; lang: Lang; crewLangs: Lang[] }) {
   const [terms, setTerms] = useState<TermDTO[] | null>(null);
   const [sugs, setSugs] = useState<SuggestionDTO[]>([]);
   const [err, setErr] = useState<string | null>(null);
@@ -128,7 +128,7 @@ export function SiteWords({ t, lang }: { t: T; lang: Lang }) {
         : (
           <ul className="mt-2 divide-y-2 divide-dashed divide-ink/30">
             {terms.map((x) => (
-              <TermRow key={x.id} x={x} t={t} lang={lang}
+              <TermRow key={x.id} x={x} t={t} lang={lang} crewLangs={crewLangs}
                 onSaved={(n) => setTerms((l) => sorted((l ?? []).map((y) => (y.id === n.id ? n : y))))}
                 onRemoved={() => setTerms((l) => (l ?? []).filter((y) => y.id !== x.id))} />
             ))}
@@ -171,7 +171,8 @@ function AddTerm({ t, lang, prefill, onAdded }: { t: T; lang: Lang; prefill: Pre
   );
 }
 
-function TermRow({ x, t, lang, onSaved, onRemoved }: { x: TermDTO; t: T; lang: Lang; onSaved: (x: TermDTO) => void; onRemoved: () => void }) {
+function TermRow({ x, t, lang, crewLangs, onSaved, onRemoved }: { x: TermDTO; t: T; lang: Lang; crewLangs: Lang[]; onSaved: (x: TermDTO) => void; onRemoved: () => void }) {
+  const beta = BETA_LANGS.filter((l) => crewLangs.includes(l) || x.meanings[l]);   // beta languages someone in the crew reads (optional fields)
   const [edit, setEdit] = useState(false);
   const [f, setF] = useState({ term: x.term, ...x.meanings });
   const [busy, setBusy] = useState(false);
@@ -204,15 +205,18 @@ function TermRow({ x, t, lang, onSaved, onRemoved }: { x: TermDTO; t: T; lang: L
         e.preventDefault();
         setBusy(true); setErr(null);
         try {
-          const r = await api("PATCH /api/glossary", { id: x.id, term: f.term.trim(), meaning_en: f.en.trim(), meaning_hi: f.hi.trim(), meaning_ta: f.ta.trim() });
+          const r = await api("PATCH /api/glossary", {
+            id: x.id, term: f.term.trim(), meaning_en: f.en.trim(), meaning_hi: f.hi.trim(), meaning_ta: f.ta.trim(),
+            ...(beta.length ? { meanings_beta: Object.fromEntries(BETA_LANGS.flatMap((l) => (f[l]?.trim() ? [[l, f[l]!.trim()]] : []))) } : {}),
+          });
           onSaved(r.term); setEdit(false);
         } catch (e2) { setErr(saveErr(e2, t)); }
         setBusy(false);
       }}>
         <Field label={t("g.word")}><Input value={f.term} maxLength={40} onChange={(e) => setF({ ...f, term: e.target.value })} /></Field>
-        {CORE_LANGS.map((l) => (
+        {[...CORE_LANGS, ...beta].map((l) => (
           <Field key={l} label={t("g.meaningIn", { lang: LANG_NAME[l] })}>
-            <Input lang={l} value={f[l]} maxLength={120} onChange={(e) => setF({ ...f, [l]: e.target.value })} />
+            <Input lang={l} value={f[l] ?? ""} maxLength={120} onChange={(e) => setF({ ...f, [l]: e.target.value })} />
           </Field>
         ))}
         {err && <p role="alert" className="text-sm font-semibold text-bad">{err}</p>}

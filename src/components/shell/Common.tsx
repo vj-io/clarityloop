@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { ApiError } from "@/lib/client/session";
-import type { T } from "@/lib/i18n";
+import { makeT, type T } from "@/lib/i18n";
 import type { Lang } from "@/lib/types";
 import { Button, Spinner } from "@/components/ui";
 import type { ComponentProps } from "react";
@@ -16,6 +16,17 @@ export function Btn({ tone = "ink", className, ...p }: ComponentProps<typeof But
 export const TINT = { ok: "bg-ok-soft!", warn: "bg-warn-soft!", bad: "bg-bad-soft!", pen: "bg-pen-soft!", hi: "bg-hi!" } as const;
 
 export const cx = (...a: (string | false | null | undefined)[]) => a.filter(Boolean).join(" ");
+
+/** First focusable element of every page (root layout). Its words follow <html lang>, which the page sets once it knows the reader. */
+export function SkipLink() {
+  const [lang, setLang] = useState<Lang>("en");
+  return (
+    <a href="#main" onFocus={() => setLang(document.documentElement.lang as Lang)}
+      className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-lg focus:border-2 focus:border-ink focus:bg-hi focus:px-4 focus:py-3 focus:font-semibold focus:text-ink">
+      {makeT(lang)("nav.skip")}
+    </a>
+  );
+}
 
 /** Hand-drawn loop: an arrow that closes on itself. */
 export function LoopMark({ size = 30 }: { size?: number }) {

@@ -147,7 +147,7 @@ export function RecordView({ taskId }: { taskId: string }) {
           <div className="[overflow-wrap:anywhere]">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
-                <h1 className="font-display text-3xl font-extrabold leading-tight">{t("b.rec.title")}</h1>
+                <h2 className="font-display text-3xl font-extrabold leading-tight">{t("b.rec.title")}</h2>
                 <p className="mt-1 flex flex-wrap items-center gap-2 text-base">
                   <span className="font-semibold">{r.task.reader.object} · {r.task.worker.name}</span>
                   <TaskStatePill state={r.task.state} t={t} />

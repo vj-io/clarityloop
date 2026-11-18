@@ -41,6 +41,7 @@ export const te: Record<string, string> = {
   "nav.signout": "లాగౌట్",
   "nav.back": "వెనక్కి",
   "nav.language": "భాష",
+  "nav.skip": "నేరుగా ముఖ్య భాగానికి వెళ్ళండి",
   "nav.sandbox": "శాండ్బాక్స్: ఇది డెమో డేటా, నిజమైన మనుషులు లేదా నిజమైన పని కాదు.",
   "role.supervisor": "సూపర్వైజర్",
   "role.worker": "వర్కర్",

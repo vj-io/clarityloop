@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CORE_LANGS, LangSchema, type SuggestionDTO } from "@/lib/types";
+import { BETA_LANGS, CORE_LANGS, LangSchema, type SuggestionDTO } from "@/lib/types";
 import { translationTargets } from "@/lib/server/ai";
 import { requireMe } from "@/lib/server/auth";
 import { betaOnly, crewLangs, crewLists } from "@/lib/server/crew";
@@ -50,18 +50,19 @@ export const POST = route(async (req) => {
   return json({ term: termDTO(row) });
 });
 
-/** Edit a site word or any of its three meanings. */
+/** Edit a site word or any of its meanings. `meanings_beta` replaces the stored beta meanings as a whole. */
 export const PATCH = route(async (req) => {
   const me = await requireMe(req, "supervisor");
   if (!me.crew_id) return notFound();
   const b = await body(req, z.object({
     id: z.uuid(), term: Term.optional(), meaning_en: Meaning.optional(), meaning_hi: Meaning.optional(), meaning_ta: Meaning.optional(),
-    note: z.string().trim().max(200).nullish(),
+    note: z.string().trim().max(200).nullish(), meanings_beta: z.partialRecord(z.enum(BETA_LANGS), Meaning).optional(),
   }));
-  const patch: Record<string, string | null> = {};
+  const patch: Record<string, unknown> = {};
   if (b.term) patch.term = b.term;
   for (const col of Object.values(LANG_COL)) if (b[col]) patch[col] = b[col]!;
   if (b.note !== undefined) patch.note = b.note || null;
+  if (b.meanings_beta) patch.meanings_beta = b.meanings_beta;
   if (!Object.keys(patch).length) return fail(400, "invalid", "nothing to change");
   const { data, error } = await db().from("crew_terms").update(patch).eq("id", b.id).eq("crew_id", me.crew_id).select("*").maybeSingle();
   if (dup(error)) return fail(409, "conflict", "this word is already a site word");

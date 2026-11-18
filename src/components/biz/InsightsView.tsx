@@ -246,7 +246,7 @@ export function InsightsView() {
         {!me || (!d && !err) ? <PageLoading t={t} /> : err ? <ErrorBox message={err} onRetry={load} t={t} /> : d && s && (
           <div className="[overflow-wrap:anywhere]">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <h1 className="font-display text-3xl font-extrabold leading-tight">{t("b.in.title")}</h1>
+              <h2 className="font-display text-3xl font-extrabold leading-tight">{t("b.in.title")}</h2>
               {d.crew.is_sandbox && <Pill tint="warn">{t("b.in.demo")}</Pill>}
             </div>
             <p className="mt-1 text-base text-muted">{d.crew.site_name} · {t(d.crew.is_sandbox ? "b.in.subDemo" : "b.in.sub")}</p>

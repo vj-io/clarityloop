@@ -87,5 +87,5 @@ export function Spinner({ label }: { label: string }) {
 
 /** Page frame: phone-first column, 360px safe. */
 export function Screen({ children, wide }: { children: ReactNode; wide?: boolean }) {
-  return <main className={cx("mx-auto w-full flex-1 px-4 py-5", wide ? "max-w-5xl" : "max-w-xl")}>{children}</main>;
+  return <main id="main" className={cx("mx-auto w-full flex-1 px-4 py-5", wide ? "max-w-5xl" : "max-w-xl")}>{children}</main>;
 }
