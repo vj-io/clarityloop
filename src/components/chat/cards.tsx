@@ -258,7 +258,7 @@ export function CheckCard({ check, task, me, live, t, myLang, otherLang, onTask,
   const unreadable = check.unreadable && anyUnclear;
   const overall: Overall = unreadable ? "needs_look" : check.overall;
   const tint = OVERALL_TINT[overall];
-  const title = unreadable ? t("c.check.unreadable") : t(`c.check.${check.overall}`);
+  const title = unreadable ? t("c.check.unreadable") : check.overall === "all_match" && check.rows.some((r) => r.accepted) ? t("c.check.accepted") : t(`c.check.${check.overall}`);
   const iConfirmed = task.confirmations.some((c) => c.profile_id === me.id);
   const canConfirm = live && task.state === "all_match" && !anyBad && !anyUnclear;
   const nameOf = (id: string) => (id === task.supervisor.id ? task.supervisor.name : id === task.worker.id ? task.worker.name : "?");
@@ -306,7 +306,7 @@ export function CheckCard({ check, task, me, live, t, myLang, otherLang, onTask,
         <ul>
           {check.rows.map((r) => (
             <Row key={r.field} row={r} t={t} busy={busy} supName={task.supervisor.name} workerName={task.worker.name}
-              canAccept={live && isSup && r.mark === "unclear" && !r.accepted}
+              canAccept={live && isSup && r.mark === "unclear" && !r.accepted && r.reason !== "not_mentioned" && r.reason !== "unknown"}
               onAccept={() => act(() => api("POST /api/tasks/:id/accept-field", { field: r.field as FieldKey }, { id: task.id }))} />
           ))}
         </ul>

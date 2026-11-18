@@ -64,7 +64,7 @@ export default function NewTaskPage() {
   const qtyNum = f.qty.trim() === "" ? null : Number(f.qty);
   const errors = {
     action: !f.action ? t("c.form.err.action") : null,
-    object: f.object.length > 80 ? t("c.form.err.object") : null,
+    object: !f.object.trim() ? t("c.form.err.objectMissing") : f.object.length > 80 ? t("c.form.err.object") : null,
     place: !f.place ? t("c.form.err.place") : null,
     time: !/^([01]\d|2[0-3]):[0-5]\d$/.test(f.time) ? t("c.form.err.time") : null,
     qty: qtyNum !== null && (!Number.isFinite(qtyNum) || qtyNum <= 0 || qtyNum > 100000) ? t("c.form.err.qty") : null,

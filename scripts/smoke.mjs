@@ -128,7 +128,7 @@ try {
   check("supervisor reads the check in English", latest.rows.find((r) => r.field === "place").supervisor === "Gate 3", `restatement.translated=${JSON.stringify(latest.restatement.translated)}`);
   check("cannot accept a field that is not unclear", latest.rows.some((r) => r.mark !== "unclear")
     ? (await call("POST", `/api/tasks/${taskId}/accept-field`, { field: latest.rows.find((r) => r.mark !== "unclear").field }, sup)).status === 409 : true);
-  for (const row of latest.rows.filter((r) => r.mark === "unclear" && !r.accepted)) {
+  for (const row of latest.rows.filter((r) => r.mark === "unclear" && !r.accepted && r.reason !== "not_mentioned" && r.reason !== "unknown")) {
     const a = await call("POST", `/api/tasks/${taskId}/accept-field`, { field: row.field }, sup);
     check(`supervisor accepts unclear field '${row.field}'`, a.status === 200, `state=${a.json.task?.state}`);
     state = a.json.task?.state;

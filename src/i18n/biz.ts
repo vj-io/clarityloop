@@ -129,5 +129,6 @@ export const biz: Dict = {
   "b.ev.checked": d("Meaning checked", "मतलब जाँचा गया", "அர்த்தம் சரிபார்க்கப்பட்டது"),
   "b.ev.field_accepted": d("A field was accepted", "एक बात मान ली गई", "ஒரு விவரம் ஏற்கப்பட்டது"),
   "b.ev.confirmed": d("Confirmed", "कन्फ़र्म हुआ", "உறுதிப்படுத்தப்பட்டது"),
+  "b.ev.nudged": d("Reminder sent", "याद दिलाया गया", "நினைவூட்டல் அனுப்பப்பட்டது"),
   "b.ev.done": d("Marked done", "पूरा हुआ", "முடிந்தது எனக் குறிக்கப்பட்டது"),
 };

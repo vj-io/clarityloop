@@ -20,6 +20,9 @@ export const POST = route(async (req, ctx: { params: Promise<{ id: string }> }) 
   const mark = check?.field_marks[field];
   if (!check || !mark || mark.mark !== "unclear" || mark.accepted) return fail(409, "conflict", "only an unclear field of the latest check can be accepted");
 
+  // Nothing to accept when the worker did not say this part at all: they have to say it back.
+  if (mark.reason === "not_mentioned" || mark.reason === "unknown") return fail(409, "conflict", "the worker did not say this part");
+
   const acc = await db().from("field_acceptances").insert({ check_id: check.id, field, accepted_by: me.id });
   if (acc.error) return acc.error.code === "23505" ? fail(409, "conflict") : fail(500, "internal");
   const field_marks = { ...check.field_marks, [field]: { ...mark, accepted: true } };
