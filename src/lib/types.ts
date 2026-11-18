@@ -64,7 +64,7 @@ export type FieldMark = {
   /** machine-readable reason, shown as a short hint */
   reason?:
     | "not_mentioned" | "unknown" | "afternoon_assumed" | "hour_ambiguous"
-    | "vague" | "unreadable" | "extra";
+    | "vague" | "unreadable" | "extra" | "unit";
   accepted?: boolean;
 };
 export type FieldMarks = Record<FieldKey, FieldMark>;

@@ -33,11 +33,9 @@ export function tally(restatements: InRestatement[], checks: InCheck[]) {
 /** Pure, for the CSV export: say-backs, whether the first one matched (null = never checked) and the fields that did not. */
 export function taskOutcome(taskId: string, t: ReturnType<typeof tally>): { say_backs: number; first_match: boolean | null; wrong_first: FieldKey[] } {
   const f = t.first.get(taskId);
-  return {
-    say_backs: t.restCount.get(taskId) ?? 0,
-    first_match: f ? f.overall === "all_match" : null,
-    wrong_first: f ? FIELDS.filter((k) => { const m = f.field_marks?.[k]?.mark; return m === "mismatch" || m === "unclear"; }) : [],
-  };
+  const wrong_first = f ? FIELDS.filter((k) => { const m = f.field_marks?.[k]?.mark; return m === "mismatch" || m === "unclear"; }) : [];
+  // a first check that only became all-match because the supervisor accepted a field did not match first time
+  return { say_backs: t.restCount.get(taskId) ?? 0, first_match: f ? f.overall === "all_match" && !wrong_first.length : null, wrong_first };
 }
 
 export type InBriefing = { id: string; point_ids: string[] };

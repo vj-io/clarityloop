@@ -189,7 +189,7 @@ export function RestateBox({ task, t, lang, onResult }: {
 // ---------------------------------------------------------------- the Meaning Mismatch card
 const REASON_KEY: Record<NonNullable<CheckRow["reason"]>, string> = {
   not_mentioned: "c.reason.not_mentioned", unknown: "c.reason.unknown", afternoon_assumed: "c.reason.afternoon_assumed",
-  hour_ambiguous: "c.reason.hour_ambiguous", vague: "c.reason.vague", unreadable: "c.reason.unreadable", extra: "c.reason.extra",
+  hour_ambiguous: "c.reason.hour_ambiguous", vague: "c.reason.vague", unreadable: "c.reason.unreadable", extra: "c.reason.extra", unit: "c.reason.unit",
 };
 
 function MarkWord({ row, t }: { row: CheckRow; t: T }) {

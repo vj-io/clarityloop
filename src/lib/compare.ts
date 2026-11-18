@@ -51,6 +51,17 @@ export function resolveTime(time: string, ambiguous: boolean): { settled: string
   return { settled: null, readings: [hhmm(bare, m), hhmm(bare + 12, m)], assumed: false };
 }
 
+// Units that mean the same on a site. Only plain Latin words are compared: a unit typed in another script is left alone.
+const UNIT_SAME = [["bag", "sack", "bori"], ["piece", "pc", "no", "number", "unit"]];
+const unitKey = (u: string | null) => {
+  const w = u?.trim().toLowerCase() ?? "";
+  if (!/^[a-z]+$/.test(w)) return null;
+  const s = singular(w);
+  return UNIT_SAME.find((g) => g.includes(s))?.[0] ?? s;
+};
+/** Both units given, both readable, and they differ ("40 helmets" / "40 bags"). */
+export const unitsDiffer = (a: string | null, b: string | null) => { const x = unitKey(a), y = unitKey(b); return !!x && !!y && x !== y; };
+
 export const fmtQty = (q: number | null, unit: string | null) =>
   q == null ? null : `${q}${unit ? " " + unit : ""}`;
 
@@ -85,7 +96,9 @@ export function compareFields(task: TaskFields, ex: Extraction | null): FieldMar
   const wrkQty = fmtQty(ex.quantity, ex.unit);
   if (task.quantity == null) quantity = ex.quantity == null ? { mark: "match", supervisor: null, worker: null } : { mark: "unclear", supervisor: null, worker: wrkQty, reason: "extra" };
   else if (ex.quantity == null) quantity = { mark: "unclear", supervisor: supQty, worker: null, reason: "not_mentioned" };
-  else quantity = { mark: Number(ex.quantity) === Number(task.quantity) ? "match" : "mismatch", supervisor: supQty, worker: wrkQty };
+  else if (Number(ex.quantity) !== Number(task.quantity)) quantity = { mark: "mismatch", supervisor: supQty, worker: wrkQty };
+  else if (unitsDiffer(task.unit, ex.unit)) quantity = { mark: "unclear", supervisor: supQty, worker: wrkQty, reason: "unit" };   // same number, different thing counted: amber
+  else quantity = { mark: "match", supervisor: supQty, worker: wrkQty };
 
   return { action: listField(task.action_id, ex.action), object, place: listField(task.place_id, ex.place), time, quantity };
 }

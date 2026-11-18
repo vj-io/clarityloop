@@ -90,3 +90,12 @@ test("object: an alias made from the supervisor's own words counts as the same t
   assert.equal(compareFields({ ...t, object_aliases: ["rods"] }, ex({ object: "copper rods" })).object.mark, "unclear");
   assert.equal(compareFields(task, ex({ object: "sand bags" })).object.mark, "mismatch"); // container words never make things related
 });
+
+test("quantity: same number with a different unit is amber, never green", async () => {
+  const { unitsDiffer } = await import("./compare.ts");
+  assert.equal(unitsDiffer("helmets", "bags"), true);
+  assert.equal(unitsDiffer("bags", "sacks"), false);   // same thing on a site
+  assert.equal(unitsDiffer("bags", "bag"), false);
+  assert.equal(unitsDiffer("bags", null), false);      // unit not said: the number decides
+  assert.equal(unitsDiffer("बोरी", "bags"), false);    // other scripts are not judged
+});

@@ -107,6 +107,11 @@ export async function resetRoom(r: number): Promise<Room> {
   const [withMurugan, withLakshmi, crew] = await Promise.all([
     ensureConversation(room.ravi, room.murugan), ensureConversation(room.ravi, room.lakshmi), ensureCrewConversation(cid),
   ]);
+  // one seeded site word (kept across resets; a duplicate insert is refused by the unique index and ignored)
+  await db().from("crew_terms").insert({
+    crew_id: cid, term: "steel rods", meaning_en: "steel rods", meaning_hi: "सरिया", meaning_ta: "இரும்புக் கம்பிகள்",
+    meanings_beta: { bn: "লোহার রড", te: "ఇనుప కడ్డీలు", mr: "लोखंडी सळया" }, created_by: room.ravi.id,
+  });
   const fresh = { ...room, withMurugan, withLakshmi, crew };
   await seedSampleHistory({
     supervisorId: room.ravi.id,
