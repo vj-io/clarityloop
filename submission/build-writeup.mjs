@@ -100,7 +100,7 @@ const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
 </ul>
 
 <h2><span>What we measured</span></h2>
-<p>Fixed test sets in the repository (<span class="mono">evals/</span>), run on ${ran} against the real model, through the app's own code:</p>
+<p>Fixed test sets in the repository (<span class="mono">evals/</span>), run on ${ran} (UTC) against the real model, through the app's own code:</p>
 <table>
   <tr><th>Check</th><th>Result</th><th>Our target</th></tr>
   <tr><td>Planted mismatches caught (gate, time, quantity, action, missing field, Hinglish reply)</td><td><b>${mc.caught} of ${mc.planted}</b></td><td>all</td></tr>

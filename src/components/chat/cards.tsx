@@ -284,7 +284,7 @@ export function CheckCard({ check, task, me, live, t, myLang, otherLang, onTask,
         <MarkIcon mark={overall === "mismatch" ? "mismatch" : overall === "needs_look" ? "unclear" : "match"} size={36} />
         {overall === "mismatch" ? <span className="hl hl-in text-ink">{title}</span> : title}
       </h3>
-      <p className="mt-1 text-base text-muted">{t(unreadable ? "c.check.unreadableHint" : `c.check.${check.overall}Hint`)}</p>
+      <p className="mt-1 text-base text-muted">{t(unreadable ? "c.check.unreadableHint" : title === t("c.check.accepted") ? "c.check.acceptedHint" : `c.check.${check.overall}Hint`)}</p>
 
       {/* the worker's own words */}
       <figure className={cx("mt-3 rounded-xl border-2 border-ink/25 bg-paper px-3 py-2", unreadable && "border-warn border-[2.5px] bg-warn-soft/50")}>

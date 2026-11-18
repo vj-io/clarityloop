@@ -100,6 +100,7 @@ export const chat: Dict = {
   "c.check.mismatchHint": { en: "The red rows differ. Sort it out in the chat, then say it back again.", hi: "लाल पंक्तियाँ अलग हैं। चैट में बात करें, फिर दोबारा बताएँ।", ta: "சிவப்பு வரிகள் வேறுபடுகின்றன. அரட்டையில் பேசி, மீண்டும் சொல்லுங்கள்." },
   "c.check.needs_lookHint": { en: "Nothing differs, but something is unclear.", hi: "कुछ अलग नहीं, पर कुछ साफ़ नहीं है।", ta: "வேறுபாடு இல்லை, ஆனால் ஏதோ தெளிவில்லை." },
   "c.check.accepted": { en: "Match, with fields the supervisor accepted", hi: "सही, कुछ बातें सुपरवाइज़र ने मानीं", ta: "பொருந்துகிறது, சிலவற்றை மேற்பார்வையாளர் ஏற்றார்" },
+  "c.check.acceptedHint": { en: "The supervisor accepted the unclear parts. Both of you can confirm.", hi: "साफ़ नहीं वाली बातें सुपरवाइज़र ने मान लीं। दोनों पक्का कर सकते हैं।", ta: "தெளிவில்லாத பகுதிகளை மேற்பார்வையாளர் ஏற்றார். இருவரும் உறுதி செய்யலாம்." },
   "c.check.all_matchHint": { en: "Every part matches. Both of you can confirm.", hi: "सब कुछ मेल खाता है। दोनों पक्का कर सकते हैं।", ta: "எல்லாம் பொருந்துகிறது. இருவரும் உறுதி செய்யலாம்." },
   "c.check.unreadableHint": { en: "Read the words yourselves, then say it back again or talk it over.", hi: "शब्द खुद पढ़ें, फिर दोबारा बताएँ या बात करें।", ta: "வார்த்தைகளை நீங்களே படித்து, மீண்டும் சொல்லுங்கள் அல்லது பேசுங்கள்." },
   "c.check.yourWords": { en: "Your words", hi: "आपके शब्द", ta: "உங்கள் வார்த்தைகள்" },

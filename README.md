@@ -68,7 +68,7 @@ Voice input uses browser speech recognition (English, Hindi, Tamil; beta languag
 - Site words: a crew glossary of local terms used in chat translation, in the translation of a task's object and note (pair and crew tasks), and in the list of accepted names for the object. After flagging a translation, the reader can name the wrong word; the supervisor approves or rejects suggestions. Nothing is added without approval.
 - Make this a task: tap a chat message and AI pre-fills the task form. The supervisor checks it and still presses Send.
 - Send again: the new-task form shows up to five recent tasks as chips; a tap fills the form.
-- Remind: the supervisor can remind a worker who has not said a task back (at most once per 10 minutes per task, only when the supervisor presses it). The task list has an "Overdue to say back" filter.
+- Remind: the supervisor can remind a worker who has not said a task back, or whose say-back still does not match (at most once per 10 minutes per task, only when the supervisor presses it). The task list has an "Overdue to say back" filter.
 
 ### Insights and records
 
@@ -141,9 +141,9 @@ Copy `.env.example` to `.env.local`. Never commit `.env.local`.
 
 ## Tests and evals
 
-- `npm test` runs 52 unit tests (`src/lib/*.test.ts`) with Node's test runner: the field comparison and aliases, the work-hours rule, the safety-briefing check, the roll-call board, site words, reminders, insights, the CSV export, send-again and the AI output parsing. They use no network.
+- `npm test` runs 66 unit tests (`src/lib/*.test.ts`) with Node's test runner: the field comparison and aliases, the work-hours rule, the safety-briefing check, the roll-call board, site words, reminders, insights, the CSV export, send-again and the AI output parsing. They use no network.
 - `evals/` holds fixed test sets: `translation.json` (100 translation runs across the three languages, checking that numbers and place names are kept) and `meaning.json` (15 restatements, 6 with a planted mismatch). `node --env-file=.env.local scripts/eval.mjs` runs them against the real model and writes `evals/results.json` (a copy for the site is `public/evals-results.json`).
-- Stored results (run 2026-11-17, model `google/gemini-3.5-flash-lite`): translation, 100 of 100 runs kept every number and place name, median 1.95 s (p90 5.35 s); meaning check, 6 of 6 planted mismatches caught, 0 false alarms on the 9 correct restatements, median 2.25 s (p90 5.69 s). One call hit a timeout during the run.
+- Stored results (run 2026-11-17 UTC, model `google/gemini-3.5-flash-lite`): translation, 100 of 100 runs kept every number and place name, median 1.95 s (p90 5.35 s); meaning check, 6 of 6 planted mismatches caught, 0 false alarms on the 9 correct restatements, median 2.25 s (p90 5.69 s). One call hit a timeout during the run.
 - What they do not show: no native speaker has rated the translations, the sets are small and written by us, and no pilot with real workers has run. The translation speed target (median under 1.5 s) is not met on the current free-tier model key; the app shows the original at once and swaps the translation in.
 
 ## Security and privacy

@@ -18,9 +18,9 @@ export const terms: Dict = {
   "g.wordPh": { en: "e.g. sariya, JCB, shuttering", hi: "जैसे सरिया, JCB, शटरिंग", ta: "எ.கா. கம்பி, JCB, ஷட்டரிங்" },
   "g.meaning": { en: "What it means (in {lang})", hi: "इसका मतलब ({lang} में)", ta: "இதன் பொருள் ({lang} இல்)" },
   "g.meaningHint": {
-    en: "We write it in the other two languages for you. You can fix them after.",
-    hi: "बाकी दो भाषाओं में हम लिख देंगे। बाद में आप ठीक कर सकते हैं।",
-    ta: "மற்ற இரண்டு மொழிகளில் நாங்கள் எழுதுவோம். பிறகு நீங்கள் திருத்தலாம்.",
+    en: "We write it in the crew's other languages for you. You can fix them after.",
+    hi: "टीम की बाकी भाषाओं में हम लिख देंगे। बाद में आप ठीक कर सकते हैं।",
+    ta: "குழுவின் மற்ற மொழிகளில் நாங்கள் எழுதுவோம். பிறகு நீங்கள் திருத்தலாம்.",
   },
   "g.meaningIn": { en: "Meaning in {lang}", hi: "{lang} में मतलब", ta: "{lang} இல் பொருள்" },
   "g.add": { en: "Add word", hi: "शब्द जोड़ें", ta: "சொல்லைச் சேர்" },

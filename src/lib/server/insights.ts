@@ -30,6 +30,10 @@ export function tally(restatements: InRestatement[], checks: InCheck[]) {
   return { restCount, first };
 }
 
+/** The first check matched on its own: all-match with no field the supervisor had to accept. */
+export const matchedFirst = (f: { overall: string; field_marks?: Record<string, { mark?: string }> | null } | undefined) =>
+  !!f && f.overall === "all_match" && !FIELDS.some((k) => { const m = f.field_marks?.[k]?.mark; return m === "mismatch" || m === "unclear"; });
+
 /** Pure, for the CSV export: say-backs, whether the first one matched (null = never checked) and the fields that did not. */
 export function taskOutcome(taskId: string, t: ReturnType<typeof tally>): { say_backs: number; first_match: boolean | null; wrong_first: FieldKey[] } {
   const f = t.first.get(taskId);
@@ -77,7 +81,7 @@ export function computeInsights(
 
   const understood = tasks.filter((t) => isUnderstood(t.state));
   const restated = tasks.filter((t) => rc(t) >= 1).length;
-  const caught = understood.filter((t) => { const f = first.get(t.id); return f && f.overall !== "all_match"; }).length;
+  const caught = understood.filter((t) => { const f = first.get(t.id); return f && !matchedFirst(f); }).length;
   const mins = tasks.filter((t) => t.understood_at).map((t) => (Date.parse(t.understood_at!) - Date.parse(t.created_at)) / 60000).sort((a, b) => a - b);
   const median = mins.length === 0 ? null : Math.round(((mins[(mins.length - 1) >> 1] + mins[mins.length >> 1]) / 2) * 10) / 10;
 
@@ -114,7 +118,7 @@ export function computeInsights(
     const d = byDate.get(dayKey(Date.parse(t.created_at)));
     if (!d) continue;
     d.sent++;
-    if (isUnderstood(t.state) && first.get(t.id)?.overall === "all_match") d.first_try++;
+    if (isUnderstood(t.state) && matchedFirst(first.get(t.id))) d.first_try++;
   }
 
   const recent = [...tasks].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 8).map((t) => ({

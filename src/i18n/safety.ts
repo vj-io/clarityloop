@@ -84,6 +84,6 @@ export const safety: Dict = {
 
   // ---- safety list on /crew
   "s.list.title": { en: "Safety points", hi: "सुरक्षा की बातें", ta: "பாதுகாப்புக் குறிப்புகள்" },
-  "s.list.hint": { en: "Shown in English, Hindi and Tamil. Used in safety briefings.", hi: "अंग्रेज़ी, हिन्दी और तमिल में दिखती हैं। सुरक्षा ब्रीफ़िंग में काम आती हैं।", ta: "ஆங்கிலம், இந்தி, தமிழில் தெரியும். பாதுகாப்பு விளக்கங்களில் பயன்படும்." },
+  "s.list.hint": { en: "Shown to each reader in their language. Used in safety briefings.", hi: "हर पढ़ने वाले को उसकी भाषा में दिखती हैं। सुरक्षा ब्रीफ़िंग में काम आती हैं।", ta: "ஒவ்வொருவருக்கும் அவர் மொழியில் தெரியும். பாதுகாப்பு விளக்கங்களில் பயன்படும்." },
   "s.list.add": { en: "Add a safety point (in your language)", hi: "सुरक्षा की बात जोड़ें (अपनी भाषा में)", ta: "பாதுகாப்புக் குறிப்பைச் சேர் (உங்கள் மொழியில்)" },
 };

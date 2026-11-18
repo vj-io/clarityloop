@@ -53,3 +53,13 @@ test("languages: a task counts under the language its say-back was written in, n
   const r = computeInsights(tasks, [{ task_id: "a", language: "mr" as const }], [], workers, crew, NOW);
   assert.deepEqual(r.languages.map((l) => [l.language, l.tasks]), [["hi", 1], ["mr", 1]]);
 });
+
+test("a first check that passed only because the supervisor accepted a field is not a first-try match", async () => {
+  const { matchedFirst } = await import("./server/insights.ts");
+  const m = (mark: string, accepted = false) => ({ mark, accepted });
+  const all = { action: m("match"), object: m("match"), place: m("match"), time: m("match"), quantity: m("match") };
+  assert.equal(matchedFirst({ overall: "all_match", field_marks: all }), true);
+  assert.equal(matchedFirst({ overall: "all_match", field_marks: { ...all, quantity: m("unclear", true) } }), false);
+  assert.equal(matchedFirst({ overall: "mismatch", field_marks: all }), false);
+  assert.equal(matchedFirst(undefined), false);
+});

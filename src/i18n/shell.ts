@@ -232,7 +232,7 @@ export const shell: Dict = {
   "crew.chat": d("Chat", "चैट", "அரட்டை"),
   "crew.places": d("Places", "जगहें", "இடங்கள்"),
   "crew.actions": d("Actions", "काम के प्रकार", "செயல்கள்"),
-  "crew.listHint": d("Shown in English, Hindi and Tamil. Used in tasks.", "अंग्रेज़ी, हिन्दी और तमिल में दिखता है। कामों में इस्तेमाल होता है।", "ஆங்கிலம், இந்தி, தமிழில் தெரியும். பணிகளில் பயன்படும்."),
+  "crew.listHint": d("Shown to each reader in their language. Used in tasks.", "हर पढ़ने वाले को उसकी भाषा में दिखता है। कामों में इस्तेमाल होता है।", "ஒவ்வொருவருக்கும் அவர் மொழியில் தெரியும். பணிகளில் பயன்படும்."),
   "crew.add_place": d("Add a place (in your language)", "जगह जोड़ें (अपनी भाषा में)", "இடத்தைச் சேர் (உங்கள் மொழியில்)"),
   "crew.add_action": d("Add an action (in your language)", "काम का प्रकार जोड़ें (अपनी भाषा में)", "செயலைச் சேர் (உங்கள் மொழியில்)"),
   "crew.add": d("Add", "जोड़ें", "சேர்"),
