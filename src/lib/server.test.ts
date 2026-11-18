@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  extractFields, glossary, inScript, missingNumbers, parseJsonObject, quickTranslate, translateText,
+  extractFields, glossary, inScript, lowerActions, missingNumbers, parseJsonObject, quickTranslate, translateText,
   type CrewLists, type ModelRequest, type Runner,
 } from "./server/ai.ts";
 import { hashPin, verifyPin } from "./server/pin.ts";
@@ -44,6 +44,15 @@ test("glossary maps every spelling of a crew label to the reader's label", () =>
   assert.match(g, /^"Gate 3" or "गेट 3" or "கேட் 3" is written "गेट 3"$/m);
   assert.match(g, /^"Unload" or "उतारना" or "இறக்கு" is written "उतारना"$/m);
   assert.doesNotMatch(g, /=>/);
+});
+
+test("translate: English output lower-cases an action label mid-sentence, keeps sentence starts and place names", async () => {
+  assert.equal(lowerActions("Alright sir, where should I Unload?", lists), "Alright sir, where should I unload?");
+  assert.equal(lowerActions("Unload 40 bags at Gate 3. Unload them by 2", lists), "Unload 40 bags at Gate 3. Unload them by 2");
+  const own: CrewLists = { places: [{ id: "p", labels: { en: "Store room", hi: "x", ta: "x" } }], actions: [{ id: "a", labels: { en: "Store", hi: "x", ta: "x" } }] };
+  assert.equal(lowerActions("Please Store it in the Store room", own), "Please store it in the Store room");
+  const f = fake('{"source_lang":"hi","text":"Sir, where should I Unload at Gate 3?"}');
+  assert.equal((await translateText("Sir, Gate 3 pe kahan utaarun?", "en", lists, f.run))?.text, "Sir, where should I unload at Gate 3?");
 });
 
 test("translate: sends text + glossary only, returns detected source", async () => {

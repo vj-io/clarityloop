@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Card, Hl, Pill } from "@/components/ui";
 import type { T } from "@/lib/i18n";
 import { usePublicLang } from "./lang";
-import { LinkButton, PublicHeader, Section, Squiggle } from "./Common";
+import { LinkButton, PublicHeader, PublicTitle, Section, Squiggle } from "./Common";
 import { DemoLoop } from "./DemoLoop";
 import { Stick, StepIcon } from "./Figures";
 
@@ -37,6 +37,7 @@ export function Landing() {
   const { lang, setLang, t } = usePublicLang();
   return (
     <>
+      <PublicTitle>{`ClarityLoop — ${t("land.h1a")}${t("land.h1b")}${t("land.h1c")}`.replace(/[.।]$/, "")}</PublicTitle>
       <PublicHeader lang={lang} setLang={setLang} t={t} />
       <main id="main" className="mx-auto w-full max-w-5xl flex-1 px-4 pb-16 pt-6 [overflow-wrap:anywhere]">
         <Suspense><SignInNotice t={t} /></Suspense>

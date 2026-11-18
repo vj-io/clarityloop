@@ -52,6 +52,9 @@ test("languages: a task counts under the language its say-back was written in, n
   ];
   const r = computeInsights(tasks, [{ task_id: "a", language: "mr" as const }], [], workers, crew, NOW);
   assert.deepEqual(r.languages.map((l) => [l.language, l.tasks]), [["hi", 1], ["mr", 1]]);
+  assert.equal(r.workers[0].language, null);   // tasks span two languages: no single label
+  const one = computeInsights(tasks.slice(0, 1), [{ task_id: "a", language: "mr" as const }], [], workers, crew, NOW);
+  assert.equal(one.workers[0].language, "mr");   // the say-back language, not the worker's current one
 });
 
 test("a first check that passed only because the supervisor accepted a field is not a first-try match", async () => {

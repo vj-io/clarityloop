@@ -172,6 +172,18 @@ export function siteWordsBlock(terms: SiteTerm[], target: Lang): string {
     terms.map((t) => `"${t.term}" means "${inLang(t.meanings, target)}"`).join("\n");
 }
 
+/**
+ * English output: the model copies an action label with its list capital ("where should I Unload?").
+ * Lower-case it when it follows another word; a sentence start and place labels ("Store room") stay as written.
+ */
+export function lowerActions(text: string, lists: CrewLists): string {
+  const en = (items: LabelledItem[]) => items.map((x) => x.labels.en.trim()).filter(Boolean).sort((a, b) => b.length - a.length).map(escapeRe);
+  const places = en(lists.places), actions = en(lists.actions);
+  if (!actions.length) return text;
+  const re = new RegExp(`${places.length ? `(${places.join("|")})|` : "()"}(?<=[\\p{L}\\p{N},;] )(?:${actions.join("|")})(?![\\p{L}\\p{N}])`, "gu");
+  return text.replace(re, (m, place?: string) => (place ? m : m.toLowerCase()));
+}
+
 const TranslationOut = z.object({ source_lang: LangSchema, text: z.string().min(1) });
 
 /**
@@ -202,7 +214,7 @@ export async function translateText(text: string, target: Lang, lists: CrewLists
       if (!inScript(out.text, target)) throw new Error(`not in ${NAME[target]}`);
       const lost = missingNumbers(text, out.text);
       if (lost.length) throw new Error(`numbers lost: ${lost.join(",")}`);
-      return { text: out.text, source_lang: out.source_lang };
+      return { text: target === "en" ? lowerActions(out.text, lists) : out.text, source_lang: out.source_lang };
     } catch (e) { last = e; }
   }
   throw new Error(`translation failed: ${last instanceof Error ? last.message : String(last)}`);

@@ -44,7 +44,7 @@ function Worker({ r, b, t, lang }: { r: BriefingReplyDTO; b: BriefingDTO; t: T; 
           <p className="font-display text-base font-extrabold">{t("s.rec.reply", { n: i + 1, time: when(a.at, lang) })}</p>
           <blockquote lang={a.language} className="mt-1 border-l-4 border-ink pl-3 text-lg">{a.text}</blockquote>
           {a.unreadable ? <p className="mt-1 font-semibold text-warn">{t("s.res.unreadable")}</p> : <>
-            <p className="mt-1"><span className="font-hand text-lg text-muted">{t("s.res.understood")}: </span>{a.gloss}</p>
+            {a.gloss && <p className="mt-1"><span className="font-hand text-lg text-muted">{t("s.res.understood")}: </span>{a.gloss}</p>}
             <p><span className="font-hand text-lg text-muted">{t("s.rec.mentioned")}: </span>{a.said_point_ids.length ? a.said_point_ids.map(label).join(" · ") : t("s.rec.none")}</p>
           </>}
         </div>

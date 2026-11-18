@@ -7,7 +7,7 @@ import { api, adoptGrant, markJudgeTab } from "@/lib/client/session";
 import type { Role } from "@/lib/types";
 import { Card, Pill } from "@/components/ui";
 import { usePublicLang } from "@/components/shell/lang";
-import { Btn, CopyButton, ErrorBox, PublicHeader, errMsg } from "@/components/shell/Common";
+import { Btn, CopyButton, ErrorBox, PublicHeader, PublicTitle, errMsg } from "@/components/shell/Common";
 import type { T } from "@/lib/i18n";
 
 type Who = "supervisor" | "worker" | "lakshmi";
@@ -137,6 +137,7 @@ function Chooser({ t }: { t: T }) {
 
   return (
     <main id="main" className="mx-auto w-full max-w-xl flex-1 px-4 py-6">
+      <PublicTitle>{`${t("judge.title")} · ClarityLoop`}</PublicTitle>
       <Pill tint="warn">{t("judge.sandbox")}</Pill>
       <h1 className="mt-3 font-display text-3xl font-extrabold leading-tight">{t("judge.title")}</h1>
       <ol className="mt-3 list-none space-y-2 text-lg leading-snug">

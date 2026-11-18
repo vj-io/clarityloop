@@ -303,7 +303,7 @@ export type InsightsDTO = {
   };
   fields: { field: FieldKey; checked: number; mismatch: number; unclear: number }[];   // first check of each task
   languages: { language: Lang; tasks: number; retried: number; retried_pct: number | null }[];   // retried = 2+ restatements
-  workers: { id: string; name: string; language: Lang; tasks: number; retried: number }[];       // A-Z by name, never ranked
+  workers: { id: string; name: string; language: Lang | null; tasks: number; retried: number }[];   // A-Z by name, never ranked; language of the say-backs, null when they span languages
   trend: { date: string; sent: number; first_try: number }[];                                    // last 14 days, oldest first (IST days)
   recent: { id: string; object: string; worker: string; state: TaskState; created_at: string; restatements: number }[];
   /** Safety briefings of the same crew (optional for backward compatibility). */

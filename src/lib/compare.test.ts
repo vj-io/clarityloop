@@ -100,3 +100,9 @@ test("quantity: same number with a different unit is amber, never green", async 
   assert.equal(unitsDiffer("bags", null), false);      // unit not said: the number decides
   assert.equal(unitsDiffer("बोरी", "bags"), false);    // other scripts are not judged
 });
+
+test("iron rods and steel rods are the same thing on a site", async () => {
+  const { sameObject } = await import("./compare.ts");
+  assert.equal(sameObject("steel rods", "iron rods"), true);
+  assert.equal(sameObject("steel rods", "copper rods"), false);
+});

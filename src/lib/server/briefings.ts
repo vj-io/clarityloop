@@ -60,7 +60,8 @@ export async function briefingDTO(b: BriefingRowDb, reader: ProfileRow): Promise
       said: c.said, missing: c.missing, extra: c.extra,
       attempts: (r.attempts ?? []).map((a) => ({
         at: a.at, text: a.text, language: a.language, said_point_ids: a.said, unreadable: a.unreadable,
-        gloss: a.unreadable ? null : pickI18n(a.gloss, lang, "") || null,
+        // the AI's sentence is third person ("the worker said…"): its author reads their own words and the ticked points instead
+        gloss: a.unreadable || r.worker_id === reader.id ? null : pickI18n(a.gloss, lang, "") || null,
       })),
     };
   }).sort((x, y) => x.worker.name.localeCompare(y.worker.name));

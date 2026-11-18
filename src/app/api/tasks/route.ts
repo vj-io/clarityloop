@@ -62,5 +62,5 @@ export const GET = route(async (req) => {
   if (!tasks.length) return json({ tasks: [] });
   const convs = new Map((ok(await db().from("conversations").select("*").in("id", [...new Set(tasks.map((t) => t.conversation_id))])) as ConvRow[]).map((c) => [c.id, c]));
   // ponytail: one DTO build per task (a few queries each); paginate if task lists grow past ~100.
-  return json({ tasks: await Promise.all(tasks.map((t) => taskDTO(t, convs.get(t.conversation_id)!, me))) });
+  return json({ tasks: await Promise.all(tasks.map((t, i) => taskDTO(t, convs.get(t.conversation_id)!, me, undefined, i < 3))) });   // lazy fill for the three newest only
 });

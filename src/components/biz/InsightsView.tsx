@@ -115,7 +115,7 @@ function Workers({ d, t, meName }: { d: InsightsDTO; t: T; meName: string }) {
               <tr key={w.id} className="border-b-2 border-dashed border-ink/40 last:border-0" data-worker={w.id}>
                 <th scope="row" className="py-2 pr-2 font-normal leading-tight">
                   <span className="block font-semibold">{meName} → {w.name}</span>
-                  <span className="text-sm text-muted">{LANG_NAME[w.language]}</span>
+                  {w.language && <span className="text-sm text-muted">{LANG_NAME[w.language]}</span>}
                 </th>
                 <td className="px-2 py-2 text-right font-mono">{w.tasks}</td>
                 <td className="py-2 pl-2 text-right font-mono">{w.retried}</td>

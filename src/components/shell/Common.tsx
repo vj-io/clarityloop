@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ApiError } from "@/lib/client/session";
 import { makeT, type T } from "@/lib/i18n";
 import type { Lang } from "@/lib/types";
@@ -44,6 +44,23 @@ export function Brand({ href = "/" }: { href?: string }) {
       <LoopMark />ClarityLoop
     </Link>
   );
+}
+
+/**
+ * Tab title of a signed-out page in the picked language (the static route title is English, for crawlers).
+ * AppHeader sets document.title once, after sign-in. Here the language is known at once, and Next mounts its own
+ * static <title> a moment after hydration, so the title is set again whenever <head> changes while this page is open.
+ */
+export function PublicTitle({ children: title }: { children: string }) {
+  useEffect(() => {
+    const path = location.pathname;   // a route change also touches <head>: leave the next page's title alone
+    const set = () => { if (location.pathname === path && document.title !== title) document.title = title; };
+    set();
+    const mo = new MutationObserver(set);
+    mo.observe(document.head, { childList: true });
+    return () => mo.disconnect();
+  }, [title]);
+  return null;
 }
 
 /** Header for signed-out pages. */

@@ -11,6 +11,7 @@ import { crewLists } from "./crew.ts";
 import { postCard } from "./cards.ts";
 import { audit, db, logHealth, ok } from "./db.ts";
 import { notFound } from "./http.ts";
+import { crewTerms, siteTerm } from "./terms.ts";
 import { localQty, localUnit } from "../units.ts";
 
 export type TaskRow = {
@@ -116,7 +117,30 @@ export const label = (lists: CrewLists, kind: "places" | "actions", id: string |
 };
 export const pickI18n = (v: I18n, lang: Lang, fallback: string) => v[lang] ?? v.en ?? fallback;
 
-async function checkDTO(check: CheckDbRow, task: TaskRow, reader: ProfileRow, cx: Ctx): Promise<CheckDTO> {
+/**
+ * Lazy fill: task text is translated at creation only into the languages the crew read then. A reader whose
+ * language is missing from object_i18n / note_i18n gets that one string translated once (with the crew's site
+ * words) and stored; a failed translation stores nothing, so the English fallback shows and a later read retries.
+ * ponytail: the whole JSON column is written back, so two first reads in two new languages at the same moment
+ * can drop one fill (it is redone on the next read); use a jsonb merge in SQL if that ever matters.
+ */
+async function fillI18n(task: TaskRow, lang: Lang, crewId: string, lists: CrewLists) {
+  const todo = ([["object_i18n", task.object_text], ["note_i18n", task.note]] as const).filter(([col, text]) => text && !(lang in (task[col] ?? {})));
+  if (!todo.length) return;
+  const terms = (await crewTerms(crewId)).rows.map(siteTerm);
+  await Promise.all(todo.map(async ([col, text]) => {
+    const t0 = Date.now();
+    try {
+      task[col] = { ...task[col], [lang]: (await translateText(text!, lang, lists, undefined, terms))?.text ?? text! };
+      await db().from("tasks").update({ [col]: task[col] }).eq("id", task.id);
+      await logHealth("translate", true, null, Date.now() - t0);
+    } catch {
+      await logHealth("translate", false, "ai_error", Date.now() - t0);
+    }
+  }));
+}
+
+async function checkDTO(check: CheckDbRow, task: TaskRow, reader: ProfileRow, cx: Ctx, translate = true): Promise<CheckDTO> {
   const lang = reader.language;
   const rows: CheckRow[] = FIELDS.map((field) => {
     const m = check.field_marks[field];
@@ -139,7 +163,7 @@ async function checkDTO(check: CheckDbRow, task: TaskRow, reader: ProfileRow, cx
   let translated: string | null = null;
   if (r.language !== lang) {
     if (lang in check.restatement_i18n) translated = check.restatement_i18n[lang] ?? null;
-    else {
+    else if (translate) {   // a long task list must not fan out into one AI call per say-back
       const t0 = Date.now();
       try {
         translated = (await translateText(r.original_text, lang, cx.lists))?.text ?? null;
@@ -165,13 +189,16 @@ export async function latestCheck(taskId: string): Promise<CheckDbRow | null> {
   return ok(await db().from("checks").select("*").eq("task_id", taskId).order("created_at", { ascending: false }).limit(1).maybeSingle()) as CheckDbRow | null;
 }
 
-export async function taskDTO(task: TaskRow, conv: ConvRow, reader: ProfileRow, check?: CheckDbRow | null): Promise<TaskDTO> {
+/** `fill`: see fillI18n. A list passes false for all but its newest tasks, so one request never fans out into many AI calls. */
+export async function taskDTO(task: TaskRow, conv: ConvRow, reader: ProfileRow, check?: CheckDbRow | null, fill = true): Promise<TaskDTO> {
   const lang = reader.language;
+  const cxP = context(task, conv);
   const [cx, confs, latest, bc] = await Promise.all([
-    context(task, conv),
+    cxP,
     db().from("task_confirmations").select("profile_id, confirmed_at").eq("task_id", task.id).order("confirmed_at"),
     check === undefined ? latestCheck(task.id) : Promise.resolve(check),
     task.broadcast_id ? db().from("broadcasts").select("is_safety").eq("id", task.broadcast_id).maybeSingle() : Promise.resolve(null),
+    fill ? cxP.then((c) => fillI18n(task, lang, conv.crew_id, c.lists)) : null,   // before the DTO below reads the task's text
   ]);
   const name = (id: string) => ({ id, name: cx.people[id]?.display_name ?? "" });
   return {
@@ -182,7 +209,7 @@ export async function taskDTO(task: TaskRow, conv: ConvRow, reader: ProfileRow, 
     note: task.note == null ? null : pickI18n(task.note_i18n, lang, task.note),
     supervisor: name(task.supervisor_id), worker: name(task.worker_id),
     confirmations: ok(confs) as { profile_id: string; confirmed_at: string }[],
-    latest_check: latest ? await checkDTO(latest, task, reader, cx) : null,
+    latest_check: latest ? await checkDTO(latest, task, reader, cx, fill) : null,
     understood_at: task.understood_at, done_at: task.done_at, seen_at: task.seen_at ?? null, nudged_at: task.nudged_at ?? null,
     broadcast_id: task.broadcast_id ?? null, is_safety: Boolean((bc && (ok(bc) as { is_safety: boolean } | null))?.is_safety),
     ...(latest?.model_id === "sample" ? { is_sample: true } : {}),   // see sample-history.ts

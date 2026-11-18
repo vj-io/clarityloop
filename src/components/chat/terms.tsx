@@ -172,7 +172,7 @@ function AddTerm({ t, lang, prefill, onAdded }: { t: T; lang: Lang; prefill: Pre
 }
 
 function TermRow({ x, t, lang, crewLangs, onSaved, onRemoved }: { x: TermDTO; t: T; lang: Lang; crewLangs: Lang[]; onSaved: (x: TermDTO) => void; onRemoved: () => void }) {
-  const beta = BETA_LANGS.filter((l) => crewLangs.includes(l) || x.meanings[l]);   // beta languages someone in the crew reads (optional fields)
+  const beta = BETA_LANGS.filter((l) => crewLangs.includes(l));   // beta languages someone in the crew reads (optional fields)
   const [edit, setEdit] = useState(false);
   const [f, setF] = useState({ term: x.term, ...x.meanings });
   const [busy, setBusy] = useState(false);

@@ -141,7 +141,7 @@ Copy `.env.example` to `.env.local`. Never commit `.env.local`.
 
 ## Tests and evals
 
-- `npm test` runs 66 unit tests (`src/lib/*.test.ts`) with Node's test runner: the field comparison and aliases, the work-hours rule, the safety-briefing check, the roll-call board, site words, reminders, insights, the CSV export, send-again and the AI output parsing. They use no network.
+- `npm test` runs 68 unit tests (`src/lib/*.test.ts`) with Node's test runner: the field comparison and aliases, the work-hours rule, the safety-briefing check, the roll-call board, site words, reminders, insights, the CSV export, send-again and the AI output parsing. They use no network.
 - `evals/` holds fixed test sets: `translation.json` (100 translation runs across the three languages, checking that numbers and place names are kept) and `meaning.json` (15 restatements, 6 with a planted mismatch). `node --env-file=.env.local scripts/eval.mjs` runs them against the real model and writes `evals/results.json` (a copy for the site is `public/evals-results.json`).
 - Stored results (run 2026-11-17 UTC, model `google/gemini-3.5-flash-lite`): translation, 100 of 100 runs kept every number and place name, median 1.95 s (p90 5.35 s); meaning check, 6 of 6 planted mismatches caught, 0 false alarms on the 9 correct restatements, median 2.25 s (p90 5.69 s). One call hit a timeout during the run.
 - What they do not show: no native speaker has rated the translations, the sets are small and written by us, and no pilot with real workers has run. The translation speed target (median under 1.5 s) is not met on the current free-tier model key; the app shows the original at once and swaps the translation in.

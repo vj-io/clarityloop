@@ -17,7 +17,8 @@ const singular = (w: string) =>
 
 export function objectTokens(s: string): string[] {
   return s.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter(Boolean)
-    .map(singular).filter((w) => !STOP.has(w));
+    .map(singular).filter((w) => !STOP.has(w))
+    .map((w) => (w === "iron" ? "steel" : w));   // on a site "iron rods" and "steel rods" are the same bars (sariya)
 }
 const core = (t: string[]) => { const c = t.filter((w) => !CONTAINERS.has(w)); return c.length ? c : t; };
 

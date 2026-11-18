@@ -108,7 +108,9 @@ export function computeInsights(
 
   const workerRows = workers.flatMap((w) => {
     const own = tasks.filter((t) => t.worker_id === w.id);
-    return own.length ? [{ id: w.id, name: w.display_name, language: w.language, tasks: own.length, retried: own.filter((t) => rc(t) >= 2).length }] : [];
+    // same rule as `languages` above; no label when the worker's tasks span languages
+    const said = new Set(own.map((t) => saidIn.get(t.id) ?? w.language));
+    return own.length ? [{ id: w.id, name: w.display_name, language: said.size === 1 ? [...said][0] : null, tasks: own.length, retried: own.filter((t) => rc(t) >= 2).length }] : [];
   }).sort((a, b) => a.name.localeCompare(b.name));
 
   const today = Date.parse(dayKey(now));
@@ -244,7 +246,9 @@ export async function loadRecord(task: TaskRow, crewId: string, reader: ProfileR
     const m = c.field_marks[field];
     const show = (v: string | null, who: "supervisor" | "worker") =>
       field === "action" ? lab("actions", v, lang) : field === "place" ? lab("places", v, lang)
-      : field === "object" && who === "supervisor" ? pick(task.object_i18n, lang, task.object_text) : v ?? "";
+      : field === "object" && who === "supervisor" ? pick(task.object_i18n, lang, task.object_text)
+      // same rule as the chat card (checkDTO in tasks.ts): a matched or accepted object reads the way the reader knows it
+      : field === "object" && (m.mark === "match" || m.accepted) ? pick(task.object_i18n, lang, v ?? "") : v ?? "";
     return { field, mark: m.mark, supervisor: show(m.supervisor, "supervisor"), worker: show(m.worker, "worker"), ...(m.reason ? { reason: m.reason } : {}), ...(m.accepted ? { accepted: true } : {}) };
   });
 
