@@ -5,7 +5,7 @@ import { AI_MODEL, extractFields, translateText } from "@/lib/server/ai";
 import { requireMe } from "@/lib/server/auth";
 import { postCard } from "@/lib/server/cards";
 import { crewLists } from "@/lib/server/crew";
-import { db, logHealth, ok } from "@/lib/server/db";
+import { db, logHealth, ok, overLimit } from "@/lib/server/db";
 import { body, fail, forbidden, idParam, json, route } from "@/lib/server/http";
 import { loadTask, setState, taskDTO, type CheckDbRow } from "@/lib/server/tasks";
 
@@ -18,6 +18,7 @@ export const POST = route(async (req, ctx: { params: Promise<{ id: string }> }) 
   if (task.worker_id !== me.id) return forbidden();
   if (task.state === "understood" || task.state === "done") return fail(409, "conflict", "task already understood");
   const { text } = await body(req, z.object({ text: z.string().trim().min(1).max(1000) }));
+  if (await overLimit(me.id, "restate", 10)) return fail(429, "rate_limited");
 
   const [ins, lists] = await Promise.all([
     db().from("restatements").insert({ task_id: task.id, worker_id: me.id, original_text: text, language: me.language }).select("id").single(),

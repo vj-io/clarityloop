@@ -12,7 +12,7 @@ import { draftKey, type StoredDraft } from "@/components/chat/Bubble";
 import { ClipboardDoodle } from "@/components/chat/doodles";
 import { api, ApiError } from "@/lib/client/session";
 import { makeT, type T } from "@/lib/i18n";
-import { LANG_NAME, LANGS, type Api, type CrewDTO, type Lang, type ListItem } from "@/lib/types";
+import { LANG_NAME, LANGS, type Api, type CrewDTO, type Lang, type ListItem, type RecentTask } from "@/lib/types";
 
 type Conv = Api["GET /api/conversations/:id"]["res"];
 
@@ -32,6 +32,7 @@ export default function NewTaskPage() {
   // "Make this a task": fields filled from a chat message stay marked until the supervisor changes them
   const [filled, setFilled] = useState<Set<string>>(new Set());
   const [fromMsg, setFromMsg] = useState<{ text: string; found: boolean; assumed: boolean } | null>(null);
+  const [recent, setRecent] = useState<RecentTask[]>([]);   // "Send again"
   const set = (k: keyof typeof f) => (v: string) => {
     setF((s) => ({ ...s, [k]: v }));
     setFilled((m) => { if (!m.has(k)) return m; const n = new Set(m); n.delete(k); return n; });
@@ -43,6 +44,9 @@ export default function NewTaskPage() {
     Promise.all([api("GET /api/crew"), api("GET /api/conversations/:id", undefined, { id: conversationId })])
       .then(([c, v]) => {
         setCrew(c.crew); setConv(v);
+        // "Send again" is a shortcut: the form works without it, and a chip whose action or place left the lists is dropped
+        api("GET /api/tasks/recent").then((r) => setRecent(r.recent.filter((x) =>
+          c.crew.actions.some((a) => a.id === x.action_id) && c.crew.places.some((p) => p.id === x.place_id)))).catch(() => {});
         let stored: StoredDraft | null = null;
         try { stored = JSON.parse(sessionStorage.getItem(draftKey(conversationId)) ?? "null"); sessionStorage.removeItem(draftKey(conversationId)); } catch { /* none */ }
         if (!stored) return;
@@ -117,6 +121,25 @@ export default function NewTaskPage() {
                 <p className="mt-1 text-sm leading-snug break-words"><span className="text-muted">{t("g.draftFrom")}</span> “{fromMsg.text}”</p>
               </div>
             )}
+            {recent.length > 0 && (
+              <div role="group" aria-labelledby="again">
+                <p id="again" className="font-hand text-lg leading-tight">{t("b.again.title")}</p>
+                <p className="text-sm text-muted">{t(recent[0].sample ? "b.again.hintSample" : "b.again.hint")}</p>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {recent.map((r, i) => (
+                    <button key={i} type="button" className="doodle doodle-flat flex min-h-12 flex-wrap items-center gap-x-2 px-3 py-2 text-left text-base font-semibold"
+                      onClick={() => {   // everything except the time
+                        setF((s) => ({ ...s, action: r.action_id, object: r.object_text, place: r.place_id, qty: r.quantity == null ? "" : String(r.quantity), unit: r.unit ?? "" }));
+                        setFilled((m) => new Set([...m].filter((k) => k === "time")));
+                      }}>
+                      {[crew.actions.find((a) => a.id === r.action_id)?.label, r.object_text, crew.places.find((p) => p.id === r.place_id)?.label,
+                        r.quantity == null ? null : `${r.quantity} ${r.unit ?? ""}`.trim()].filter(Boolean).join(" · ")}
+                      {r.sample && <Pill tint="warn">{t("b.again.sample")}</Pill>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <Filled on={filled.has("action")} t={t} />
             <Picker label={t("c.f.action")} items={crew.actions} value={f.action} onChange={set("action")} error={show("action")} t={t} />
             <Filled on={filled.has("object")} t={t} />
@@ -148,7 +171,7 @@ export default function NewTaskPage() {
                 <Input type="number" inputMode="numeric" min={1} value={f.qty} onChange={(e) => set("qty")(e.target.value)} className="font-mono text-lg" />
               </Field></div>
               {f.qty.trim() !== "" && <div className="min-w-0 flex-1"><Field label={t("c.form.unit")} hint={t("c.form.unitHint")}>
-                <Input value={f.unit} maxLength={30} onChange={(e) => set("unit")(e.target.value)} placeholder={t("c.form.unitPh")} />
+                <Input value={f.unit} maxLength={30} onChange={(e) => set("unit")(e.target.value)} />
               </Field></div>}
             </div>
             <Field label={t("c.form.note")} hint={t("c.form.optional")} error={show("note")}>

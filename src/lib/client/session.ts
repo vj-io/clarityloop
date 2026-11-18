@@ -59,6 +59,8 @@ export async function api<K extends Key>(key: K, body?: Req<K>, params?: Record<
 export async function adoptGrant(g: SessionGrant) {
   const { error } = await supabase().auth.setSession({ access_token: g.access_token, refresh_token: g.refresh_token });
   if (error) throw new ApiError(401, "unauthorized", error.message);
+  // the chat connection (config, token, SDK) starts now, while the browser is still on its way to the first chat page
+  void import("@/lib/client/transport").then((m) => m.getTransport()).then((t) => t.connect()).catch(() => {});
 }
 
 export async function signOut() { await supabase().auth.signOut(); }

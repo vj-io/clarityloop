@@ -80,7 +80,9 @@ function Check({ c, t, lang }: { c: RecordCheck; t: T; lang: Lang }) {
   return (
     <div className="mt-3">
       <p className="flex flex-wrap items-center gap-2 font-display text-lg font-extrabold">
-        {t("b.rec.check")} <TaskStatePill state={c.overall} t={t} /><span className="font-hand text-base font-normal text-muted">{when(c.created_at, lang)}</span>
+        {t("b.rec.check")} {c.overall === "all_match" && c.accepted.length > 0
+          ? <Pill tint="ok"><MarkIcon mark="accepted" size={16} /><span className="text-[#0f6b31]">{t("c.check.accepted")}</span></Pill>
+          : <TaskStatePill state={c.overall} t={t} />}<span className="font-hand text-base font-normal text-muted">{when(c.created_at, lang)}</span>
       </p>
       <ul className="mt-1 divide-y-2 divide-dashed divide-ink/30 rounded-lg border-2 border-ink bg-card">
         {c.rows.map((x) => (

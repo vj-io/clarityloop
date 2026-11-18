@@ -64,7 +64,7 @@ export function AppHeader({ title, back }: { title?: string; back?: string }) {
               </Link>
             ))}
             <span className="ml-auto flex items-center gap-1">
-              <span className="hidden max-w-[9rem] truncate font-hand text-lg sm:inline" title={me.display_name}>{me.display_name} · {t(`role.${me.role}`)}</span>
+              <span className="hidden max-w-[9rem] truncate font-hand text-lg sm:inline lg:max-w-[20rem]" title={`${me.display_name} · ${t(`role.${me.role}`)}`}>{me.display_name} · {t(`role.${me.role}`)}</span>
               <button type="button" onClick={out} className="inline-flex min-h-12 items-center px-2 text-base font-semibold text-pen underline underline-offset-4">{t("nav.signout")}</button>
             </span>
           </nav>

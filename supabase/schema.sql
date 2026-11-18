@@ -440,3 +440,22 @@ end $$;
 
 -- Demo rooms: when someone last used this sandbox crew (the room idle longest is handed to the next visitor).
 alter table crews add column if not exists touched_at timestamptz;
+
+-- Worker PIN sign-in: take one attempt atomically before the PIN is checked, so parallel guesses
+-- cannot outrun the lock. Returns false when the profile is locked. The attempt that reaches
+-- p_max starts the lock (and is still allowed to be checked).
+create or replace function pin_try(p_id uuid, p_max int, p_lock_seconds int)
+returns boolean language plpgsql as $$
+declare allowed boolean;
+begin
+  update profiles set
+    pin_fails = case when pin_fails + 1 >= p_max then 0 else pin_fails + 1 end,
+    pin_locked_until = case when pin_fails + 1 >= p_max then now() + make_interval(secs => p_lock_seconds) else null end
+  where id = p_id and (pin_locked_until is null or pin_locked_until <= now())
+  returning true into allowed;
+  return coalesce(allowed, false);
+end $$;
+revoke execute on function pin_try(uuid, int, int) from public, anon, authenticated;
+
+-- A cached translation remembers which text it was made from (see /api/translate). Null on rows made before this.
+alter table message_translations add column if not exists source_hash text;

@@ -16,16 +16,10 @@ export const POST = route(async (req) => {
   const p = ok(await db().from("profiles").select("*").eq("crew_id", crew.id).eq("role", "worker")
     .ilike("display_name", b.name.replace(/[\\%_]/g, "\\$&")).limit(1).maybeSingle()) as ProfileRow | null;
   if (!p) return fail(401, "unauthorized");
-  if (p.pin_locked_until && Date.parse(p.pin_locked_until) > Date.now()) return fail(423, "locked");
-
-  if (!verifyPin(b.pin, p.pin_hash)) {
-    const fails = p.pin_fails + 1;
-    const lock = fails >= PIN_MAX_FAILS;
-    ok(await db().from("profiles").update(lock
-      ? { pin_fails: 0, pin_locked_until: new Date(Date.now() + PIN_LOCK_MS).toISOString() }
-      : { pin_fails: fails }).eq("id", p.id));
-    return lock ? fail(423, "locked") : fail(401, "unauthorized");
-  }
-  if (p.pin_fails || p.pin_locked_until) ok(await db().from("profiles").update({ pin_fails: 0, pin_locked_until: null }).eq("id", p.id));
+  // One atomic step takes an attempt before the PIN is looked at, so parallel guesses cannot outrun the lock.
+  const allowed = ok(await db().rpc("pin_try", { p_id: p.id, p_max: PIN_MAX_FAILS, p_lock_seconds: PIN_LOCK_MS / 1000 })) as boolean;
+  if (!allowed) return fail(423, "locked");
+  if (!verifyPin(b.pin, p.pin_hash)) return fail(401, "unauthorized");
+  ok(await db().from("profiles").update({ pin_fails: 0, pin_locked_until: null }).eq("id", p.id));
   return json(await grantFor(p.id));
 });

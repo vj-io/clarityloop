@@ -38,7 +38,11 @@ export interface ChatTransport {
 let cached: Promise<ChatTransport> | null = null;
 /** One transport per page load (React Strict Mode runs effects twice). */
 export function getTransport(): Promise<ChatTransport> {
-  cached ??= api("GET /api/config").then((c) => (c.transport === "nexconn" && c.nexconn_app_key ? nexconn(c) : local()))
+  if (cached) return cached;
+  // the token request and the SDK chunk start together with the config request, not after it (config can take seconds)
+  const token = api("POST /api/nexconn/token").catch(() => null);
+  void import("@nexconn/chat").catch(() => {});
+  cached = api("GET /api/config").then((c) => (c.transport === "nexconn" && c.nexconn_app_key ? nexconn(c, token) : local()))
     .catch((e) => { cached = null; throw e; });
   return cached;
 }
@@ -124,7 +128,7 @@ const isSilentPing = (from: string, text: string) => {
   return c?.kind === "STATE" && (c.event === "board" || c.event === "seen" || c.event === "checking" || c.event === "brief");
 };
 
-function nexconn(cfg: Config): ChatTransport {
+function nexconn(cfg: Config, firstToken: Promise<{ token: string | null } | null>): ChatTransport {
   // back online: ask the SDK where it really is; if it gave up, connect again
   const st = statusHub(() => {
     void sdk?.then((nc) => {
@@ -139,7 +143,7 @@ function nexconn(cfg: Config): ChatTransport {
   let attempt = 0;
   let retryTimer: ReturnType<typeof setTimeout> | undefined;
   // started with the transport, in parallel with everything else the page loads; used once by the first connect
-  let earlyToken: Promise<{ token: string | null } | null> | null = api("POST /api/nexconn/token").catch(() => null);
+  let earlyToken: Promise<{ token: string | null } | null> | null = firstToken;
 
   const receiptSubs = new Set<(r: Receipt[]) => void>();
   // Receipt service off for this app (26314 unavailable / 26315 not supported): stop asking, draw nothing.

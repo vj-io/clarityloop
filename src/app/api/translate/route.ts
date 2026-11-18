@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { z } from "zod";
 import { parseCard, type Lang, type TranslationDTO } from "@/lib/types";
 import { AI_MODEL, translateText } from "@/lib/server/ai";
@@ -17,13 +18,14 @@ const Body = z.object({
 const MAX_AI = 12, FANOUT = 3;
 const PER_MINUTE = 120; // uncached translations per user; two 50-message history batches fit
 
-type Cached = { nexconn_message_id: string; text: string; source_lang: Lang | null; flagged: boolean; terms_version: number | null };
+type Cached = { nexconn_message_id: string; text: string; source_lang: Lang | null; flagged: boolean; terms_version: number | null; source_hash: string | null };
+const hashOf = (text: string) => createHash("sha256").update(text).digest("hex").slice(0, 32);
 
 /**
  * FR-7: the reader's translation of each message, cached per (message id, reader language).
- * ponytail: the server trusts the text a member sends for a message id (it does not re-fetch it
- * from Nexconn), so a member could cache a wrong text for their own conversation. Re-fetch via the
- * Nexconn history API if that ever matters.
+ * The server does not re-fetch the message from Nexconn, so each cached row remembers a hash of the
+ * text it was made from: a reader who sends different text for the same id gets a fresh translation,
+ * never one made from someone else's text.
  */
 export const POST = route(async (req) => {
   const me = await requireMe(req);
@@ -33,12 +35,14 @@ export const POST = route(async (req) => {
 
   // the crew's site words, loaded once: they steer new translations and mark stale cached ones (see cachedIsStale)
   const [rows, glossary] = await Promise.all([
-    db().from("message_translations").select("nexconn_message_id, text, source_lang, flagged, terms_version")
+    db().from("message_translations").select("nexconn_message_id, text, source_lang, flagged, terms_version, source_hash")
       .eq("conversation_id", conv.id).eq("target_lang", lang).in("nexconn_message_id", b.messages.map((m) => m.id)),
     crewTerms(conv.crew_id),
   ]);
   const terms = glossary.rows.map(siteTerm);
+  const textOf = new Map(b.messages.map((m) => [m.id, m.text]));
   const cached = new Map((ok(rows) as Cached[])
+    .filter((c) => !c.source_hash || c.source_hash === hashOf(textOf.get(c.nexconn_message_id)!))
     .filter((c) => !cachedIsStale(c.terms_version, glossary.version, b.messages.find((m) => m.id === c.nexconn_message_id)!.text, terms))
     .map((c) => [c.nexconn_message_id, c]));
   const todo = b.messages.filter((m) => !cached.has(m.id) && !parseCard(m.text)); // cards are drawn from data, never translated
@@ -73,7 +77,7 @@ export const POST = route(async (req) => {
         db().from("message_translations").upsert({
           nexconn_message_id: m.id, conversation_id: conv.id, target_lang: lang,
           source_lang: t?.source_lang ?? lang, text: t?.text ?? "", model_id: AI_MODEL, ms,
-          terms_version: glossary.version, flagged: false,
+          terms_version: glossary.version, flagged: false, source_hash: hashOf(m.text),
         }),   // overwrites a stale row; a parallel first translation of the same message writes the same thing
         logHealth("translate", true, null, ms),
       ]);

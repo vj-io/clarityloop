@@ -17,5 +17,6 @@ function Glyph({ state }: { state: TaskState }) {
 }
 
 export function TaskStatePill({ state, t }: { state: TaskState; t: T }) {
-  return <Pill tint={TINT[state]}><Glyph state={state} />{t(`state.${state}`)}</Pill>;
+  // the shared Pill's green is 4.4:1 on its tint; the darker ink keeps it readable
+  return <Pill tint={TINT[state]}><Glyph state={state} />{TINT[state] === "ok" ? <span className="text-[#0f6b31]">{t(`state.${state}`)}</span> : t(`state.${state}`)}</Pill>;
 }

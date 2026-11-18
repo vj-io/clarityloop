@@ -11,7 +11,7 @@ const tamil = Noto_Sans_Tamil({ variable: "--font-tamil", subsets: ["tamil"], we
 const mono = JetBrains_Mono({ variable: "--font-jb", subsets: ["latin"], weight: ["400", "700"] });
 
 export const metadata: Metadata = {
-  title: "ClarityLoop — Read is not understood",
+  title: { default: "ClarityLoop — Read is not understood", template: "%s · ClarityLoop" },
   description:
     "Work chat where each person reads and writes in their own language, and every instruction gets a meaning check before work starts.",
   manifest: "/manifest.webmanifest",

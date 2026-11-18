@@ -13,8 +13,11 @@ import { CrewDoodle } from "@/components/chat/board";
 import { HazardIcon } from "@/components/chat/doodles";
 import { SiteWords } from "@/components/chat/terms";
 
-function ListEditor({ kind, items, t, onCrew }: { kind: "place" | "action" | "safety"; items: ListItem[]; t: T; onCrew: (c: CrewDTO) => void }) {
+function ListEditor({ kind, items, t, onCrew, sandbox }: { kind: "place" | "action" | "safety"; items: ListItem[]; t: T; onCrew: (c: CrewDTO) => void; sandbox: boolean }) {
   const safety = kind === "safety";
+  // Demo room: what the list held when the page opened (the seeded items) cannot be removed; what the visitor adds now can.
+  // ponytail: after a reload the visitor's own additions count as seeded too; a server-side `seeded` flag on ListItem would fix that.
+  const [locked] = useState(() => new Set(sandbox ? items.map((it) => it.id) : []));
   const [label, setLabel] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -42,11 +45,11 @@ function ListEditor({ kind, items, t, onCrew }: { kind: "place" | "action" | "sa
               <span className="block font-semibold leading-tight">{it.label}</span>
               <span className="block break-words text-sm leading-tight text-muted">{LANGS.map((l) => it.labels[l]).join(" · ")}</span>
             </span>
-            <button type="button" onClick={() => del(it.id)} aria-label={`${t("crew.remove")}: ${it.label}`}
+            {!locked.has(it.id) && <button type="button" onClick={() => del(it.id)} aria-label={`${t("crew.remove")}: ${it.label}`}
               className="inline-flex min-h-12 shrink-0 items-center gap-1 px-2 font-semibold text-bad underline underline-offset-4">
               <svg width="16" height="16" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M6 6 L26 26 M26 6 L6 26" stroke="var(--bad)" strokeWidth={5} strokeLinecap="round" /></svg>
               {t("crew.remove")}
-            </button>
+            </button>}
           </li>
         ))}
       </ul>
@@ -139,9 +142,9 @@ export default function CrewPage() {
               )}
             </section>
 
-            <ListEditor kind="place" items={crew.places} t={t} onCrew={setCrew} />
-            <ListEditor kind="action" items={crew.actions} t={t} onCrew={setCrew} />
-            <ListEditor kind="safety" items={crew.safety_points ?? []} t={t} onCrew={setCrew} />
+            <ListEditor kind="place" items={crew.places} t={t} onCrew={setCrew} sandbox={me.is_sandbox} />
+            <ListEditor kind="action" items={crew.actions} t={t} onCrew={setCrew} sandbox={me.is_sandbox} />
+            <ListEditor kind="safety" items={crew.safety_points ?? []} t={t} onCrew={setCrew} sandbox={me.is_sandbox} />
             <SiteWords t={t} lang={me.language} />
           </div>
         )}

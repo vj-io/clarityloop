@@ -14,7 +14,7 @@ const ROWS: { f: FieldKey; sup: string; wrk: string; mark: Mark }[] = [
   { f: "time", sup: "demo.time", wrk: "demo.time", mark: "match" },
   { f: "quantity", sup: "demo.qty", wrk: "demo.qty", mark: "match" },
 ];
-const tone: Record<Mark, string> = { match: "text-ok", mismatch: "text-bad font-bold", unclear: "text-warn" };
+const tone: Record<Mark, string> = { match: "text-[#0f6b31]", mismatch: "text-bad font-bold", unclear: "text-warn" };
 
 export function DemoLoop({ t }: { t: T }) {
   // The finished case is the default render (server, no JS, reduced motion). With motion allowed, a pen-ring

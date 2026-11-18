@@ -5,9 +5,10 @@ import { requireMe } from "@/lib/server/auth";
 import { postCard } from "@/lib/server/cards";
 import { memberConversation, type ConvRow } from "@/lib/server/conversations";
 import { crewLists } from "@/lib/server/crew";
-import { audit, db, ok } from "@/lib/server/db";
+import { audit, db, ok, overLimit } from "@/lib/server/db";
 import { body, fail, forbidden, json, route } from "@/lib/server/http";
-import { i18nAll, taskDTO, type TaskRow } from "@/lib/server/tasks";
+import { taskDTO, type TaskRow } from "@/lib/server/tasks";
+import { crewTerms, i18nSite, siteTerm } from "@/lib/server/terms";
 
 export const runtime = "nodejs";
 
@@ -28,15 +29,17 @@ export const POST = route(async (req) => {
   const b = await body(req, Body);
   const conv = await memberConversation(b.conversation_id, me.id);
   if (conv.supervisor_id !== me.id) return forbidden();
+  if (await overLimit(me.id, "task_create", 10)) return fail(429, "rate_limited");
   if (conv.kind !== "pair") return fail(400, "invalid", "a crew channel takes crew tasks: POST /api/broadcasts");
-  const lists = await crewLists(conv.crew_id);
+  const [lists, glossary] = await Promise.all([crewLists(conv.crew_id), crewTerms(conv.crew_id)]);
   if (!lists.actions.some((a) => a.id === b.action_id) || !lists.places.some((p) => p.id === b.place_id)) return fail(400, "invalid", "action or place is not in this crew's lists");
 
   const note = b.note || null;
-  const object_i18n = await i18nAll(b.object_text, me.language, lists);
+  const terms = glossary.rows.map(siteTerm);   // the crew's site words steer the object and note, as in chat
+  const object_i18n = await i18nSite(b.object_text, me.language, lists, terms);
   const [object_aliases, note_i18n, crew] = await Promise.all([
-    objectAliases(object_i18n.en),
-    note ? i18nAll(note, me.language, lists) : Promise.resolve({}),
+    objectAliases(object_i18n.en, undefined, terms),
+    note ? i18nSite(note, me.language, lists, terms) : Promise.resolve({}),
     db().from("crews").select("is_sandbox").eq("id", conv.crew_id).single(),
   ]);
   const task = ok(await db().from("tasks").insert({

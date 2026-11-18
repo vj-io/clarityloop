@@ -2,14 +2,14 @@
 /* eslint-disable react-hooks/set-state-in-effect -- the effect only starts a fetch on mount; state is set when it resolves */
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { Card, Pill, Screen } from "@/components/ui";
+import { Button, Card, Pill, Screen } from "@/components/ui";
 import { AppHeader } from "@/components/shell/AppHeader";
 import { ErrorBox, LinkButton, PageLoading, errMsg } from "@/components/shell/Common";
 import { useRequireMe } from "@/components/shell/guard";
 import { TaskStatePill } from "@/components/shell/TaskState";
-import { api } from "@/lib/client/session";
+import { api, supabase } from "@/lib/client/session";
 import type { T } from "@/lib/i18n";
-import { LANG_NAME, type InsightsDTO, type Lang } from "@/lib/types";
+import { LANG_NAME, type BriefingInsights, type InsightsDTO, type Lang } from "@/lib/types";
 import { HBar, TrendChart } from "./Charts";
 import { when } from "./fmt";
 
@@ -165,6 +165,68 @@ function Recent({ d, t, lang }: { d: InsightsDTO; t: T; lang: Lang }) {
   );
 }
 
+function Briefings({ b, t }: { b: BriefingInsights; t: T }) {
+  return (
+    <section className="mt-8" aria-labelledby="in-brief">
+      <h2 id="in-brief" className="font-display text-2xl font-extrabold leading-tight">{t("b.br.title")}</h2>
+      <p className="mb-3 text-base text-muted">{t("b.br.sub")}</p>
+      {b.sent === 0 ? <Card><p data-k="br-empty" className="font-hand text-xl leading-snug">{t("b.br.empty")}</p></Card> : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Tile k="br-sent" label={t("b.br.sent")} value={String(b.sent)} />
+            <Tile k="br-replied" label={t("b.br.replied")} value={String(b.replied)} sub={t("b.br.ofExpected", { n: b.replied, total: b.expected })} />
+            <Tile k="br-first" label={t("b.br.first")} value={String(b.first_try)} sub={t("b.br.ofReplied", { n: b.first_try, total: b.replied })} tint />
+          </div>
+          <Card className="mt-4">
+            <h3 className="font-display text-lg font-extrabold leading-tight">{t("b.br.missedTitle")}</h3>
+            <p className="mb-3 text-base text-muted">{t("b.br.missedSub")}</p>
+            {b.missed.length === 0 ? <p className="font-hand text-lg">{t(b.replied ? "b.br.noneMissed" : "b.br.noReplies")}</p> : (
+              <ul className="space-y-4">
+                {b.missed.map((m) => (
+                  <li key={m.id} data-point={m.id}>
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                      <span className="font-semibold">{m.label}</span>
+                      <span className="font-mono text-sm">{t("b.br.missedOf", { n: m.missed, total: m.of })}</span>
+                    </div>
+                    <HBar parts={[{ pct: (100 * m.missed) / m.of, color: "var(--warn)" }]} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </>
+      )}
+    </section>
+  );
+}
+
+/** The export needs the Bearer token, so it is fetched and saved from the page instead of being a plain link. */
+function DownloadCsv({ t }: { t: T }) {
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  async function download() {
+    setBusy(true); setFailed(false);
+    try {
+      const { data } = await supabase().auth.getSession();
+      const res = await fetch("/api/insights/export", { headers: { Authorization: `Bearer ${data.session?.access_token}` }, cache: "no-store" });
+      if (!res.ok) throw new Error(String(res.status));
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(await res.blob());
+      a.download = "clarityloop-tasks.csv";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch { setFailed(true); }
+    setBusy(false);
+  }
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+      <Button tone="ghost" onClick={download} disabled={busy} data-k="csv">{t("b.in.csv")}</Button>
+      <p className="text-sm text-muted">{t("b.in.csvHint")}</p>
+      {failed && <p role="alert" className="w-full font-semibold text-bad">{t("b.in.csvErr")}</p>}
+    </div>
+  );
+}
+
 export function InsightsView() {
   const { me, t } = useRequireMe({ role: "supervisor" });
   const [d, setD] = useState<InsightsDTO | null>(null);
@@ -211,11 +273,13 @@ export function InsightsView() {
                 </div>
                 <Trend d={d} t={t} lang={lang} />
                 <Recent d={d} t={t} lang={lang} />
+                <DownloadCsv t={t} />
               </>
             )}
+            {d.briefings && <Briefings b={d.briefings} t={t} />}
             <details className="mt-8 rounded-xl border-2 border-dashed border-ink bg-card p-3">
               <summary className="min-h-12 cursor-pointer py-3 font-display text-lg font-extrabold">{t("b.in.howTitle")}</summary>
-              <ul className="list-disc space-y-1 pl-5">{[1, 2, 3, 4, 5].map((n) => <li key={n}>{t(`b.in.how${n}`)}</li>)}</ul>
+              <ul className="list-disc space-y-1 pl-5">{[1, 2, 3, 4, 5, 6].map((n) => <li key={n}>{t(`b.in.how${n}`)}</li>)}</ul>
             </details>
           </div>
         )}

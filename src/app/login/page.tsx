@@ -38,6 +38,7 @@ export default function LoginPage() {
 
   async function send(e?: React.FormEvent) {
     e?.preventDefault();
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) { setErr(t("login.badEmail")); return; }
     setBusy(true); setErr(null);
     const { error } = await supabase().auth.signInWithOtp({
       email: email.trim(), options: { shouldCreateUser: true, emailRedirectTo: location.origin + "/login" },
@@ -63,11 +64,11 @@ export default function LoginPage() {
         <p className="mt-2 text-lg leading-snug">{t("login.sub")}</p>
 
         {!sent ? (
-          <form onSubmit={send} className="mt-5 space-y-4">
+          <form onSubmit={send} noValidate className="mt-5 space-y-4">
             <Field label={t("login.email")} error={err}>
               <Input type="email" required autoComplete="email" inputMode="email" placeholder="ravi@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
             </Field>
-            <Btn type="submit" tone="hi" disabled={busy || !email.includes("@")} className="w-full min-h-14 text-lg">{busy ? t("common.wait") : t("login.send")}</Btn>
+            <Btn type="submit" tone="hi" disabled={busy} className="w-full min-h-14 text-lg">{busy ? t("common.wait") : t("login.send")}</Btn>
           </form>
         ) : (
           <form onSubmit={verify} className="mt-5 space-y-4">

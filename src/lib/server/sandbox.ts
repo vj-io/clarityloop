@@ -14,11 +14,11 @@ export const ROOMS = 8;
 
 // ponytail: in-memory per-instance IP limit; move to rate_hit() if judges get abused across instances.
 const hits = new Map<string, { at: number; n: number }>();
-export function judgeLimited(req: Request) {
+export function judgeLimited(req: Request, bucket = "judge", max = 30) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "local";
-  const now = Date.now(), h = hits.get(ip);
-  if (!h || now - h.at > 60_000) { hits.set(ip, { at: now, n: 1 }); return false; }
-  return ++h.n > 30;
+  const key = `${bucket}:${ip}`, now = Date.now(), h = hits.get(key);
+  if (!h || now - h.at > 60_000) { hits.set(key, { at: now, n: 1 }); return false; }
+  return ++h.n > max;
 }
 
 const fixed = (n: string) => `00000000-0000-4000-8000-${n.padStart(12, "0")}`;
@@ -83,6 +83,9 @@ export async function ensureRoom(r: number): Promise<Room> {
 export async function resetRoom(r: number): Promise<Room> {
   const room = await ensureRoom(r);
   const cid = crewId(r);
+  // a visitor may have switched a demo account's language (or, before renames were blocked, its name)
+  await Promise.all(SEEDS.map((s) => db().from("profiles").update({ display_name: s.display_name, language: s.language }).eq("id", userId(r, s.n))));
+  for (const s of SEEDS) Object.assign(room[s.key], { display_name: s.display_name, language: s.language });
   const convs = [room.withMurugan, room.withLakshmi, room.crew];
   const ids = convs.map((c) => c.id);
   const visitors = ok(await db().from("profiles").select("id").eq("crew_id", cid)
@@ -141,7 +144,15 @@ export async function pickRoom(): Promise<number> {
   const rs = Array.from({ length: ROOMS - 1 }, (_, i) => i + 1);
   const idle = await Promise.all(rs.map(async (r) => ({ r, at: await lastActive(r) })));
   idle.sort((a, b) => a.at - b.at || a.r - b.r);
-  const r = idle[0].r; // oldest activity first, so a room in use is only taken when all seven are busy
+  // Oldest activity first, so a room in use is only taken when all seven are busy. The claim is one atomic
+  // update: two visitors arriving together cannot both take (and both re-seed) the same room.
+  const now = Date.now();
+  for (const { r } of idle) {
+    const got = ok(await db().from("crews").update({ touched_at: new Date(now).toISOString() }).eq("id", crewId(r))
+      .or(`touched_at.is.null,touched_at.lt.${new Date(now - 10_000).toISOString()}`).select("id")) as unknown[];
+    if (got.length) { await resetRoom(r); return r; }
+  }
+  const r = idle[0].r; // every room claimed in the last 10 s (or none exists yet)
   await resetRoom(r);
   return r;
 }

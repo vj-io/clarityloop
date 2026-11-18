@@ -20,6 +20,9 @@ export const POST = route(async (req, ctx: { params: Promise<{ id: string }> }) 
     const all = ok(await db().from("task_confirmations").select("profile_id").eq("task_id", task.id)) as { profile_id: string }[];
     const ids = new Set(all.map((c) => c.profile_id));
     if (ids.has(task.supervisor_id) && ids.has(task.worker_id)) {
+      // a say-back that arrived while this request ran has already moved the task on: do not overwrite it
+      const still = ok(await db().from("tasks").select("state").eq("id", task.id).single()) as { state: string };
+      if (still.state !== "all_match") return fail(409, "blocked");
       await setState(task, "understood", me.id, "confirmed", { both: true }, { understood_at: new Date().toISOString() });
       await postCard(conv.id, `${CARD.STATE}${task.id}:understood`);
     } else {

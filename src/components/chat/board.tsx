@@ -108,9 +108,9 @@ function Row({ r, t, isSup }: { r: BoardRow; t: T; isSup: boolean }) {
       {isSup && r.task_id && r.status === "all_match" && (
         <div className="mt-2">
           {conf === "done" ? <p className="font-hand text-lg text-[#0f6b31]">{t("v.board.confirmed", { worker: r.worker.name })}</p> : (
-            <button type="button" onClick={confirm} disabled={conf === "busy"}
+            <button type="button" onClick={confirm} disabled={conf === "busy"} aria-label={`${t("v.board.confirm")}: ${r.worker.name}`}
               className="doodle doodle-2 inline-flex min-h-12 items-center gap-2 bg-ok! px-5 font-display text-base font-extrabold text-white disabled:opacity-50">
-              <MarkIcon mark="match" size={20} />{t("v.board.confirm")}
+              <MarkIcon mark="match" size={20} />{conf === "busy" ? <span className="dots">{t("common.wait")}</span> : t("v.board.confirm")}
             </button>
           )}
           {conf === "failed" && <p role="alert" className="mt-1 text-base font-semibold text-bad">{t("v.board.confirmFail")}</p>}

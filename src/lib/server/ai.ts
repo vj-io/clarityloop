@@ -203,12 +203,14 @@ export async function translateText(text: string, target: Lang, lists: CrewLists
  * the supervisor's text, before any reply exists, so the comparison itself stays plain code.
  * Returns [] when the AI is unavailable: the check then falls back to the literal comparison.
  */
-export async function objectAliases(objectEn: string, runner: Runner = defaultRunner()): Promise<string[]> {
+export async function objectAliases(objectEn: string, runner: Runner = defaultRunner(), terms: SiteTerm[] = []): Promise<string[]> {
+  const site = matchTerms(objectEn, terms).map((t) => `On this site "${t.term}" means "${t.meanings.en}": give names for that, not for the everyday meaning of the word.`);
   const system = [
     "A construction-site supervisor names a thing in a task. List other names a worker might use for exactly the same thing.",
     "Include: English synonyms and trade names, the usual Hindi word in Devanagari, the same Hindi word in Roman letters (Hinglish), and the usual Tamil word in Tamil script.",
     "Also include loose everyday names workers really use for it even when technically imprecise (for steel rods: \"iron rods\", \"sariya\").",
     "Only names for the SAME thing: never a different material, a different size class, or a broader category (not \"material\", \"stuff\", \"items\").",
+    ...site,
     'Answer with JSON only: {"names":["..."]} with at most 12 short names, lower-case where the script has case.',
   ].join("\n");
   for (let attempt = 0; attempt < 2; attempt++) {

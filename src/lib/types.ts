@@ -83,9 +83,9 @@ export function parseCard(text: string): { kind: CardKind; id: string; event?: S
   for (const kind of Object.keys(CARD) as CardKind[]) {
     if (!text.startsWith(CARD[kind])) continue;
     const rest = text.slice(CARD[kind].length).trim();
-    if (kind !== "STATE") return { kind, id: rest };
-    const [id, event] = rest.split(":");
-    return { kind, id, event: event as StateEvent };
+    const [id, event] = kind === "STATE" ? rest.split(":") : [rest];
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return null;   // typed text that merely starts like a card is an ordinary message
+    return kind === "STATE" ? { kind, id, event: event as StateEvent } : { kind, id };
   }
   return null;
 }
@@ -217,7 +217,7 @@ export type TaskDraft = {
 //        rate_limited 429 · blocked 409 (confirm while a field is red/unclear) · ai_unavailable 503 · nexconn_unavailable 503
 export type SessionGrant = { access_token: string; refresh_token: string };   // client: supabase.auth.setSession(grant)
 export type Api = {
-  "GET /api/config": { res: { transport: "nexconn" | "local"; nexconn_app_key: string | null; nexconn_area: "SG" | "NA" | "SA"; ai_ready: boolean } };
+  "GET /api/config": { res: { transport: "nexconn" | "local"; nexconn_app_key: string | null; nexconn_area: "SG" | "NA" | "SA" } };
   "POST /api/join": { req: { join_code: string; name: string; language: Lang; pin: string }; res: SessionGrant };
   "POST /api/worker-login": { req: { join_code: string; name: string; pin: string }; res: SessionGrant };
   "POST /api/judge": { req: { role: Role; fresh?: boolean; worker?: "murugan" | "lakshmi"; room?: number }; res: SessionGrant & { conversation_id: string; crew_conversation_id?: string; room?: number } };
@@ -258,6 +258,8 @@ export type Api = {
   "POST /api/tasks/:id/nudge": { res: { task: TaskDTO } };          // task's supervisor; 429 rate_limited within 10 min of the last one
   "GET /api/health": { res: HealthDTO };
   "GET /api/insights": { res: InsightsDTO };                       // supervisor of the crew only; read-only
+  "GET /api/insights/export": { res: string };                    // same guard; text/csv (UTF-8 with BOM), one row per task
+  "GET /api/tasks/recent": { res: { recent: RecentTask[] } };      // supervisor: up to 5 distinct recent tasks of their crew, for "Send again"
   "GET /api/tasks/:id/record": { res: RecordDTO };                 // members of the task's conversation; read-only
   // Safety briefing check: 2-5 points from the crew's safety list; each worker says them back once.
   "POST /api/briefings": { req: { point_ids: string[]; place_id?: string | null; note?: string | null }; res: { briefing: BriefingDTO } };   // supervisor
@@ -269,7 +271,7 @@ export type Api = {
   "POST /api/local/messages": { req: { conversation_id: string; text: string }; res: { message: ChatMsg } };
 };
 export type HealthDTO = {
-  transport: "nexconn" | "local"; nexconn_configured: boolean; ai_ready: boolean; ai_model: string;
+  transport: "nexconn" | "local"; nexconn_configured: boolean; ai_ready: boolean; ai_model?: string;   // model, timings and last_errors: signed-in supervisor only
   db_ok: boolean; pending_cards: number;
   timings: Record<string, { n: number; median_ms: number | null; errors: number }>;   // by health_events.kind
   last_errors: { kind: string; code: string | null; at: string }[];
@@ -293,7 +295,20 @@ export type InsightsDTO = {
   workers: { id: string; name: string; language: Lang; tasks: number; retried: number }[];       // A-Z by name, never ranked
   trend: { date: string; sent: number; first_try: number }[];                                    // last 14 days, oldest first (IST days)
   recent: { id: string; object: string; worker: string; state: TaskState; created_at: string; restatements: number }[];
+  /** Safety briefings of the same crew (optional for backward compatibility). */
+  briefings?: BriefingInsights;
 };
+/**
+ * `expected` = one per worker per briefing; `replied` = those with at least one reply;
+ * `first_try` = those whose first reply the AI could read named every picked point.
+ * `missed`: picked points left out of that first reply, most often first (at most 5), labels in the reader's language.
+ */
+export type BriefingInsights = {
+  sent: number; expected: number; replied: number; first_try: number;
+  missed: { id: string; label: string; missed: number; of: number }[];
+};
+/** "Send again": the fields of an earlier task, as the supervisor wrote them. `sample` = sandbox sample history, not sent by the visitor. */
+export type RecentTask = { action_id: string; object_text: string; place_id: string; quantity: number | null; unit: string | null; sample: boolean };
 export type RecordCheck = {
   id: string; overall: Overall; created_at: string; unreadable: boolean;
   rows: CheckRow[];                                          // labels in the reader's language

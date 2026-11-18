@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 /** A Nexconn token for the caller's own id only. Local transport: token null. */
 export const POST = route(async (req) => {
   const me = await requireMe(req);
-  if (me.is_sandbox && me.crew_id) await touchSandboxCrew(me.crew_id).catch(() => {});
+  if (me.is_sandbox && me.crew_id) void touchSandboxCrew(me.crew_id).catch(() => {});   // bookkeeping only: do not hold the token for it
   if (transport() === "local") return json({ user_id: me.nexconn_user_id, token: null });
   try {
     return json({ user_id: me.nexconn_user_id, token: await issueToken(me.nexconn_user_id, me.display_name) });

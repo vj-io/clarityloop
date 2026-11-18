@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { requireMe } from "@/lib/server/auth";
 import { crewDTO, crewLists, ensureSafetyPoints } from "@/lib/server/crew";
-import { db, ok } from "@/lib/server/db";
+import { db, ok, overLimit } from "@/lib/server/db";
 import { body, fail, json, notFound, route } from "@/lib/server/http";
 import { i18nAll } from "@/lib/server/tasks";
 
@@ -16,6 +16,7 @@ export const POST = route(async (req) => {
   const me = await requireMe(req, "supervisor");
   if (!me.crew_id) return notFound();
   const b = await body(req, z.object({ kind: KIND, label: z.string().trim().min(1).max(80) }));
+  if (await overLimit(me.id, "list_add", 10)) return fail(429, "rate_limited");
   if (b.kind !== "safety" && b.label.length > 40) return fail(400, "invalid", "label: at most 40 characters");
   if (b.kind === "safety") await ensureSafetyPoints(me.crew_id);   // seed first, or the defaults would never come
   const labels = await i18nAll(b.label, me.language, await crewLists(me.crew_id));

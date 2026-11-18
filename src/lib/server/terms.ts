@@ -1,7 +1,7 @@
 // Site words: each crew's own glossary, and the cache rule that keeps translations in step with it.
-import type { Lang, TermDTO } from "../types.ts";
-import { matchTerms, type SiteTerm } from "./ai.ts";
-import { db, ok } from "./db.ts";
+import { LANGS, type Lang, type TermDTO } from "../types.ts";
+import { matchTerms, translateText, type CrewLists, type SiteTerm } from "./ai.ts";
+import { db, logHealth, ok } from "./db.ts";
 
 export type TermRow = {
   id: string; crew_id: string; term: string; meaning_en: string; meaning_hi: string; meaning_ta: string;
@@ -42,3 +42,22 @@ export function cachedIsStale(rowVersion: number | null | undefined, crewVersion
 }
 
 export const LANG_COL: Record<Lang, "meaning_en" | "meaning_hi" | "meaning_ta"> = { en: "meaning_en", hi: "meaning_hi", ta: "meaning_ta" };
+
+/**
+ * Task text (object, note) into all three languages with the crew's site words, the same way chat
+ * translation uses them; any failure keeps the original text in that slot.
+ * ponytail: the same loop as i18nAll in tasks.ts plus `terms`; give i18nAll a `terms` argument and delete this.
+ */
+export async function i18nSite(text: string, src: Lang, lists: CrewLists, terms: SiteTerm[]): Promise<Record<Lang, string>> {
+  const out = { en: text, hi: text, ta: text };
+  await Promise.all(LANGS.filter((l) => l !== src).map(async (l) => {
+    const t0 = Date.now();
+    try {
+      out[l] = (await translateText(text, l, lists, undefined, terms))?.text ?? text;
+      await logHealth("translate", true, null, Date.now() - t0);
+    } catch {
+      await logHealth("translate", false, "ai_error", Date.now() - t0);
+    }
+  }));
+  return out;
+}

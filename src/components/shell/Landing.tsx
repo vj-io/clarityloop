@@ -173,7 +173,7 @@ export function Landing() {
             {PHASES.map((p, i) => (
               <li key={p} className="relative">
                 <span aria-hidden="true" className={`absolute -left-[2.3rem] top-1 h-5 w-5 rounded-full border-[3px] border-ink ${i === 0 ? "bg-ink" : "bg-card"}`} />
-                <p className="font-display text-lg font-extrabold leading-tight">{t(`land.r_${p}`)}{i === 0 && <> <Pill tint="ok">{t("land.r_built")}</Pill></>}</p>
+                <p className="font-display text-lg font-extrabold leading-tight">{t(`land.r_${p}`)}{i === 0 && <> <Pill tint="ok"><span className="text-[#0f6b31]">{t("land.r_built")}</span></Pill></>}</p>
                 <p className="leading-snug">{t(`land.r_${p}_b`)}</p>
               </li>
             ))}

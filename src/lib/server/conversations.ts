@@ -49,7 +49,8 @@ export async function ensureConversation(sup: ProfileRow, worker: ProfileRow): P
         [sup.nexconn_user_id, worker.nexconn_user_id]);
       ensuredGroups.add(conv.nexconn_group_id);
     } catch (e) {
-      return fail(503, "nexconn_unavailable", e instanceof Error ? e.message : undefined);
+      console.error("[nexconn]", e);
+      return fail(503, "nexconn_unavailable");
     }
   }
   return conv;
@@ -87,7 +88,8 @@ export async function ensureCrewConversation(crewId: string): Promise<ConvRow> {
       await ensureGroup(conv.nexconn_group_id, crew.name, sup.nexconn_user_id, people.map((p) => p.nexconn_user_id));
       ensuredGroups.add(key);
     } catch (e) {
-      return fail(503, "nexconn_unavailable", e instanceof Error ? e.message : undefined);
+      console.error("[nexconn]", e);
+      return fail(503, "nexconn_unavailable");
     }
   }
   return conv;

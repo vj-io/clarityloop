@@ -72,6 +72,7 @@ export const chat: Dict = {
   "c.earlierTask": { en: "Earlier card", hi: "पुराना कार्ड", ta: "முந்தைய அட்டை" },
   "c.earlierCheck": { en: "Earlier check", hi: "पुरानी जाँच", ta: "முந்தைய சரிபார்ப்பு" },
   "c.state.waiting": { en: "Waiting for {worker} to say it back", hi: "{worker} के दोहराने का इंतज़ार", ta: "{worker} திருப்பிச் சொல்லக் காத்திருக்கிறது" },
+  "c.state.waitingYou": { en: "Your turn: say it back", hi: "आपकी बारी: दोहराइए", ta: "உங்கள் முறை: திருப்பிச் சொல்லுங்கள்" },
   "c.state.checking": { en: "Checking", hi: "जाँच हो रही है", ta: "சரிபார்க்கிறது" },
   "c.state.mismatch": { en: "Meaning mismatch", hi: "मतलब अलग है", ta: "பொருள் வேறுபடுகிறது" },
   "c.state.needs_look": { en: "Needs a look", hi: "एक बार देखें", ta: "ஒருமுறை பாருங்கள்" },

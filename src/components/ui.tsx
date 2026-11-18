@@ -68,7 +68,7 @@ export function MarkIcon({ mark, size = 28 }: { mark: Mark | "accepted"; size?: 
 }
 
 export function Pill({ children, tint = "ghost" }: { children: ReactNode; tint?: "ok" | "warn" | "bad" | "pen" | "hi" | "ghost" }) {
-  const c = { ok: "bg-ok-soft text-ok", warn: "bg-warn-soft text-warn", bad: "bg-bad-soft text-bad", pen: "bg-pen-soft text-pen", hi: "bg-hi text-ink", ghost: "bg-card text-ink" }[tint];
+  const c = { ok: "bg-ok-soft text-[#0f6b31]", warn: "bg-warn-soft text-warn", bad: "bg-bad-soft text-bad", pen: "bg-pen-soft text-pen", hi: "bg-hi text-ink", ghost: "bg-card text-ink" }[tint];
   return <span className={cx("inline-flex items-center gap-1 rounded-full border-2 border-ink px-2.5 py-0.5 text-sm font-semibold", c)}>{children}</span>;
 }
 

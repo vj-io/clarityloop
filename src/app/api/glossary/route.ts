@@ -2,7 +2,7 @@ import { z } from "zod";
 import { LangSchema, type SuggestionDTO } from "@/lib/types";
 import { requireMe } from "@/lib/server/auth";
 import { crewLists } from "@/lib/server/crew";
-import { db, ok } from "@/lib/server/db";
+import { db, ok, overLimit } from "@/lib/server/db";
 import { body, fail, json, notFound, route } from "@/lib/server/http";
 import { i18nAll } from "@/lib/server/tasks";
 import { bumpTermsVersion, crewTerms, LANG_COL, termDTO, type TermRow } from "@/lib/server/terms";
@@ -33,6 +33,7 @@ export const POST = route(async (req) => {
   const me = await requireMe(req, "supervisor");
   if (!me.crew_id) return notFound();
   const b = await body(req, z.object({ term: Term, meaning: Meaning, lang: LangSchema.optional(), suggestion_id: z.uuid().optional() }));
+  if (await overLimit(me.id, "term_add", 10)) return fail(429, "rate_limited");
   const m = await i18nAll(b.meaning, b.lang ?? me.language, await crewLists(me.crew_id));
   const { data, error } = await db().from("crew_terms").insert({
     crew_id: me.crew_id, term: b.term, meaning_en: m.en.slice(0, 120), meaning_hi: m.hi.slice(0, 120), meaning_ta: m.ta.slice(0, 120),

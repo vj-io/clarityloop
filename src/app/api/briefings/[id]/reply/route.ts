@@ -6,7 +6,7 @@ import { requireMe } from "@/lib/server/auth";
 import { briefingDTO, loadBriefing, type AttemptDb, type ReplyRowDb } from "@/lib/server/briefings";
 import { postCard } from "@/lib/server/cards";
 import { crewLists, safetyPoints } from "@/lib/server/crew";
-import { audit, db, logHealth, ok } from "@/lib/server/db";
+import { audit, db, logHealth, ok, overLimit } from "@/lib/server/db";
 import { body, fail, forbidden, idParam, json, route } from "@/lib/server/http";
 
 export const runtime = "nodejs";
@@ -23,6 +23,7 @@ export const POST = route(async (req, ctx: { params: Promise<{ id: string }> }) 
   if (!reply) return forbidden();
   if (reply.state === "understood") return fail(409, "conflict", "briefing already understood");
   const { text } = await body(req, z.object({ text: z.string().trim().min(1).max(1000) }));
+  if (await overLimit(me.id, "briefing_reply", 10)) return fail(429, "rate_limited");
 
   const [all, lists, sup] = await Promise.all([
     safetyPoints(b.crew_id, true),

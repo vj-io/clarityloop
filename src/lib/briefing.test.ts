@@ -85,9 +85,9 @@ test("templates select only points the crew still has, at most five", () => {
 });
 
 test("BRIEF card and brief ping parse", () => {
-  assert.deepEqual(parseCard(`${CARD.BRIEF}abc`), { kind: "BRIEF", id: "abc" });
-  assert.deepEqual(parseCard(`${CARD.STATE}abc:brief`), { kind: "STATE", id: "abc", event: "brief" });
-  assert.equal(parseCard(`${CARD.BOARD}abc`)?.kind, "BOARD");
+  assert.deepEqual(parseCard(`${CARD.BRIEF}00000000-0000-4000-8000-000000000001`), { kind: "BRIEF", id: "00000000-0000-4000-8000-000000000001" });
+  assert.deepEqual(parseCard(`${CARD.STATE}00000000-0000-4000-8000-000000000001:brief`), { kind: "STATE", id: "00000000-0000-4000-8000-000000000001", event: "brief" });
+  assert.equal(parseCard(`${CARD.BOARD}00000000-0000-4000-8000-000000000001`)?.kind, "BOARD");
 });
 
 test("extract: the whole list goes as S-codes; the picked points are never sent", async () => {

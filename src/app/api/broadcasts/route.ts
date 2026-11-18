@@ -7,9 +7,10 @@ import { isUnderstood } from "@/lib/server/board";
 import { postCard } from "@/lib/server/cards";
 import { ensureConversation, ensureCrewConversation } from "@/lib/server/conversations";
 import { crewLists } from "@/lib/server/crew";
-import { audit, db, ok } from "@/lib/server/db";
+import { audit, db, ok, overLimit } from "@/lib/server/db";
 import { body, fail, json, notFound, route } from "@/lib/server/http";
-import { i18nAll, type TaskRow } from "@/lib/server/tasks";
+import { type TaskRow } from "@/lib/server/tasks";
+import { crewTerms, i18nSite, siteTerm } from "@/lib/server/terms";
 import type { TaskState } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -33,6 +34,7 @@ export const POST = route(async (req) => {
   const me = await requireMe(req, "supervisor");
   const b = await body(req, Body);
   if (!me.crew_id) return notFound();
+  if (await overLimit(me.id, "broadcast", 6)) return fail(429, "rate_limited");
   const crewId = me.crew_id;
   const [lists, crew, ws] = await Promise.all([
     crewLists(crewId),
@@ -48,10 +50,11 @@ export const POST = route(async (req) => {
   // Channels first (Nexconn can fail): nothing is written until every conversation exists.
   const [crewConv, ...pairs] = await Promise.all([ensureCrewConversation(crewId), ...workers.map((w) => ensureConversation(me, w))]);
   const note = b.note || null;
-  const object_i18n = await i18nAll(b.object_text, me.language, lists);
+  const terms = (await crewTerms(crewId)).rows.map(siteTerm);   // site words steer the object and note, as in pair tasks
+  const object_i18n = await i18nSite(b.object_text, me.language, lists, terms);
   const [object_aliases, note_i18n] = await Promise.all([
-    objectAliases(object_i18n.en),
-    note ? i18nAll(note, me.language, lists) : Promise.resolve({}),
+    objectAliases(object_i18n.en, undefined, terms),
+    note ? i18nSite(note, me.language, lists, terms) : Promise.resolve({}),
   ]);
   const fields = {
     action_id: b.action_id, object_text: b.object_text, object_i18n, object_aliases, place_id: b.place_id, due_time: b.due_time,

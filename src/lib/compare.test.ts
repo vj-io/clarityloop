@@ -75,9 +75,10 @@ test("task without quantity", () => {
 });
 
 test("card prefixes", () => {
-  assert.deepEqual(parseCard("[[CL:TASK]]abc"), { kind: "TASK", id: "abc" });
-  assert.equal(parseCard("hello [[CL:TASK]]abc"), null);
-  assert.deepEqual(parseCard("[[CL:STATE]]t1:understood"), { kind: "STATE", id: "t1", event: "understood" });
+  assert.deepEqual(parseCard("[[CL:TASK]]00000000-0000-4000-8000-000000000001"), { kind: "TASK", id: "00000000-0000-4000-8000-000000000001" });
+  assert.equal(parseCard("hello [[CL:TASK]]00000000-0000-4000-8000-000000000001"), null);
+  assert.equal(parseCard("[[CL:TASK]] is how cards start"), null);   // typed text, not a card
+  assert.deepEqual(parseCard("[[CL:STATE]]00000000-0000-4000-8000-000000000001:understood"), { kind: "STATE", id: "00000000-0000-4000-8000-000000000001", event: "understood" });
 });
 
 test("object: an alias made from the supervisor's own words counts as the same thing", () => {

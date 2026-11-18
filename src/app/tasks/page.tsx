@@ -115,6 +115,7 @@ export default function TasksPage() {
                       <span className="flex flex-wrap items-center gap-1">
                         <Pill tint="hi">{t("x.tasks.group", { n: kids.filter((x) => x.state === "understood" || x.state === "done").length, total: kids.length })}</Pill>
                         {k.is_safety && <Pill tint="bad"><HazardIcon />{t("x.form.safety")}</Pill>}
+                        {k.is_sandbox && <Pill tint="warn">{t("c.sandbox")}</Pill>}
                       </span>
                       <span className="font-display text-lg font-extrabold leading-tight">{k.action} · {k.object}</span>
                       <span className="text-base leading-snug">{k.place} · <span className="font-mono">{k.due_time}</span>{k.quantity != null && <> · <span className="font-mono">{k.quantity}</span> {k.unit}</>}</span>
@@ -140,7 +141,7 @@ export default function TasksPage() {
                   <Link href={`/c/${k.conversation_id}`} className="doodle block p-3 active:translate-x-[2px] active:translate-y-[2px]">
                     <div className="flex items-start justify-between gap-2">
                       <p className="font-display text-lg font-extrabold leading-tight">{k.action} · {k.object}</p>
-                      <TaskStatePill state={k.state} t={t} />
+                      <span className="flex shrink-0 flex-wrap justify-end gap-1">{k.is_sandbox && <Pill tint="warn">{t("c.sandbox")}</Pill>}<TaskStatePill state={k.state} t={t} /></span>
                     </div>
                     <p className="mt-1 text-base leading-snug">{k.place} · <span className="font-mono">{k.due_time}</span>{k.quantity != null && <> · <span className="font-mono">{k.quantity}</span> {k.unit}</>}</p>
                     <p className="font-hand text-base text-muted">{k.worker.name} · {ago(k.created_at, t, me.language)}</p>

@@ -20,10 +20,13 @@ function Row({ label, ok, value }: { label: string; ok?: boolean; value: string 
   );
 }
 
+/** Signed-out visitors (and workers) get the short status only: no model name, timings or errors. */
+type Health = Omit<HealthDTO, "ai_model" | "timings" | "last_errors"> & Partial<Pick<HealthDTO, "ai_model" | "timings" | "last_errors">>;
+
 function Health() {
   const debug = useSearchParams().get("debug") === "1"; // raw error rows are for the team only
   const { lang, setLang, t } = usePublicLang();
-  const [h, setH] = useState<HealthDTO | null>(null);
+  const [h, setH] = useState<Health | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const load = useCallback(async () => {
     setErr(null);
@@ -47,11 +50,13 @@ function Health() {
                 <ul className="divide-y-2 divide-dashed divide-ink/30">
                   <Row label={t("health.transport")} value={h.transport} />
                   <Row label={t("health.nexconn")} ok={h.nexconn_configured} value={yn(h.nexconn_configured)} />
-                  <Row label={t("health.ai")} ok={h.ai_ready} value={`${yn(h.ai_ready)} · ${h.ai_model || "-"}`} />
+                  <Row label={t("health.ai")} ok={h.ai_ready} value={h.ai_model ? `${yn(h.ai_ready)} · ${h.ai_model}` : yn(h.ai_ready)} />
                   <Row label={t("health.db")} ok={h.db_ok} value={yn(h.db_ok)} />
                   <Row label={t("health.pending")} ok={h.pending_cards === 0} value={String(h.pending_cards)} />
                 </ul>
               </Card>
+              {!h.timings && <p className="font-hand text-lg text-muted">{t("health.signin")} <Link href="/login" className="font-semibold text-pen underline underline-offset-4">{t("login.title")}</Link></p>}
+              {h.timings && (
               <Card>
                 <h2 className="font-display text-xl font-extrabold">{t("health.timings")}</h2>
                 {Object.keys(h.timings).length === 0 ? <p className="mt-1 text-muted">{t("health.none")}</p> : (
@@ -65,7 +70,8 @@ function Health() {
                   </table>
                 )}
               </Card>
-              {debug && (
+              )}
+              {debug && h.last_errors && (
               <Card>
                 <h2 className="font-display text-xl font-extrabold">{t("health.lastErrors")}</h2>
                 {h.last_errors.length === 0 ? <p className="mt-1 text-muted">{t("health.none")}</p> : (

@@ -36,7 +36,7 @@ export const safety: Dict = {
   "s.card.prompt": { en: "Say all {n} points back in your own words", hi: "सारी {n} बातें अपने शब्दों में दोहराइए", ta: "{n} குறிப்புகளையும் உங்கள் சொற்களில் திருப்பிச் சொல்லுங்கள்" },
   "s.card.promptAgain": { en: "Say these back again: {points}", hi: "ये बातें फिर से बताइए: {points}", ta: "இவற்றை மீண்டும் சொல்லுங்கள்: {points}" },
   "s.card.oneReply": { en: "One reply for all points.", hi: "सारी बातों के लिए एक ही जवाब।", ta: "எல்லாக் குறிப்புகளுக்கும் ஒரே பதில்." },
-  "s.card.placeholder": { en: "e.g. I will wear my helmet and…", hi: "जैसे: मैं हेलमेट पहनूँगा और…", ta: "உதா: நான் ஹெல்மெட் அணிவேன், மேலும்…" },
+  "s.card.placeholder": { en: "What will you do to stay safe?", hi: "सुरक्षित रहने के लिए आप क्या करेंगे?", ta: "பாதுகாப்பாக இருக்க என்ன செய்வீர்கள்?" },
   "s.card.empty": { en: "Write or say your reply first.", hi: "पहले अपना जवाब लिखिए या बोलिए।", ta: "முதலில் உங்கள் பதிலை எழுதுங்கள் அல்லது சொல்லுங்கள்." },
   "s.card.waitingFor": { en: "Waiting for {worker} to say it back", hi: "{worker} के दोहराने का इंतज़ार", ta: "{worker} திருப்பிச் சொல்லக் காத்திருக்கிறது" },
   "s.card.record": { en: "Briefing record", hi: "ब्रीफ़िंग रिकॉर्ड", ta: "விளக்கப் பதிவு" },

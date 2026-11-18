@@ -1,5 +1,7 @@
 // Read-only numbers for /insights and the task record for /record/:id. Nothing here writes or calls AI.
-import { FIELDS, type CheckRow, type FieldKey, type FieldMarks, type InsightsDTO, type Lang, type Overall, type RecordDTO, type TaskState } from "../types.ts";
+import { compareBriefing } from "../briefing.ts";
+import { FIELDS, type BriefingInsights, type CheckRow, type FieldKey, type FieldMarks, type InsightsDTO, type Lang, type Overall, type RecordDTO, type TaskState } from "../types.ts";
+import { localUnit } from "../units.ts";
 import type { ProfileRow } from "./auth.ts";
 import { crewLists } from "./crew.ts";
 import { db, ok } from "./db.ts";
@@ -16,11 +18,8 @@ const isUnderstood = (s: TaskState) => s === "understood" || s === "done";
 const IST_MS = 5.5 * 3600_000;   // ponytail: fixed IST day buckets (the pilot market); per-crew time zone if sites outside India join
 const dayKey = (ms: number) => new Date(ms + IST_MS).toISOString().slice(0, 10);
 
-/** Pure: every dashboard number is defined here. `now` is injected so the test is deterministic. */
-export function computeInsights(
-  tasks: InTask[], restatements: InRestatement[], checks: InCheck[], workers: InWorker[],
-  crew: InsightsDTO["crew"], now: number,
-): InsightsDTO {
+/** Say-backs per task and the earliest check per task: the dashboard and the CSV export count from the same two maps. */
+export function tally(restatements: InRestatement[], checks: InCheck[]) {
   const restCount = new Map<string, number>();
   for (const r of restatements) restCount.set(r.task_id, (restCount.get(r.task_id) ?? 0) + 1);
   const first = new Map<string, InCheck>();   // earliest check per task
@@ -28,6 +27,53 @@ export function computeInsights(
     const f = first.get(c.task_id);
     if (!f || c.created_at < f.created_at) first.set(c.task_id, c);
   }
+  return { restCount, first };
+}
+
+/** Pure, for the CSV export: say-backs, whether the first one matched (null = never checked) and the fields that did not. */
+export function taskOutcome(taskId: string, t: ReturnType<typeof tally>): { say_backs: number; first_match: boolean | null; wrong_first: FieldKey[] } {
+  const f = t.first.get(taskId);
+  return {
+    say_backs: t.restCount.get(taskId) ?? 0,
+    first_match: f ? f.overall === "all_match" : null,
+    wrong_first: f ? FIELDS.filter((k) => { const m = f.field_marks?.[k]?.mark; return m === "mismatch" || m === "unclear"; }) : [],
+  };
+}
+
+export type InBriefing = { id: string; point_ids: string[] };
+export type InBriefingReply = { briefing_id: string; attempts: { said: string[]; unreadable: boolean }[] | null };
+
+/** Pure: the briefing numbers. "First try" and "left out" both read the first reply the AI could read. */
+export function computeBriefingInsights(briefings: InBriefing[], replies: InBriefingReply[]): Omit<BriefingInsights, "missed"> & { missed: { id: string; missed: number; of: number }[] } {
+  const picked = new Map(briefings.map((b) => [b.id, b.point_ids]));
+  const points = new Map<string, { missed: number; of: number }>();
+  let expected = 0, replied = 0, first_try = 0;
+  for (const r of replies) {
+    const ids = picked.get(r.briefing_id);
+    if (!ids) continue;
+    expected++;
+    if (r.attempts?.length) replied++;
+    const first = r.attempts?.find((a) => !a.unreadable);
+    if (!first) continue;
+    const c = compareBriefing(ids, first.said);
+    if (c.all) first_try++;
+    for (const id of ids) {
+      const p = points.get(id) ?? { missed: 0, of: 0 };
+      p.of++;
+      if (c.missing.includes(id)) p.missed++;
+      points.set(id, p);
+    }
+  }
+  const missed = [...points].filter(([, p]) => p.missed > 0).map(([id, p]) => ({ id, ...p })).sort((a, b) => b.missed - a.missed).slice(0, 5);
+  return { sent: briefings.length, expected, replied, first_try, missed };
+}
+
+/** Pure: every dashboard number is defined here. `now` is injected so the test is deterministic. */
+export function computeInsights(
+  tasks: InTask[], restatements: InRestatement[], checks: InCheck[], workers: InWorker[],
+  crew: InsightsDTO["crew"], now: number,
+): InsightsDTO {
+  const { restCount, first } = tally(restatements, checks);
   const rc = (t: InTask) => restCount.get(t.id) ?? 0;
   const person = new Map(workers.map((w) => [w.id, w]));
 
@@ -98,23 +144,68 @@ async function pages<T>(q: (from: number, to: number) => PromiseLike<{ data: unk
 const chunks = <T,>(a: T[], n: number) => Array.from({ length: Math.ceil(a.length / n) }, (_, i) => a.slice(i * n, i * n + n));
 
 /** The supervisor's own crew only: 403 for anyone who is not that crew's supervisor. */
-export async function loadInsights(me: ProfileRow): Promise<InsightsDTO> {
+async function crewData(me: ProfileRow) {
   if (!me.crew_id) return forbidden();
-  const crew = ok(await db().from("crews").select("name, site_name, is_sandbox, supervisor_id").eq("id", me.crew_id).maybeSingle()) as
+  const crewId = me.crew_id;
+  const crew = ok(await db().from("crews").select("name, site_name, is_sandbox, supervisor_id").eq("id", crewId).maybeSingle()) as
     { name: string; site_name: string; is_sandbox: boolean; supervisor_id: string } | null;
   if (!crew || crew.supervisor_id !== me.id) return forbidden();
 
-  const convIds = (ok(await db().from("conversations").select("id").eq("crew_id", me.crew_id)) as { id: string }[]).map((c) => c.id);
+  const convIds = (ok(await db().from("conversations").select("id").eq("crew_id", crewId)) as { id: string }[]).map((c) => c.id);
   const tasks = (await Promise.all(chunks(convIds, 100).map((ids) =>
-    pages<InTask & { worker_id: string }>((a, b) => db().from("tasks")
-      .select("id, worker_id, object_text, state, created_at, understood_at").in("conversation_id", ids).order("created_at").range(a, b))))).flat();
+    pages<TaskRow>((a, b) => db().from("tasks").select("*").in("conversation_id", ids).order("created_at").range(a, b))))).flat();
   const ids = tasks.map((t) => t.id);
   const [restatements, checks, workers] = await Promise.all([
     Promise.all(chunks(ids, 100).map((c) => pages<InRestatement>((a, b) => db().from("restatements").select("task_id").in("task_id", c).order("created_at").range(a, b)))).then((x) => x.flat()),
     Promise.all(chunks(ids, 100).map((c) => pages<InCheck>((a, b) => db().from("checks").select("task_id, overall, field_marks, created_at").in("task_id", c).order("created_at").range(a, b)))).then((x) => x.flat()),
-    db().from("profiles").select("id, display_name, language").eq("crew_id", me.crew_id).then((r) => ok(r) as InWorker[]),
+    db().from("profiles").select("id, display_name, language").eq("crew_id", crewId).then((r) => ok(r) as InWorker[]),
   ]);
-  return computeInsights(tasks, restatements, checks, workers, { name: crew.name, site_name: crew.site_name, is_sandbox: crew.is_sandbox }, Date.now());
+  return { crewId, crew, tasks, restatements, checks, workers };
+}
+
+type LabelRow = { id: string; label_en: string; label_hi: string; label_ta: string };
+
+async function briefingInsights(crewId: string, lang: Lang): Promise<BriefingInsights> {
+  const briefings = await pages<InBriefing>((a, b) => db().from("briefings").select("id, point_ids").eq("crew_id", crewId).order("created_at").range(a, b));
+  const replies = (await Promise.all(chunks(briefings.map((b) => b.id), 100).map((c) =>
+    pages<InBriefingReply>((a, b) => db().from("briefing_replies").select("briefing_id, attempts").in("briefing_id", c).order("created_at").range(a, b))))).flat();
+  const r = computeBriefingInsights(briefings, replies);
+  // labels straight from the table (removed points included), so this page never seeds or writes anything
+  const labels = r.missed.length
+    ? ok(await db().from("site_safety_points").select("id, label_en, label_hi, label_ta").in("id", r.missed.map((m) => m.id))) as LabelRow[]
+    : [];
+  return { ...r, missed: r.missed.map((m) => ({ ...m, label: labels.find((l) => l.id === m.id)?.[`label_${lang}`] ?? "" })) };
+}
+
+export async function loadInsights(me: ProfileRow): Promise<InsightsDTO> {
+  const d = await crewData(me);
+  return {
+    ...computeInsights(d.tasks, d.restatements, d.checks, d.workers, { name: d.crew.name, site_name: d.crew.site_name, is_sandbox: d.crew.is_sandbox }, Date.now()),
+    briefings: await briefingInsights(d.crewId, me.language),
+  };
+}
+
+export type ExportRow = {
+  created_at: string; worker: string; action: string; object: string; place: string; due_time: string;
+  quantity: number | null; unit: string | null; state: TaskState;
+  say_backs: number; first_match: boolean | null; wrong_first: FieldKey[];
+  understood_at: string | null; done_at: string | null; is_sandbox: boolean;
+};
+
+/** One row per task of the supervisor's own crew, oldest first, labels in the supervisor's language. */
+export async function loadExport(me: ProfileRow): Promise<ExportRow[]> {
+  const d = await crewData(me);
+  const lists = await crewLists(d.crewId);
+  const t = tally(d.restatements, d.checks);
+  const lang = me.language;
+  const lab = (kind: "actions" | "places", id: string) => lists[kind].find((x) => x.id === id)?.labels[lang] ?? "";
+  const name = new Map(d.workers.map((w) => [w.id, w.display_name]));
+  return d.tasks.map((x) => ({
+    created_at: x.created_at, worker: name.get(x.worker_id) ?? "", action: lab("actions", x.action_id),
+    object: x.object_i18n?.[lang] ?? x.object_text, place: lab("places", x.place_id), due_time: x.due_time,
+    quantity: x.quantity == null ? null : Number(x.quantity), unit: localUnit(x.unit, lang), state: x.state,
+    ...taskOutcome(x.id, t), understood_at: x.understood_at, done_at: x.done_at, is_sandbox: x.is_sandbox,
+  }));
 }
 
 type Person = { id: string; display_name: string; language: Lang };

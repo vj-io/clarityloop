@@ -5,6 +5,7 @@ import { ensureConversation, ensureCrewConversation } from "@/lib/server/convers
 import { db, nexconnId, ok } from "@/lib/server/db";
 import { body, fail, json, route } from "@/lib/server/http";
 import { hashPin, PIN_RE } from "@/lib/server/pin";
+import { judgeLimited } from "@/lib/server/sandbox";
 
 export const runtime = "nodejs";
 
@@ -17,6 +18,7 @@ const Body = z.object({
 
 /** FR-2: a worker joins with crew code, name, language and a 4-digit PIN. No email needed. */
 export const POST = route(async (req) => {
+  if (judgeLimited(req, "join", 6)) return fail(429, "rate_limited");
   const b = await body(req, Body);
   const crew = ok(await db().from("crews").select("id, supervisor_id").eq("join_code", b.join_code.toUpperCase()).maybeSingle()) as { id: string; supervisor_id: string } | null;
   if (!crew) return fail(404, "not_found", "unknown crew code");

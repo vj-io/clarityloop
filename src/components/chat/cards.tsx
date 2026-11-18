@@ -85,9 +85,10 @@ export function TaskFacts({ v, t }: { v: TaskView; t: T }) {
 const STATE_TINT: Record<TaskState, "ghost" | "pen" | "bad" | "warn" | "ok" | "hi"> = {
   waiting: "pen", checking: "pen", mismatch: "bad", needs_look: "warn", all_match: "ok", understood: "ok", done: "ghost",
 };
-export function StatePill({ task, t }: { task: TaskDTO; t: T }) {
+export function StatePill({ task, t, mine }: { task: TaskDTO; t: T; mine?: boolean }) {
   const tint = STATE_TINT[task.state];
-  const word = t(`c.state.${task.state}`, { worker: task.worker.name });
+  // `mine`: the reader is the worker, so "waiting" speaks to them, not about them
+  const word = mine && task.state === "waiting" ? t("c.state.waitingYou") : t(`c.state.${task.state}`, { worker: task.worker.name });
   // the shared Pill's green is 4.4:1 on its tint; the darker ink keeps it readable
   return <Pill tint={tint}>{tint === "ok" ? <span className="text-[#0f6b31]">{word}</span> : word}</Pill>;
 }
@@ -128,7 +129,7 @@ export function TaskCard({ task, live, t, lang, showSeen, children }: { task: Ta
         <SpeakButton id={`task-${task.id}`} text={taskSentence(task, t)} lang={lang} t={t} className="-my-2 -mr-2" />
       </div>
       <TaskFacts v={task} t={t} />
-      <div className="mt-3"><StatePill task={task} t={t} /></div>
+      <div className="mt-3"><StatePill task={task} t={t} mine={showSeen === false} /></div>
       {showSeen && <SeenLine task={task} t={t} />}
       {showSeen && live && <RemindButton task={task} t={t} />}
       {children}
@@ -254,7 +255,7 @@ export function CheckCard({ check, task, me, live, t, myLang, otherLang, onTask,
   const isWorker = me.id === task.worker.id;
   const anyBad = check.rows.some((r) => r.mark === "mismatch");
   const anyUnclear = check.rows.some((r) => r.mark === "unclear" && !r.accepted);
-  // unreadable stays amber until the supervisor has read and accepted every field
+  // unreadable stays amber until the worker says it back again: there are no worker values to accept
   const unreadable = check.unreadable && anyUnclear;
   const overall: Overall = unreadable ? "needs_look" : check.overall;
   const tint = OVERALL_TINT[overall];
@@ -306,7 +307,7 @@ export function CheckCard({ check, task, me, live, t, myLang, otherLang, onTask,
         <ul>
           {check.rows.map((r) => (
             <Row key={r.field} row={r} t={t} busy={busy} supName={task.supervisor.name} workerName={task.worker.name}
-              canAccept={live && isSup && r.mark === "unclear" && !r.accepted && r.reason !== "not_mentioned" && r.reason !== "unknown"}
+              canAccept={live && isSup && r.mark === "unclear" && !r.accepted && !!r.worker}
               onAccept={() => act(() => api("POST /api/tasks/:id/accept-field", { field: r.field as FieldKey }, { id: task.id }))} />
           ))}
         </ul>

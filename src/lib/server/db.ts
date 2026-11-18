@@ -23,4 +23,11 @@ export async function audit(task_id: string | null, actor_id: string | null, typ
   ok(await db().from("audit_events").insert({ task_id, actor_id, type, payload }));
 }
 
+/** True when this profile has gone over `max` calls a minute in `bucket` (counted in the database, so it holds across instances). */
+export async function overLimit(profileId: string, bucket: string, max: number) {
+  const { data, error } = await db().rpc("rate_add", { p_profile: profileId, p_bucket: bucket, p_window_seconds: 60, p_n: 1 });
+  if (error) throw new Error(`db: ${error.message}`);
+  return (data as number) > max;
+}
+
 export const nexconnId = (uuid: string) => uuid.replace(/-/g, "");
