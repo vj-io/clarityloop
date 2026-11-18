@@ -59,7 +59,7 @@ https://clarityloop-theta.vercel.app
 https://github.com/vj-io/clarityloop
 ```
 
-**Demo video**: file `ClarityLoop-demo-v2.mp4` (being produced separately). Beats: `demo-video-script.md`. Upload to YouTube (unlisted) or Loom with the link visible to anyone, and paste the link.
+**Demo video**: file `ClarityLoop-demo-v2.mp4` (2:14, 70 MB) in this folder. Beats: `demo-video-script.md`. Upload to YouTube (unlisted) or Loom with the link visible to anyone, and paste the link.
 
 ## 04 Write-up
 
