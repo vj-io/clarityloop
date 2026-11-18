@@ -19,7 +19,7 @@ It is an extra check, not a safety guarantee. It was built for the Nexconn Build
 
 ### The meaning check
 
-The supervisor sends a message as a task (action, object, place, time, quantity). The worker cannot tap OK: they say it back in their own words. A card compares each field and shows red, amber or green. Confirm stays blocked while anything differs or is unclear. A person can accept a single field, the worker taps Understood, and the supervisor can mark the task done.
+The supervisor sends a message as a task (action, object, place, time, quantity). The worker cannot tap OK: they say it back in their own words. A card compares each field and shows red, amber or green. Confirm stays blocked while anything differs or is unclear. When every field matches, both people tap Confirm and the task shows as Understood; the supervisor can then mark it done.
 
 Worked example. The supervisor sends "Unload · cement bags · Gate 3 · 14:00 · 40 bags":
 
@@ -37,6 +37,18 @@ The worker wrote: "40 bori cement Gate 2 pe utaarna hai, 2 baje tak." The red ca
 - Work-hours rule: a bare hour from 1 to 6 with no morning or evening word is read as afternoon, and the card shows that reading so either person can correct it.
 - "Seen 14:02 · not yet understood" on the supervisor's task card: seen is not understood.
 
+### What stops someone clicking past the check
+
+- The worker has no OK button. The only way forward is to say the task back.
+- Confirm is refused by the server, not just hidden, until every field matches or was accepted.
+- The supervisor can accept an unclear field only when the worker actually gave a value for it. A bare "OK sir", or a reply the AI could not read, leaves nothing to accept: the worker has to say it back again.
+- A mismatch (red) can never be accepted. It needs a new say-back.
+- A check that passed through acceptances is titled "Match, with fields the supervisor accepted", on the card and in the record.
+- Both people must confirm. If a new say-back arrives while a confirm is in flight, the confirm is refused.
+- Cards are posted only by the server. Typed text that starts like a card is an ordinary message.
+
+What it does not stop: a worker who says the right words back without understanding them. It is an extra check, not a guarantee.
+
 ### At crew scale
 
 - Crew chat: one Nexconn group channel per crew; each person reads every message in their own language.
@@ -49,19 +61,21 @@ The crew has a safety-points list (default points, editable on the crew page, wi
 
 ### Voice
 
-Voice input uses browser speech recognition (English, Hindi, Tamil); the words land in the box to read before sending. Read-aloud plays messages and task cards. Both use the browser; no audio is recorded or stored by ClarityLoop.
+Voice input uses browser speech recognition (English, Hindi, Tamil); the words land in the box to read before sending. Read-aloud plays messages and task cards. Both use the browser; no audio is recorded or stored by ClarityLoop. Voice input has not been tested on a real phone yet.
 
 ### Site words, make this a task, reminders
 
-- Site words: a crew glossary of local terms used in translation. After flagging a translation, the reader can name the wrong word; the supervisor approves or rejects suggestions. Nothing is added without approval.
+- Site words: a crew glossary of local terms used in chat translation, in the translation of a task's object and note (pair and crew tasks), and in the list of accepted names for the object. After flagging a translation, the reader can name the wrong word; the supervisor approves or rejects suggestions. Nothing is added without approval.
 - Make this a task: tap a chat message and AI pre-fills the task form. The supervisor checks it and still presses Send.
+- Send again: the new-task form shows up to five recent tasks as chips; a tap fills the form.
 - Remind: the supervisor can remind a worker who has not said a task back (at most once per 10 minutes per task, only when the supervisor presses it). The task list has an "Overdue to say back" filter.
 
 ### Insights and records
 
-- Insights page for the supervisor's own crew: tasks sent, said back, understood, caught before work started, most-missed fields, by language, 14-day trend. A new demo room includes ten labelled sample tasks so the page is not empty.
+- Insights page for the supervisor's own crew: tasks sent, said back, understood, caught before work started, most-missed fields, by language, 14-day trend. Safety briefings are there too: sent, replies, every point on the first try, and the points most often left out. A new demo room includes ten labelled sample tasks so the page is not empty.
+- Download CSV on the insights page: one row per task of the crew, supervisor only.
 - Printable task record (instruction, every restatement, every check, confirmations) at `/record/<taskId>`.
-- Installable web app (manifest), so it can be added to a phone's home screen.
+- Web app manifest, so it can be added to a phone's home screen. There is no service worker and no offline mode.
 
 ## Try it
 
@@ -75,7 +89,7 @@ Live app: https://clarityloop-theta.vercel.app
 - **Accounts and data:** Supabase Auth (email one-time code for supervisors, crew code and PIN for workers) and Postgres with row-level security, so each table is limited to the user's own crew.
 - **Chat on Nexconn:**
   - Group channels: one per supervisor–worker pair and one per crew.
-  - Cards are plain text messages with a prefix, posted only by the server bot: `[[CL:TASK]]` (task), `[[CL:CHECK]]` (comparison), `[[CL:STATE]]` (state change such as understood, done, seen, or a reminder), `[[CL:BOARD]]` (crew roll-call board), `[[CL:BRIEF]]` (safety briefing). A card-looking text from anyone else is drawn as ordinary text.
+  - Cards are plain text messages with a prefix, posted only by the server bot: `[[CL:TASK]]` (task), `[[CL:CHECK]]` (comparison), `[[CL:STATE]]` (state change such as understood, done, seen, or a reminder), `[[CL:BOARD]]` (crew roll-call board), `[[CL:BRIEF]]` (safety briefing). A card-looking text from anyone else, or one without a real card id, is drawn as ordinary text.
   - Silent pings: the server also sends non-stored messages so open windows refresh live (board, seen, checking). They never appear in history or unread counts.
   - Read receipts, unread counts and @mentions use Nexconn's own features.
   - The browser uses `@nexconn/engine` and `@nexconn/chat` for connection, live messages and history. The server calls Nexconn's REST API with plain `fetch` and signed headers (App-Key, Nonce, Timestamp, Signature) to issue tokens, create channels, add members and post cards; it retries on the backup domain.
@@ -127,7 +141,7 @@ Copy `.env.example` to `.env.local`. Never commit `.env.local`.
 
 ## Tests and evals
 
-- `npm test` runs 46 unit tests (`src/lib/*.test.ts`) with Node's test runner: the field comparison and aliases, the work-hours rule, the safety-briefing check, the roll-call board, site words, reminders, insights and the AI output parsing. They use no network.
+- `npm test` runs 52 unit tests (`src/lib/*.test.ts`) with Node's test runner: the field comparison and aliases, the work-hours rule, the safety-briefing check, the roll-call board, site words, reminders, insights, the CSV export, send-again and the AI output parsing. They use no network.
 - `evals/` holds fixed test sets: `translation.json` (100 translation runs across the three languages, checking that numbers and place names are kept) and `meaning.json` (15 restatements, 6 with a planted mismatch). `node --env-file=.env.local scripts/eval.mjs` runs them against the real model and writes `evals/results.json` (a copy for the site is `public/evals-results.json`).
 - Stored results (run 2026-11-17, model `google/gemini-3.5-flash-lite`): translation, 100 of 100 runs kept every number and place name, median 1.95 s (p90 5.35 s); meaning check, 6 of 6 planted mismatches caught, 0 false alarms on the 9 correct restatements, median 2.25 s (p90 5.69 s). One call hit a timeout during the run.
 - What they do not show: no native speaker has rated the translations, the sets are small and written by us, and no pilot with real workers has run. The translation speed target (median under 1.5 s) is not met on the current free-tier model key; the app shows the original at once and swaps the translation in.
@@ -136,8 +150,12 @@ Copy `.env.example` to `.env.local`. Never commit `.env.local`.
 
 - Secrets (Nexconn App Secret, Supabase service key, AI key) live only in server environment variables.
 - Row-level security limits every table to the user's own crew. Routes also check conversation membership.
-- Translation is available only to members of the conversation, with a per-user rate limit.
-- Worker PINs are stored hashed, with a short lockout after repeated wrong tries.
+- Translation is available only to members of the conversation. A cached translation is tied to a hash of the text it was made from, so different text sent for the same message id gets a fresh translation.
+- Per-user, per-minute limits on translating, sending a task or crew task, saying a task or briefing back, "Make this a task", and adding list items or site words. Sending a briefing (its note is translated) has no limit yet.
+- Worker PINs are stored hashed. Attempts are counted in one atomic database step before the PIN is checked: 5 tries, then a 5-minute lock, parallel guesses included.
+- Demo rooms: there is no public reset route. A room is reset only when it is handed to a new visitor; the room idle longest goes first and is claimed in one atomic update. A room in use is taken only when all seven are busy. Demo accounts keep their names.
+- `/health` shows timings, error codes and the model name only to a signed-in supervisor.
+- Pages cannot be framed by other sites (`frame-ancestors 'none'`, `X-Frame-Options: DENY`).
 - The app does not collect location, camera access, photos of people or attendance. It is not a monitoring tool; workers see what the supervisor sees about their own tasks.
 - Only message text, the crew's place, action and safety-point lists, and matching site words are sent to the AI service. No names, phone numbers or account details are sent.
 - The AI never confirms a task. Only the two people can.
@@ -153,13 +171,14 @@ Copy `.env.example` to `.env.local`. Never commit `.env.local`.
 - Photos
 - A shift-handover check
 - A site dashboard across several crews, or multi-site admin
-- Audit export beyond the printable task and briefing pages
+- Audit export beyond the task CSV and the printable task and briefing pages
+- Offline mode (no service worker)
 - More than three languages
 - SMS or WhatsApp reach for workers without the app
 - Single sign-on
 - API or webhooks for other tools
 - Billing and paid plans
-- Native mobile apps (it is an installable web app)
+- Native mobile apps (it is a web app that can be added to the home screen)
 - Attendance, GPS tracking, photo proof or any monitoring of workers
 - Certifying safety. ClarityLoop is an extra check, not a guarantee
 
@@ -169,7 +188,7 @@ Planned, not built. Everything under "What it does" is built and live.
 
 - **Pilot:** run it with a real crew; have native speakers rate the translations; get translation speed under the 1.5 s target.
 - **Reach:** voice messages (transcribed and translated), phone-number sign-in, more languages, SMS or WhatsApp links for workers without the app.
-- **Site product:** photos on tasks, a shift-handover check, scheduled reminders, a dashboard across crews, multi-site admin, audit export, single sign-on, API and webhooks.
+- **Site product:** photos on tasks, a shift-handover check, scheduled reminders, a dashboard and audit export across crews, multi-site admin, single sign-on, API and webhooks.
 - **Business:** billing and paid plans; data controls (retention, export, deletion on request, consent notices in each language).
 
 ## Evidence
