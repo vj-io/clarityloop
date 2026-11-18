@@ -111,7 +111,7 @@ function Restatements({ r, t, lang }: { r: RecordDTO; t: T; lang: Lang }) {
       {r.restatements.map((x, i) => (
         <div key={x.id} className="doodle keep mt-3 p-3">
           <p className="font-display text-lg font-extrabold">{t("b.rec.nth", { n: i + 1 })} <span className="font-hand text-base font-normal text-muted">· {x.by} · {when(x.created_at, lang)}</span></p>
-          <p className="mt-1 font-hand text-base text-muted">{t("b.rec.words", { lang: LANG_NAME[x.language] })}</p>
+          <p className="mt-1 font-hand text-base text-muted">{t("b.rec.words", { lang: x.language !== "en" && !/[^\u0000-\u024f]/.test(x.text) ? "A–Z" : LANG_NAME[x.language] })}</p>
           <blockquote lang={x.language} className="border-l-4 border-ink pl-3 text-lg">{x.text}</blockquote>
           {x.language !== lang && (
             <>
