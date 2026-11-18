@@ -129,3 +129,11 @@ test("translation must be in the reader's script; a source handed back with one 
   assert.equal(inScript("ठीक है sir", "en"), false);
   assert.equal(inScript("OK 👍", "hi"), true); // too short to judge
 });
+
+test("quota rest: a per-minute limit rests for the stated seconds, a daily one for half an hour", async () => {
+  const { quotaRestMs } = await import("./server/ai.ts");
+  assert.equal(quotaRestMs("You exceeded your current quota. Please retry in 23.4s."), 25_000);
+  assert.equal(quotaRestMs('quota ... "retryDelay": "41s"'), 42_000);
+  assert.equal(quotaRestMs("You exceeded your current quota, please check your plan and billing details."), 30 * 60_000);
+  assert.equal(quotaRestMs("Please retry in 40000s."), 30 * 60_000);
+});

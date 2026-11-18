@@ -34,6 +34,16 @@ const FALLBACKS = (process.env.AI_FALLBACK_MODELS ?? "google/gemini-3.1-flash-li
 const restingUntil = new Map<string, number>(); // model -> time it may be tried again
 const QUOTA = /quota|rate.?limit|429|resource.?exhausted/i, BUSY = /high demand|overloaded|503|unavailable/i;
 
+/**
+ * How long to leave a model alone after a quota error. A per-minute limit says "retry in 23s": rest just that long.
+ * No short retry time means the daily quota is gone: half an hour.
+ */
+export function quotaRestMs(msg: string): number {
+  const m = /retry (?:in|after) ([\d.]+)\s*s\b|"retryDelay":\s*"([\d.]+)s"/i.exec(msg);
+  const secs = m ? Number(m[1] ?? m[2]) : NaN;
+  return secs > 0 && secs <= 120 ? Math.ceil(secs + 1) * 1000 : 30 * 60_000;
+}
+
 export function gatewayRunner(model: string = AI_MODEL): Runner {
   const chain = [model, ...FALLBACKS.filter((m) => m !== model)];
   return async ({ system, prompt, maxTokens }) => {
@@ -50,8 +60,8 @@ export function gatewayRunner(model: string = AI_MODEL): Runner {
         return r.text;
       } catch (e) {
         last = e;
-        const msg = e instanceof Error ? e.message : String(e);
-        if (QUOTA.test(msg)) restingUntil.set(m, now + 30 * 60_000);       // daily quota: leave it alone for half an hour
+        const msg = (e instanceof Error ? e.message : String(e)) + " " + String((e as { responseBody?: unknown })?.responseBody ?? "");
+        if (QUOTA.test(msg)) restingUntil.set(m, now + quotaRestMs(msg));
         else if (BUSY.test(msg)) restingUntil.set(m, now + 60_000);
         else throw e;                                                     // a real error: do not hide it behind another model
       }
