@@ -18,7 +18,7 @@ ClarityLoop
 **One-paragraph summary** (under 2000 characters)
 
 ```
-ClarityLoop is a work chat for supervisors and workers who don't share a language. Everyone reads and writes in their own language (English, Hindi including Hinglish typed in Roman letters, Tamil), with the original one tap away.
+ClarityLoop is a work chat for supervisors and workers who don't share a language. Everyone reads and writes in their own language (English, Hindi including Hinglish typed in Roman letters, Tamil; Bengali, Telugu and Marathi in beta), with the original one tap away.
 
 For instructions that must be right, the supervisor sends a task. The worker cannot tap OK: they say it back in their own words. AI reads the reply into fixed fields; plain code, not the AI, compares each field with the task. A red Meaning Mismatch card appears live in both windows and blocks Confirm until both agree. The supervisor can accept an unclear field only when the worker gave a value: a bare "OK sir" cannot be clicked through. Example: "Unload · cement bags · Gate 3 · 14:00 · 40 bags" is answered "40 bori cement Gate 2 pe utaarna hai, 2 baje tak": Place shows Gate 3 vs Gate 2, the rest matches.
 

@@ -12,7 +12,7 @@ It is an extra check, not a safety guarantee. It was built for the Nexconn Build
 
 ### Chat in your own language
 
-- Every message is shown in the reader's language, with "See original" one tap away. Languages: English, Hindi (including Hinglish typed in Roman letters) and Tamil.
+- Every message is shown in the reader's language, with "See original" one tap away. Languages: English, Hindi (including Hinglish typed in Roman letters) and Tamil. Bengali, Telugu and Marathi are available as beta: their interface text is machine-written and no native speaker has checked it, and the language pickers say so.
 - A reader can tap "Translation looks wrong" on a message.
 - Messages typed before the connection is live, or while offline, are queued and sent once.
 - Nexconn read receipts ("Read 14:02", "Read by 2 of 3"), unread counts in the inbox, and @mentions in crew chat.
@@ -61,7 +61,7 @@ The crew has a safety-points list (default points, editable on the crew page, wi
 
 ### Voice
 
-Voice input uses browser speech recognition (English, Hindi, Tamil); the words land in the box to read before sending. Read-aloud plays messages and task cards. Both use the browser; no audio is recorded or stored by ClarityLoop. Voice input has not been tested on a real phone yet.
+Voice input uses browser speech recognition (English, Hindi, Tamil; beta languages use the browser's Bengali, Telugu and Marathi recognisers, untested); the words land in the box to read before sending. Read-aloud plays messages and task cards. Both use the browser; no audio is recorded or stored by ClarityLoop. Voice input has not been tested on a real phone yet.
 
 ### Site words, make this a task, reminders
 
@@ -173,7 +173,7 @@ Copy `.env.example` to `.env.local`. Never commit `.env.local`.
 - A site dashboard across several crews, or multi-site admin
 - Audit export beyond the task CSV and the printable task and briefing pages
 - Offline mode (no service worker)
-- More than three languages
+- Native-speaker review of any language; the three beta languages have no test set yet
 - SMS or WhatsApp reach for workers without the app
 - Single sign-on
 - API or webhooks for other tools
