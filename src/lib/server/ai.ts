@@ -263,6 +263,9 @@ export function parseExtraction(raw: string, actionCodes: Map<string, string>, p
   return ExtractionSchema.parse({ ...o, action: pick(o.action, actionCodes), place: pick(o.place, placeCodes) });
 }
 
+/** Not an English object phrase: another script, or Hindi joining words in Roman letters. */
+export const NOT_ENGLISH = /[^\x00-\x7F]|\b(ki|ka|ke|ko|wala|wali|wale)\b/i;
+
 /** A beta-language worker's own language leads the list; for the three core languages the prompt is unchanged. */
 const alsoWrites = (l: Lang) => (isBeta(l) ? `${NAME[l]}, ${NAME[l]} in Roman letters, ` : "");
 
@@ -285,14 +288,14 @@ export async function extractFields(text: string, language: Lang, actions: Label
     "You read a construction worker's restatement of an instruction and write down only what the worker said. Never guess or fill in missing parts.",
     `The worker may write ${alsoWrites(language)}Hindi, Hinglish (Hindi in Roman letters), Tamil, Tamil in Roman letters, or English.`,
     "Return JSON only, with exactly these keys:",
-    '- action: the code from ACTIONS that matches the work the worker said, or "unknown".',
-    '- object: a short English phrase for the thing being worked on ("cement bags", "bricks", "sand"), or null if not said. When it is counted in containers (bori, bag, katta, மூட்டை) phrase it as "<material> bags": "40 bori cement" => "cement bags".',
-    '- object_maybe_same: true only when the worker\'s object word is vague or generic ("saamaan", "maal", "the stuff", "it", "woh"); otherwise false.',
+    '- action: the code from ACTIONS that matches the work the worker said, or "unknown". Compare the worker\'s verb with every label of each action, also when it is written in Roman letters ("le jaana", "le jaani hain", "shift karna" = ले जाना; "utaarna" = उतारना; "pahunchana" = पहुँचाना).',
+    '- object: a short English phrase for the thing being worked on ("cement bags", "bricks", "sand"), or null if not said. When it is counted in containers (bori, bag, katta, மூட்டை) phrase it as "<material> bags": "40 bori cement" => "cement bags". Always English, never the worker\'s own words: "sariya", "loha sariya", "lohe ki rod", "இரும்புக் கம்பி" => "iron rods"; "eent" => "bricks".',
+    '- object_maybe_same: true only when the worker\'s object word is vague or generic ("saamaan", "maal", "the stuff", "it", "woh"); otherwise false. A named material or item ("sariya", "loha sariya", "cement") is never vague.',
     '- place: the code from PLACES the worker said, or "unknown" if not said or not in the list.',
     '- time: the time AS STATED, "HH:MM", or null if no time is said. A bare hour with no part-of-day word ("2 baje", "at 2", "2 மணி") => the hour as said, "02:00", with time_ambiguous true. With am/pm, a part-of-day word or a 24-hour time ("2 pm", "dopahar 2 baje", "shaam 5", "subah 9", "14:00", "மதியம் 2") => the exact 24-hour time with time_ambiguous false. "tak", "by", "before" do not change the time.',
     "- time_ambiguous: boolean as above (false when time is null).",
     '- quantity: a number, or null if not said. unit: a short English unit ("bags", "bricks", "kg", "trips"), or null.',
-    "- gloss_en: one plain English sentence of what the worker said.",
+    "- gloss_en: one plain English sentence of what the worker said. Every word in English: no Hindi or Tamil words left in (\"10 baje\" => \"10 o'clock\", \"sariya\" => \"iron rods\").",
     "",
     `ACTIONS:\n${A.text}`,
     `PLACES:\n${P.text}`,
@@ -300,7 +303,10 @@ export async function extractFields(text: string, language: Lang, actions: Label
   const prompt = `Worker's language: ${language === "hi" ? "Hindi or Hinglish" : NAME[language]}\nRestatement:\n${text}`;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      return parseExtraction(await runner({ system, prompt, maxTokens: 400 }), A.codes, P.codes);
+      const ex = parseExtraction(await runner({ system, prompt: attempt ? `${prompt}\n\nReminder: "object" and "gloss_en" must be in English only.` : prompt, maxTokens: 400 }), A.codes, P.codes);
+      // an object left in the worker's words ("lohe ki rod") would be compared as English and come out red: ask once more
+      if (!attempt && ex.object && NOT_ENGLISH.test(ex.object)) continue;
+      return ex;
     } catch { if (!attempt) await new Promise((r) => setTimeout(r, 1500)); /* invalid answer or AI busy: wait, one retry, then null */ }
   }
   return null;

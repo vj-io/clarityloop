@@ -160,7 +160,7 @@ export function RestateBox({ task, t, lang, onResult }: {
       setText("");
       onResult(r.task, r.check);
     } catch (e) {
-      setErr(errText(t, e)); // the typed text stays in the box
+      setErr(e instanceof ApiError && e.code === "own_words" ? t("c.err.ownWords") : errText(t, e)); // the typed text stays in the box
     } finally { clearTimeout(timer); setBusy(false); setSlow(false); }
   }
 

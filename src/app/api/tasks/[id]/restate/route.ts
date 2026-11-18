@@ -18,6 +18,7 @@ export const POST = route(async (req, ctx: { params: Promise<{ id: string }> }) 
   if (task.worker_id !== me.id) return forbidden();
   if (task.state === "understood" || task.state === "done") return fail(409, "conflict", "task already understood");
   const { text } = await body(req, z.object({ text: z.string().trim().min(1).max(1000) }));
+  if ((text.match(/·/g) ?? []).length >= 2) return fail(400, "own_words", "copied card text is not a say-back");   // the card's own "a · b · c" line
   if (await overLimit(me.id, "restate", 10)) return fail(429, "rate_limited");
 
   const [ins, lists, langs] = await Promise.all([

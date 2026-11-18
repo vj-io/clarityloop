@@ -43,6 +43,7 @@ export const chat: Dict = {
   "c.err.network": { en: "No connection. Your text is kept — try again.", hi: "कनेक्शन नहीं। आपका लिखा बचा है — फिर कोशिश करें।", ta: "இணைப்பு இல்லை. நீங்கள் எழுதியது இருக்கிறது — மீண்டும் முயலுங்கள்." },
   "c.err.slow": { en: "Slow down a little — try again in a moment.", hi: "थोड़ा धीरे — कुछ पल बाद फिर कोशिश करें।", ta: "கொஞ்சம் மெதுவாக — சிறிது நேரத்தில் மீண்டும் முயலுங்கள்." },
   "c.err.ai": { en: "The checker is not available right now. Your text is kept — try again.", hi: "जाँच अभी नहीं हो पा रही। आपका लिखा बचा है — फिर कोशिश करें।", ta: "சரிபார்ப்பு இப்போது இல்லை. நீங்கள் எழுதியது இருக்கிறது — மீண்டும் முயலுங்கள்." },
+  "c.err.ownWords": { en: "Say it in your own words, not by copying the card.", hi: "कार्ड की नकल नहीं, अपने शब्दों में बताइए।", ta: "அட்டையை நகலெடுக்காமல், உங்கள் சொந்த வார்த்தைகளில் சொல்லுங்கள்." },
   "c.err.stale": { en: "The card changed — showing the latest.", hi: "कार्ड बदल गया — नया दिखा रहे हैं।", ta: "அட்டை மாறியது — புதியதைக் காட்டுகிறோம்." },
 
   // ---- fields and marks
@@ -98,7 +99,7 @@ export const chat: Dict = {
   "c.check.all_match": { en: "All match", hi: "सब सही", ta: "எல்லாம் பொருந்துகிறது" },
   "c.check.unreadable": { en: "Couldn't check — please read the reply", hi: "जाँच नहीं हो पाई — जवाब खुद पढ़ें", ta: "சரிபார்க்க முடியவில்லை — பதிலைப் படியுங்கள்" },
   "c.check.mismatchHint": { en: "The red rows differ. Sort it out in the chat, then say it back again.", hi: "लाल पंक्तियाँ अलग हैं। चैट में बात करें, फिर दोबारा बताएँ।", ta: "சிவப்பு வரிகள் வேறுபடுகின்றன. அரட்டையில் பேசி, மீண்டும் சொல்லுங்கள்." },
-  "c.check.needs_lookHint": { en: "Nothing differs, but something is unclear.", hi: "कुछ अलग नहीं, पर कुछ साफ़ नहीं है।", ta: "வேறுபாடு இல்லை, ஆனால் ஏதோ தெளிவில்லை." },
+  "c.check.needs_lookHint": { en: "Some parts were not said, or are unclear.", hi: "कुछ बातें बताई नहीं गईं, या साफ़ नहीं हैं।", ta: "சில பகுதிகள் சொல்லப்படவில்லை, அல்லது தெளிவாக இல்லை." },
   "c.check.accepted": { en: "Match, with fields the supervisor accepted", hi: "सही, कुछ बातें सुपरवाइज़र ने मानीं", ta: "பொருந்துகிறது, சிலவற்றை மேற்பார்வையாளர் ஏற்றார்" },
   "c.check.acceptedHint": { en: "The supervisor accepted the unclear parts. Both of you can confirm.", hi: "साफ़ नहीं वाली बातें सुपरवाइज़र ने मान लीं। दोनों पक्का कर सकते हैं।", ta: "தெளிவில்லாத பகுதிகளை மேற்பார்வையாளர் ஏற்றார். இருவரும் உறுதி செய்யலாம்." },
   "c.check.all_matchHint": { en: "Every part matches. Both of you can confirm.", hi: "सब कुछ मेल खाता है। दोनों पक्का कर सकते हैं।", ta: "எல்லாம் பொருந்துகிறது. இருவரும் உறுதி செய்யலாம்." },
