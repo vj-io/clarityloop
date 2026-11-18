@@ -32,9 +32,9 @@
   --color-warn-soft: var(--warn-soft);
   --color-bad: var(--bad);
   --color-bad-soft: var(--bad-soft);
-  --font-display: var(--font-archivo), var(--font-deva), var(--font-tamil), system-ui, sans-serif;
-  --font-hand: var(--font-hand-latin), var(--font-deva), var(--font-tamil), cursive;
-  --font-sans: var(--font-archivo), var(--font-deva), var(--font-tamil), system-ui, sans-serif;
+  --font-display: var(--font-archivo), var(--font-deva), var(--font-tamil), var(--font-bengali), var(--font-telugu), system-ui, sans-serif;
+  --font-hand: var(--font-hand-latin), var(--font-deva), var(--font-tamil), var(--font-bengali), var(--font-telugu), cursive;
+  --font-sans: var(--font-archivo), var(--font-deva), var(--font-tamil), var(--font-bengali), var(--font-telugu), system-ui, sans-serif;
   --font-mono: var(--font-jb), ui-monospace, monospace;
 }
 

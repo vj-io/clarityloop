@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { LangSchema, type SuggestionDTO } from "@/lib/types";
+import { CORE_LANGS, LangSchema, type SuggestionDTO } from "@/lib/types";
+import { translationTargets } from "@/lib/server/ai";
 import { requireMe } from "@/lib/server/auth";
-import { crewLists } from "@/lib/server/crew";
+import { betaOnly, crewLangs, crewLists } from "@/lib/server/crew";
 import { db, ok, overLimit } from "@/lib/server/db";
 import { body, fail, json, notFound, route } from "@/lib/server/http";
 import { i18nAll } from "@/lib/server/tasks";
@@ -34,9 +35,10 @@ export const POST = route(async (req) => {
   if (!me.crew_id) return notFound();
   const b = await body(req, z.object({ term: Term, meaning: Meaning, lang: LangSchema.optional(), suggestion_id: z.uuid().optional() }));
   if (await overLimit(me.id, "term_add", 10)) return fail(429, "rate_limited");
-  const m = await i18nAll(b.meaning, b.lang ?? me.language, await crewLists(me.crew_id));
+  const [lists, langs] = await Promise.all([crewLists(me.crew_id), crewLangs(me.crew_id)]);
+  const m = await i18nAll(b.meaning, b.lang ?? me.language, lists, translationTargets(langs, CORE_LANGS));
   const { data, error } = await db().from("crew_terms").insert({
-    crew_id: me.crew_id, term: b.term, meaning_en: m.en.slice(0, 120), meaning_hi: m.hi.slice(0, 120), meaning_ta: m.ta.slice(0, 120),
+    crew_id: me.crew_id, term: b.term, meaning_en: m.en.slice(0, 120), meaning_hi: (m.hi ?? m.en).slice(0, 120), meaning_ta: (m.ta ?? m.en).slice(0, 120), meanings_beta: betaOnly(m, 120),
     source: b.suggestion_id ? "flag" : "manual", created_by: me.id,
   }).select("*").single();
   if (dup(error)) return fail(409, "conflict", "this word is already a site word");

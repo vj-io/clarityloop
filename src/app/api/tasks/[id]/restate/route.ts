@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { CARD, LANGS, type I18n } from "@/lib/types";
+import { CARD, type I18n } from "@/lib/types";
 import { compareFields, overallOf } from "@/lib/compare";
-import { AI_MODEL, extractFields, translateText } from "@/lib/server/ai";
+import { AI_MODEL, extractFields, translateText, translationTargets } from "@/lib/server/ai";
 import { requireMe } from "@/lib/server/auth";
 import { postCard } from "@/lib/server/cards";
-import { crewLists } from "@/lib/server/crew";
+import { crewLangs, crewLists } from "@/lib/server/crew";
 import { db, logHealth, ok, overLimit } from "@/lib/server/db";
 import { body, fail, forbidden, idParam, json, route } from "@/lib/server/http";
 import { loadTask, setState, taskDTO, type CheckDbRow } from "@/lib/server/tasks";
@@ -20,9 +20,10 @@ export const POST = route(async (req, ctx: { params: Promise<{ id: string }> }) 
   const { text } = await body(req, z.object({ text: z.string().trim().min(1).max(1000) }));
   if (await overLimit(me.id, "restate", 10)) return fail(429, "rate_limited");
 
-  const [ins, lists] = await Promise.all([
+  const [ins, lists, langs] = await Promise.all([
     db().from("restatements").insert({ task_id: task.id, worker_id: me.id, original_text: text, language: me.language }).select("id").single(),
     crewLists(conv.crew_id),
+    crewLangs(conv.crew_id),
   ]);
   const rest = ok(ins) as { id: string };
   await setState(task, "checking", me.id, "restated", { restatement_id: rest.id });
@@ -40,11 +41,11 @@ export const POST = route(async (req, ctx: { params: Promise<{ id: string }> }) 
   }, extracted);
   const overall = overallOf(marks);
 
-  // "What we understood" in all three languages; English only if translation fails.
+  // "What we understood" in the crew's languages; English only if translation fails.
   const gloss: I18n = {};
   if (extracted) {
     gloss.en = extracted.gloss_en;
-    await Promise.all(LANGS.filter((l) => l !== "en").map(async (l) => {
+    await Promise.all(translationTargets(langs).filter((l) => l !== "en").map(async (l) => {
       try { gloss[l] = (await translateText(extracted.gloss_en, l, lists))?.text ?? extracted.gloss_en; } catch { /* English only */ }
     }));
   }

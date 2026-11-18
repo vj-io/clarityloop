@@ -8,7 +8,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api, ApiError } from "@/lib/client/session";
 import { makeT, type T } from "@/lib/i18n";
 import { MAX_POINTS, MIN_POINTS, PRESETS, presetPick } from "@/lib/briefing";
-import { LANG_NAME, LANGS, type BriefingDTO, type BriefingReplyDTO, type BriefingRow, type CrewDTO, type Lang, type Me } from "@/lib/types";
+import { inLang, LANG_NAME, LANGS, type BriefingDTO, type BriefingReplyDTO, type BriefingRow, type CrewDTO, type Lang, type Me } from "@/lib/types";
 import { Button, MarkIcon, Pill } from "@/components/ui";
 import { BigCheck, HazardIcon } from "./doodles";
 import { hhmm } from "./Bubble";
@@ -464,8 +464,8 @@ export function BriefingForm({ crew, conversationId, me, t }: { crew: CrewDTO; c
           <p className="mb-1 font-hand text-lg text-muted">{t("s.form.preview", { lang: LANG_NAME[wl] })}</p>
           <Preview t={wt} lang={wl}>
             <p className="text-sm text-muted">{wt("s.card.from", { sup: me.display_name, n: chosen.length })}</p>
-            {chosen.length ? <PointList points={chosen.map((p) => ({ id: p.id, label: p.labels[wl] }))} t={wt} /> : <p className="mt-3 font-hand text-lg text-muted">—</p>}
-            <PlaceNote b={{ place: placeItem ? placeItem.labels[wl] : null, note: note.trim() || null }} t={wt} />
+            {chosen.length ? <PointList points={chosen.map((p) => ({ id: p.id, label: inLang(p.labels, wl) }))} t={wt} /> : <p className="mt-3 font-hand text-lg text-muted">—</p>}
+            <PlaceNote b={{ place: placeItem ? inLang(placeItem.labels, wl) : null, note: note.trim() || null }} t={wt} />
             <p className="mt-3 font-display text-lg font-extrabold leading-tight">{wt("s.card.prompt", { n: chosen.length })}</p>
             <p className="font-hand text-lg leading-tight text-pen">{wt("c.restate.noOk")}</p>
           </Preview>

@@ -1,6 +1,8 @@
 import { z } from "zod";
+import { CORE_LANGS } from "@/lib/types";
+import { translationTargets } from "@/lib/server/ai";
 import { requireMe } from "@/lib/server/auth";
-import { crewDTO, crewLists, ensureSafetyPoints } from "@/lib/server/crew";
+import { betaOnly, crewDTO, crewLangs, crewLists, ensureSafetyPoints } from "@/lib/server/crew";
 import { db, ok, overLimit } from "@/lib/server/db";
 import { body, fail, json, notFound, route } from "@/lib/server/http";
 import { i18nAll } from "@/lib/server/tasks";
@@ -11,7 +13,7 @@ type Kind = "place" | "action" | "safety";
 const table = (kind: Kind) => (kind === "place" ? "site_places" : kind === "action" ? "site_actions" : "site_safety_points");
 const KIND = z.enum(["place", "action", "safety"]);
 
-/** Add a list item from a label in the caller's language; the other two are translated (or copied). */
+/** Add a list item from a label in the caller's language; the other core languages and the crew's beta languages are translated (or copied). */
 export const POST = route(async (req) => {
   const me = await requireMe(req, "supervisor");
   if (!me.crew_id) return notFound();
@@ -19,10 +21,11 @@ export const POST = route(async (req) => {
   if (await overLimit(me.id, "list_add", 10)) return fail(429, "rate_limited");
   if (b.kind !== "safety" && b.label.length > 40) return fail(400, "invalid", "label: at most 40 characters");
   if (b.kind === "safety") await ensureSafetyPoints(me.crew_id);   // seed first, or the defaults would never come
-  const labels = await i18nAll(b.label, me.language, await crewLists(me.crew_id));
+  const [lists, langs] = await Promise.all([crewLists(me.crew_id), crewLangs(me.crew_id)]);
+  const labels = await i18nAll(b.label, me.language, lists, translationTargets(langs, CORE_LANGS));
   const last = ok(await db().from(table(b.kind)).select("sort").eq("crew_id", me.crew_id).order("sort", { ascending: false }).limit(1)) as { sort: number }[];
   ok(await db().from(table(b.kind)).insert({
-    crew_id: me.crew_id, label_en: labels.en, label_hi: labels.hi, label_ta: labels.ta, sort: (last[0]?.sort ?? -1) + 1,
+    crew_id: me.crew_id, label_en: labels.en, label_hi: labels.hi ?? labels.en, label_ta: labels.ta ?? labels.en, labels_beta: betaOnly(labels), sort: (last[0]?.sort ?? -1) + 1,
   }));
   return json({ crew: await crewDTO(me.crew_id, me.language) });
 });

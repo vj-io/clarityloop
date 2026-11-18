@@ -7,7 +7,7 @@ import { makeT } from "@/lib/i18n";
 import type { Lang, Me } from "@/lib/types";
 import { Brand, cx } from "./Common";
 import { ME_CHANGED } from "./guard";
-import { LanguagePicker } from "./LanguagePicker";
+import { BetaNote, LanguagePicker } from "./LanguagePicker";
 
 /** Shared signed-in header. Props: title (page title), back (href of the screen to go back to). */
 export function AppHeader({ title, back }: { title?: string; back?: string }) {
@@ -70,6 +70,7 @@ export function AppHeader({ title, back }: { title?: string; back?: string }) {
           </nav>
         )}
       </header>
+      {me && <BetaNote lang={me.language} t={t} />}
       {me?.is_sandbox && (
         <div role="note" className="border-b-[2.5px] border-ink bg-warn-soft px-4 py-1 text-center font-hand text-base text-ink">
           {t("nav.sandbox")}

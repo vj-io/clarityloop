@@ -1,6 +1,6 @@
 import type { Lang } from "@/lib/types";
 
-const LOC: Record<Lang, string> = { en: "en-IN", hi: "hi-IN", ta: "ta-IN" };
+const LOC: Record<Lang, string> = { en: "en-IN", hi: "hi-IN", ta: "ta-IN", bn: "bn-IN", te: "te-IN", mr: "mr-IN" };
 
 /** "18 Nov, 3:30 pm" in the reader's language, viewer's own time zone. */
 export const when = (iso: string, lang: Lang) =>

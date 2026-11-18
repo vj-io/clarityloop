@@ -1,10 +1,10 @@
-import { objectAliases } from "@/lib/server/ai";
+import { objectAliases, translationTargets } from "@/lib/server/ai";
 import { z } from "zod";
 import { CARD } from "@/lib/types";
 import { requireMe } from "@/lib/server/auth";
 import { postCard } from "@/lib/server/cards";
 import { memberConversation, type ConvRow } from "@/lib/server/conversations";
-import { crewLists } from "@/lib/server/crew";
+import { crewLangs, crewLists } from "@/lib/server/crew";
 import { audit, db, ok, overLimit } from "@/lib/server/db";
 import { body, fail, forbidden, json, route } from "@/lib/server/http";
 import { taskDTO, type TaskRow } from "@/lib/server/tasks";
@@ -31,15 +31,16 @@ export const POST = route(async (req) => {
   if (conv.supervisor_id !== me.id) return forbidden();
   if (await overLimit(me.id, "task_create", 10)) return fail(429, "rate_limited");
   if (conv.kind !== "pair") return fail(400, "invalid", "a crew channel takes crew tasks: POST /api/broadcasts");
-  const [lists, glossary] = await Promise.all([crewLists(conv.crew_id), crewTerms(conv.crew_id)]);
+  const [lists, glossary, langs] = await Promise.all([crewLists(conv.crew_id), crewTerms(conv.crew_id), crewLangs(conv.crew_id)]);
   if (!lists.actions.some((a) => a.id === b.action_id) || !lists.places.some((p) => p.id === b.place_id)) return fail(400, "invalid", "action or place is not in this crew's lists");
 
   const note = b.note || null;
   const terms = glossary.rows.map(siteTerm);   // the crew's site words steer the object and note, as in chat
-  const object_i18n = await i18nSite(b.object_text, me.language, lists, terms);
+  const to = translationTargets(langs);   // English plus what the crew reads: the AI quota is small
+  const object_i18n = await i18nSite(b.object_text, me.language, lists, terms, to);
   const [object_aliases, note_i18n, crew] = await Promise.all([
-    objectAliases(object_i18n.en, undefined, terms),
-    note ? i18nSite(note, me.language, lists, terms) : Promise.resolve({}),
+    objectAliases(object_i18n.en, undefined, terms, langs),
+    note ? i18nSite(note, me.language, lists, terms, to) : Promise.resolve({}),
     db().from("crews").select("is_sandbox").eq("id", conv.crew_id).single(),
   ]);
   const task = ok(await db().from("tasks").insert({

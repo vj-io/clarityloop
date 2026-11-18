@@ -1,7 +1,7 @@
 // Task / check loading and DTOs in the reader's language (FR-11, FR-15).
 import { after } from "next/server";
 import {
-  CARD, FIELDS, LANGS, NUDGE_GAP_MS, nudgeWait, type CheckDTO, type CheckRow, type FieldMarks, type I18n, type Lang,
+  CARD, FIELDS, inLang, NUDGE_GAP_MS, nudgeWait, type CheckDTO, type CheckRow, type FieldMarks, type I18n, type Lang,
   type Overall, type Role, type TaskDTO, type TaskState,
 } from "../types.ts";
 import { translateText, type CrewLists } from "./ai.ts";
@@ -26,10 +26,11 @@ export type CheckDbRow = {
 };
 type Person = { id: string; display_name: string; language: Lang; role: Role };
 
-/** Translate into all three languages; any failure keeps the original text in that slot. */
-export async function i18nAll(text: string, src: Lang, lists: CrewLists): Promise<Record<Lang, string>> {
-  const out = { en: text, hi: text, ta: text };
-  await Promise.all(LANGS.filter((l) => l !== src).map(async (l) => {
+/** Translate into the languages in `to` (see `translationTargets`); any failure keeps the original text in that slot. */
+export async function i18nAll(text: string, src: Lang, lists: CrewLists, to: Lang[]): Promise<I18n & { en: string }> {
+  const out: I18n & { en: string } = { en: text };
+  for (const l of [src, ...to]) out[l] = text;
+  await Promise.all(to.filter((l) => l !== src).map(async (l) => {
     const t0 = Date.now();
     try {
       out[l] = (await translateText(text, l, lists))?.text ?? text;
@@ -109,8 +110,10 @@ async function context(task: TaskRow, conv: ConvRow): Promise<Ctx> {
   return { lists, people: Object.fromEntries((ok(ppl) as Person[]).map((p) => [p.id, p])) };
 }
 
-export const label = (lists: CrewLists, kind: "places" | "actions", id: string | null, lang: Lang) =>
-  id == null ? "" : lists[kind].find((x) => x.id === id)?.labels[lang] ?? id;
+export const label = (lists: CrewLists, kind: "places" | "actions", id: string | null, lang: Lang) => {
+  const it = id == null ? undefined : lists[kind].find((x) => x.id === id);
+  return it ? inLang(it.labels, lang) : id ?? "";
+};
 export const pickI18n = (v: I18n, lang: Lang, fallback: string) => v[lang] ?? v.en ?? fallback;
 
 async function checkDTO(check: CheckDbRow, task: TaskRow, reader: ProfileRow, cx: Ctx): Promise<CheckDTO> {

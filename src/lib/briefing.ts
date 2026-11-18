@@ -1,19 +1,19 @@
 // Safety briefing check: pure logic and data, no I/O (unit-tested in src/lib/briefing.test.ts).
 // The AI only says which listed points the worker mentioned; everything decided here is plain code.
-import type { BriefingRow, BriefingState, Lang } from "./types.ts";
+import type { BetaLang, BriefingRow, BriefingState, CoreLang, Lang } from "./types.ts";
 
-export type SafetySeed = { key: string; labels: Record<Lang, string> };
+export type SafetySeed = { key: string; labels: Record<CoreLang, string>; beta: Record<BetaLang, string> };
 
 /** Default safety points every crew starts with (the supervisor can add and remove on /crew). */
 export const DEFAULT_SAFETY_POINTS: SafetySeed[] = [
-  { key: "helmet", labels: { en: "Wear your helmet", hi: "हेलमेट पहनें", ta: "ஹெல்மெட் அணியுங்கள்" } },
-  { key: "harness", labels: { en: "Wear the safety harness above 2 metres", hi: "2 मीटर से ऊपर सेफ़्टी बेल्ट (हार्नेस) पहनें", ta: "2 மீட்டருக்கு மேல் பாதுகாப்பு பெல்ட் (ஹார்னஸ்) அணியுங்கள்" } },
-  { key: "gloves", labels: { en: "Wear gloves when handling cement", hi: "सीमेंट उठाते समय दस्ताने पहनें", ta: "சிமெண்ட் கையாளும்போது கையுறை அணியுங்கள்" } },
-  { key: "shoes", labels: { en: "Wear safety shoes", hi: "सेफ़्टी जूते पहनें", ta: "பாதுகாப்புக் காலணி அணியுங்கள்" } },
-  { key: "crane", labels: { en: "Keep clear of the crane's swing area", hi: "क्रेन के घूमने के दायरे से दूर रहें", ta: "கிரேன் சுழலும் பகுதியிலிருந்து விலகி இருங்கள்" } },
-  { key: "phone", labels: { en: "No mobile phone while operating machines", hi: "मशीन चलाते समय मोबाइल फ़ोन नहीं", ta: "இயந்திரம் இயக்கும்போது கைப்பேசி கூடாது" } },
-  { key: "scaffold", labels: { en: "Check the scaffolding tag before climbing", hi: "चढ़ने से पहले मचान (पाड़) का टैग देखें", ta: "ஏறும் முன் சாரத்தின் அட்டையைச் சரிபாருங்கள்" } },
-  { key: "wire", labels: { en: "Report any exposed wire at once", hi: "खुला तार दिखे तो तुरंत बताएँ", ta: "வெளியே தெரியும் மின்கம்பியை உடனே சொல்லுங்கள்" } },
+  { key: "helmet", labels: { en: "Wear your helmet", hi: "हेलमेट पहनें", ta: "ஹெல்மெட் அணியுங்கள்" }, beta: { bn: "হেলমেট পরুন", te: "హెల్మెట్ ధరించండి", mr: "हेल्मेट घाला" } },
+  { key: "harness", labels: { en: "Wear the safety harness above 2 metres", hi: "2 मीटर से ऊपर सेफ़्टी बेल्ट (हार्नेस) पहनें", ta: "2 மீட்டருக்கு மேல் பாதுகாப்பு பெல்ட் (ஹார்னஸ்) அணியுங்கள்" }, beta: { bn: "2 মিটারের উপরে সেফটি বেল্ট (হারনেস) পরুন", te: "2 మీటర్ల పైన సేఫ్టీ బెల్ట్ (హార్నెస్) ధరించండి", mr: "2 मीटरपेक्षा उंचावर सेफ्टी बेल्ट (हार्नेस) घाला" } },
+  { key: "gloves", labels: { en: "Wear gloves when handling cement", hi: "सीमेंट उठाते समय दस्ताने पहनें", ta: "சிமெண்ட் கையாளும்போது கையுறை அணியுங்கள்" }, beta: { bn: "সিমেন্ট ধরার সময় দস্তানা পরুন", te: "సిమెంట్ పట్టుకునేటప్పుడు చేతి తొడుగులు ధరించండి", mr: "सिमेंट हाताळताना हातमोजे घाला" } },
+  { key: "shoes", labels: { en: "Wear safety shoes", hi: "सेफ़्टी जूते पहनें", ta: "பாதுகாப்புக் காலணி அணியுங்கள்" }, beta: { bn: "সেফটি জুতো পরুন", te: "సేఫ్టీ బూట్లు ధరించండి", mr: "सेफ्टी बूट घाला" } },
+  { key: "crane", labels: { en: "Keep clear of the crane's swing area", hi: "क्रेन के घूमने के दायरे से दूर रहें", ta: "கிரேன் சுழலும் பகுதியிலிருந்து விலகி இருங்கள்" }, beta: { bn: "ক্রেন ঘোরার জায়গা থেকে দূরে থাকুন", te: "క్రేన్ తిరిగే ప్రాంతానికి దూరంగా ఉండండి", mr: "क्रेन फिरण्याच्या जागेपासून दूर राहा" } },
+  { key: "phone", labels: { en: "No mobile phone while operating machines", hi: "मशीन चलाते समय मोबाइल फ़ोन नहीं", ta: "இயந்திரம் இயக்கும்போது கைப்பேசி கூடாது" }, beta: { bn: "মেশিন চালানোর সময় মোবাইল ফোন নয়", te: "యంత్రాలు నడిపేటప్పుడు మొబైల్ ఫోన్ వాడకూడదు", mr: "मशीन चालवताना मोबाईल फोन नको" } },
+  { key: "scaffold", labels: { en: "Check the scaffolding tag before climbing", hi: "चढ़ने से पहले मचान (पाड़) का टैग देखें", ta: "ஏறும் முன் சாரத்தின் அட்டையைச் சரிபாருங்கள்" }, beta: { bn: "ওঠার আগে ভারার ট্যাগ দেখে নিন", te: "ఎక్కే ముందు స్కాఫోల్డింగ్ ట్యాగ్ చూసుకోండి", mr: "चढण्यापूर्वी स्कॅफोल्डिंगचा टॅग तपासा" } },
+  { key: "wire", labels: { en: "Report any exposed wire at once", hi: "खुला तार दिखे तो तुरंत बताएँ", ta: "வெளியே தெரியும் மின்கம்பியை உடனே சொல்லுங்கள்" }, beta: { bn: "খোলা তার দেখলে সঙ্গে সঙ্গে জানান", te: "బయటకు కనిపించే వైరు ఉంటే వెంటనే చెప్పండి", mr: "उघडी तार दिसल्यास लगेच सांगा" } },
 ];
 
 /** One-tap templates: default point keys. A crew that removed a point just gets the ones that still exist. */

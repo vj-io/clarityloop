@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { T } from "@/lib/i18n";
 import type { Lang } from "@/lib/types";
 
-export const SPEECH_LANG: Record<Lang, string> = { en: "en-IN", hi: "hi-IN", ta: "ta-IN" };
+export const SPEECH_LANG: Record<Lang, string> = { en: "en-IN", hi: "hi-IN", ta: "ta-IN", bn: "bn-IN", te: "te-IN", mr: "mr-IN" };
 const P = { fill: "none", strokeLinecap: "round", strokeLinejoin: "round" } as const;
 const noSub = () => () => {};
 /** false during SSR and hydration, true after: browser-only checks must not change the first render. */

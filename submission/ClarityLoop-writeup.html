@@ -1,11 +1,11 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><title>ClarityLoop — write-up</title>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=Patrick+Hand&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  @page { size: A4; margin: 13mm 14mm; }
+  @page { size: A4; margin: 12mm 14mm; }
   * { box-sizing: border-box; }
-  body { font-family: Archivo, system-ui, sans-serif; color: #0a0a0a; font-size: 10.2pt; line-height: 1.38; margin: 0; }
+  body { font-family: Archivo, system-ui, sans-serif; color: #0a0a0a; font-size: 10pt; line-height: 1.36; margin: 0; }
   h1 { font-size: 30pt; font-weight: 800; margin: 0 0 2mm; line-height: 1.05; }
-  h2 { font-size: 14pt; font-weight: 800; margin: 6mm 0 2mm; }
+  h2 { font-size: 14pt; font-weight: 800; margin: 5mm 0 2mm; break-after: avoid; }
   h2 span { background: linear-gradient(transparent 55%, #c8ff00 55%, #c8ff00 92%, transparent 92%); padding: 0 1mm; }
   p { margin: 0 0 2.4mm; }
   .hand { font-family: "Patrick Hand", cursive; font-size: 13pt; }
@@ -13,7 +13,8 @@
   .muted { color: #5f5c56; }
   .box { border: 0.7mm solid #0a0a0a; border-radius: 6mm 2mm 6mm 2mm / 2mm 6mm 2mm 6mm; padding: 3.5mm 4mm; margin: 3mm 0; box-shadow: 1.2mm 1.2mm 0 #0a0a0a; background: #fbfaf7; break-inside: avoid; }
   .pen { color: #5b3df5; }
-  table { border-collapse: collapse; width: 100%; margin: 2mm 0 3mm; font-size: 9.8pt; break-inside: avoid; }
+  table { border-collapse: collapse; width: 100%; margin: 2mm 0 3mm; font-size: 9.8pt; }
+  tr { break-inside: avoid; }
   th, td { border-bottom: 0.3mm solid #0a0a0a; padding: 1.4mm 2mm; text-align: left; vertical-align: top; }
   th { font-family: "Patrick Hand", cursive; font-size: 11.5pt; font-weight: 400; }
   .bad { background: #ffdcd6; font-weight: 700; } .ok { color: #157f3b; font-weight: 700; } .red { color: #c2261c; font-weight: 800; }
@@ -21,7 +22,7 @@
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
   .key { font-family: "JetBrains Mono", monospace; font-weight: 700; font-size: 13pt; background: #c8ff00; padding: 0.5mm 2mm; border: 0.5mm solid #0a0a0a; }
   a { color: #5b3df5; }
-  .foot { margin-top: 5mm; border-top: 0.4mm dashed #0a0a0a; padding-top: 2mm; font-size: 9pt; }
+  .foot { margin-top: 3mm; border-top: 0.4mm dashed #0a0a0a; padding-top: 2mm; font-size: 9pt; }
 </style></head><body>
 
 <p class="hand muted">Nexconn Build Challenge 2026 · Track: Workplace &amp; Collaboration · Team Kaching (Vaibhav Jangid)</p>
@@ -52,7 +53,7 @@
   <div class="box"><p class="hand pen">Safety briefing check</p>
   <p>The supervisor picks 2–5 points from the crew's safety list (or a preset such as work at height). Each worker says them back in one reply. AI maps the words onto the list; code checks every picked point was said. The roll-call shows what is not said yet, and a printable record is kept. An extra check, not a guarantee.</p></div>
 </div>
-<p>Also built: <b>voice</b> input (browser speech recognition; the words land in the box to read first) and read-aloud; <b>site words</b>, a crew glossary used in translation that the supervisor approves; <b>Make this a task</b> from a chat message (AI pre-fills the form, the supervisor still sends); <b>Remind</b> for a worker who has not said a task back (supervisor-triggered, at most once per 10 minutes); an <b>insights</b> page for the supervisor's crew; and printable task and briefing <b>records</b>. Messages typed offline are queued and sent once.</p>
+<p>Also built: <b>voice</b> input (browser speech recognition; the words land in the box to read first) and read-aloud; <b>site words</b>, a crew glossary used in translation that the supervisor approves; <b>Make this a task</b> from a chat message (AI pre-fills the form, the supervisor still sends); <b>Remind</b> for a worker who has not said a task back (supervisor-triggered, at most once per 10 minutes); <b>Send again</b> chips for recent tasks; an <b>insights</b> page for tasks and safety briefings, with a CSV download; and printable task and briefing <b>records</b>. Site words also steer how a task's object is translated. Messages typed offline are queued and sent once.</p>
 
 <p class="hand">The demo case, as it runs on the live app:</p>
 <p>Supervisor sends <b>Unload · cement bags · Gate 3 · 14:00 · 40 bags</b>. Worker replies in Hinglish: <i>"40 bori cement Gate 2 pe utaarna hai, 2 baje tak."</i></p>
@@ -65,6 +66,7 @@
   <tr><td>Quantity</td><td>40 bags</td><td>40 bags</td><td class="ok">✓ Match</td></tr>
 </table>
 <p>The translation was fine and the meaning still slipped. They sort it out in the same chat, the worker restates, the card turns green, both confirm, and an Understood card records it.</p>
+<p><b>What stops someone clicking past the check.</b> The worker has no OK button. The server refuses Confirm until every field matches or was accepted, and both people must confirm. A red mismatch can never be accepted. The supervisor can accept an unclear field only when the worker gave a value for it: after a bare "OK sir", or a reply the AI could not read, there is nothing to accept and the worker must say it back again. A check that passed through acceptances is titled "Match, with fields the supervisor accepted" in the record. It does not stop a worker who repeats the right words without understanding them.</p>
 
 <h2><span>How it uses the Nexconn SDK</span></h2>
 <table>
@@ -75,33 +77,33 @@
   <tr><td>Read receipts</td><td><span class="mono">needReceipt</span>, <span class="mono">sendReadReceiptResponse</span>, <span class="mono">getMessageReadReceiptInfo</span>, <span class="mono">onMessageReceiptResponse</span>: "Read 14:02", "Read by 2 of 3". The task card says "Seen · not yet understood".</td></tr>
   <tr><td>Unread, channel list, mentions</td><td><span class="mono">createChannelsQuery</span>, <span class="mono">clearUnreadCount</span>, <span class="mono">createUnreadMentionMeChannelsQuery</span>; <span class="mono">mentionedInfo</span> for @mentions in crew chat.</td></tr>
   <tr><td>Server REST API</td><td>Signed headers from our server: <span class="mono">/v4/auth/access-token/issue</span>, <span class="mono">/v4/group-channel/create</span>, <span class="mono">/join</span>, <span class="mono">/message/send</span> as a bot user.</td></tr>
-  <tr><td>Cards and live pings</td><td>Task, comparison, roll-call board, safety-briefing and state cards are plain text with a prefix (<span class="mono">[[CL:TASK]]</span>, <span class="mono">CHECK</span>, <span class="mono">STATE</span>, <span class="mono">BOARD</span>, <span class="mono">BRIEF</span>), posted only by the server; a card typed by a user is ignored. Silent, non-stored messages (<span class="mono">shouldPersist 0</span>) refresh open windows without touching history or unread counts.</td></tr>
+  <tr><td>Cards and live pings</td><td>Task, comparison, roll-call board, safety-briefing and state cards are plain text with a prefix (<span class="mono">[[CL:TASK]]</span>, <span class="mono">CHECK</span>, <span class="mono">STATE</span>, <span class="mono">BOARD</span>, <span class="mono">BRIEF</span>), posted only by the server; typed text that starts like a card is an ordinary message. Silent, non-stored messages (<span class="mono">shouldPersist 0</span>) refresh open windows without touching history or unread counts.</td></tr>
 </table>
 
 <h2><span>How it is built</span></h2>
 <ul>
-  <li><b>Next.js (App Router) on Vercel</b>; <b>Supabase</b> Auth and Postgres with row-level security on every table; <b>Nexconn</b> for live conversations. If Nexconn keys are absent the app falls back to a labelled local transport for development.</li>
+  <li><b>Next.js (App Router) on Vercel</b>; <b>Supabase</b> Auth and Postgres with row-level security on every table; <b>Nexconn</b> for live conversations.</li>
   <li><b>AI: four narrow jobs</b> (<span class="mono">google/gemini-3.5-flash-lite</span>, with a fallback chain of other models when one is out of quota): translate text; make alternative names for a task's object; read a worker's reply into fixed fields (also used to pre-fill "Make this a task"); say which listed safety points a reply mentioned. Outputs are checked with zod and code.</li>
   <li><b>The AI never decides.</b> The AI reader never sees the supervisor's values; plain code compares the fields and the safety points (work-hours rule: a bare hour 1–6 is read as afternoon and shown, so either person can correct it). An unreadable reply gives "could not check", not a guess. Only people confirm.</li>
   <li><b>Record keeping.</b> Tasks, restatements, checks and state changes are stored with who and when; Nexconn is never the only copy.</li>
-  <li><b>Security and privacy.</b> Secrets are server-side only. Workers join with a crew code and a hashed 4-digit PIN with lockout. Translation is limited to conversation members and rate-limited. Only message text and the crew's lists go to the AI. No location, no photos of people, no attendance.</li>
+  <li><b>Security and privacy.</b> Secrets are server-side only. Workers join with a crew code and a hashed 4-digit PIN; tries are counted atomically (5, then a 5-minute lock). Translation is limited to conversation members, and the routes that call the AI for chat, tasks and say-backs have per-minute limits. Only message text and the crew's lists go to the AI. No location, no photos of people, no attendance.</li>
 </ul>
 
 <h2><span>What we measured</span></h2>
-<p>Fixed test sets in the repository (<span class="mono">evals/</span>), run on 2026-11-17 against the real model through the same code the app uses:</p>
+<p>Fixed test sets in the repository (<span class="mono">evals/</span>), run on 2026-11-17 against the real model, through the app's own code:</p>
 <table>
   <tr><th>Check</th><th>Result</th><th>Our target</th></tr>
-  <tr><td>Planted mismatches caught (wrong gate, morning vs afternoon, wrong quantity, wrong action, missing field, Hinglish reply)</td><td><b>6 of 6</b></td><td>all</td></tr>
+  <tr><td>Planted mismatches caught (gate, time, quantity, action, missing field, Hinglish reply)</td><td><b>6 of 6</b></td><td>all</td></tr>
   <tr><td>False alarms on correct restatements</td><td><b>0 of 9</b></td><td>at most 1</td></tr>
   <tr><td>Translation runs completed, with every number and place name kept</td><td><b>100 of 100</b></td><td>all numbers and places kept</td></tr>
-  <tr><td>Median translation time / field-reading time</td><td><b>1.95 s</b> / <b>2.25 s</b> (measured from India)</td><td>under 1.5 s / under 5 s — translation speed is not met yet on a free-tier model key; the app shows the original at once and swaps the translation in</td></tr>
+  <tr><td>Median translation time / field-reading time</td><td><b>1.95 s</b> / <b>2.25 s</b> (measured from India)</td><td>under 1.5 s / under 5 s. The translation target is not met; the app shows the original at once and swaps the translation in</td></tr>
 </table>
 <div class="box"><p class="hand pen">What we know is not done</p>
 <ul><li>No pilot with real workers has run.</li><li>No native speaker has rated the translations; the test sets are small and written by us.</li><li>The translation speed target (median under 1.5 s) is not met on the current free-tier model key.</li></ul></div>
 
 <h2><span>Where it goes next</span></h2>
 <div class="cols">
-  <div><p><b>Not built yet.</b> Voice messages (recorded audio), phone-number sign-in, scheduled reminders, photos, a shift-handover check, a dashboard across crews and multi-site admin, audit export beyond the printable pages, more languages, SMS and WhatsApp reach, single sign-on, API and webhooks, billing, native apps. Next step: a pilot with one real crew.</p></div>
+  <div><p><b>Not built yet.</b> Voice messages, phone-number sign-in, scheduled reminders, photos, a shift-handover check, a dashboard across crews and multi-site admin, audit export beyond the task CSV and printable pages, more languages, SMS and WhatsApp reach, single sign-on, API and webhooks, billing, native apps. Next step: a pilot with one real crew.</p></div>
   <div><p><b>Business (a plan to test).</b> The employer pays, workers use it free: per active worker per month, with a free tier for one small crew. First buyers: mid-size contractors, facility-management firms, warehouses. What compounds: crew glossaries, misunderstanding data, and a trusted record of what was agreed.</p></div>
 </div>
 

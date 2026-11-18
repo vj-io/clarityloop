@@ -1,17 +1,18 @@
 // Site words: each crew's own glossary, and the cache rule that keeps translations in step with it.
-import { LANGS, type Lang, type TermDTO } from "../types.ts";
+import type { BetaLang, CoreLang, I18n, Labels, Lang, TermDTO } from "../types.ts";
 import { matchTerms, translateText, type CrewLists, type SiteTerm } from "./ai.ts";
 import { db, logHealth, ok } from "./db.ts";
 
 export type TermRow = {
-  id: string; crew_id: string; term: string; meaning_en: string; meaning_hi: string; meaning_ta: string;
+  id: string; crew_id: string; term: string; meaning_en: string; meaning_hi: string; meaning_ta: string; meanings_beta?: Partial<Record<BetaLang, string>> | null;
   note: string | null; source: "manual" | "flag"; created_by: string | null; created_at: string;
 };
 
+const meanings = (r: TermRow): Labels => ({ ...r.meanings_beta, en: r.meaning_en, hi: r.meaning_hi, ta: r.meaning_ta });
 export const termDTO = (r: TermRow): TermDTO => ({
-  id: r.id, term: r.term, meanings: { en: r.meaning_en, hi: r.meaning_hi, ta: r.meaning_ta }, note: r.note, source: r.source, created_at: r.created_at,
+  id: r.id, term: r.term, meanings: meanings(r), note: r.note, source: r.source, created_at: r.created_at,
 });
-export const siteTerm = (r: TermRow): SiteTerm => ({ term: r.term, meanings: { en: r.meaning_en, hi: r.meaning_hi, ta: r.meaning_ta } });
+export const siteTerm = (r: TermRow): SiteTerm => ({ term: r.term, meanings: meanings(r) });
 
 /** The crew's site words (A-Z) and its glossary version. */
 export async function crewTerms(crewId: string): Promise<{ version: number; rows: TermRow[] }> {
@@ -41,16 +42,17 @@ export function cachedIsStale(rowVersion: number | null | undefined, crewVersion
   return (rowVersion ?? 0) < crewVersion && matchTerms(text, terms).length > 0;
 }
 
-export const LANG_COL: Record<Lang, "meaning_en" | "meaning_hi" | "meaning_ta"> = { en: "meaning_en", hi: "meaning_hi", ta: "meaning_ta" };
+export const LANG_COL: Record<CoreLang, "meaning_en" | "meaning_hi" | "meaning_ta"> = { en: "meaning_en", hi: "meaning_hi", ta: "meaning_ta" };
 
 /**
- * Task text (object, note) into all three languages with the crew's site words, the same way chat
+ * Task text (object, note) into the languages in `to` (see `translationTargets`) with the crew's site words, the same way chat
  * translation uses them; any failure keeps the original text in that slot.
  * ponytail: the same loop as i18nAll in tasks.ts plus `terms`; give i18nAll a `terms` argument and delete this.
  */
-export async function i18nSite(text: string, src: Lang, lists: CrewLists, terms: SiteTerm[]): Promise<Record<Lang, string>> {
-  const out = { en: text, hi: text, ta: text };
-  await Promise.all(LANGS.filter((l) => l !== src).map(async (l) => {
+export async function i18nSite(text: string, src: Lang, lists: CrewLists, terms: SiteTerm[], to: Lang[]): Promise<I18n & { en: string }> {
+  const out: I18n & { en: string } = { en: text };
+  for (const l of [src, ...to]) out[l] = text;
+  await Promise.all(to.filter((l) => l !== src).map(async (l) => {
     const t0 = Date.now();
     try {
       out[l] = (await translateText(text, l, lists, undefined, terms))?.text ?? text;

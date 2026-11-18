@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/client/session";
 import type { T } from "@/lib/i18n";
-import { LANG_NAME, LANGS, type Lang, type SuggestionDTO, type TermDTO } from "@/lib/types";
+import { CORE_LANGS, inLang, LANG_NAME, LANGS, type Lang, type SuggestionDTO, type TermDTO } from "@/lib/types";
 import { Card, Field, Input, Pill } from "@/components/ui";
 import { Btn, ErrorBox, errMsg } from "@/components/shell/Common";
 
@@ -58,7 +58,7 @@ export function SiteWordsLink({ t, lang }: { t: T; lang: Lang }) {
               <ul className="mt-1 divide-y-2 divide-dashed divide-ink/20">
                 {terms.map((x) => (
                   <li key={x.id} className="py-1.5 text-base leading-snug break-words">
-                    <span className="font-display font-extrabold">{x.term}</span> — <span lang={lang}>{x.meanings[lang]}</span>
+                    <span className="font-display font-extrabold">{x.term}</span> — <span lang={lang}>{inLang(x.meanings, lang)}</span>
                   </li>
                 ))}
               </ul>
@@ -184,8 +184,8 @@ function TermRow({ x, t, lang, onSaved, onRemoved }: { x: TermDTO; t: T; lang: L
             <span className="font-display text-lg font-extrabold break-words">{x.term}</span>
             {x.source === "flag" && <Pill tint="warn">{t("g.fromFlag")}</Pill>}
           </span>
-          <span lang={lang} className="block text-base leading-snug break-words">{x.meanings[lang]}</span>
-          <span className="block text-sm leading-tight break-words text-muted">{LANGS.filter((l) => l !== lang).map((l) => x.meanings[l]).join(" · ")}</span>
+          <span lang={lang} className="block text-base leading-snug break-words">{inLang(x.meanings, lang)}</span>
+          <span className="block text-sm leading-tight break-words text-muted">{LANGS.filter((l) => l !== lang).flatMap((l) => x.meanings[l] ?? []).join(" · ")}</span>
           {err && <span role="alert" className="block text-sm font-semibold text-bad">{err}</span>}
         </span>
         <span className="flex shrink-0 flex-col items-end">
@@ -210,14 +210,14 @@ function TermRow({ x, t, lang, onSaved, onRemoved }: { x: TermDTO; t: T; lang: L
         setBusy(false);
       }}>
         <Field label={t("g.word")}><Input value={f.term} maxLength={40} onChange={(e) => setF({ ...f, term: e.target.value })} /></Field>
-        {LANGS.map((l) => (
+        {CORE_LANGS.map((l) => (
           <Field key={l} label={t("g.meaningIn", { lang: LANG_NAME[l] })}>
             <Input lang={l} value={f[l]} maxLength={120} onChange={(e) => setF({ ...f, [l]: e.target.value })} />
           </Field>
         ))}
         {err && <p role="alert" className="text-sm font-semibold text-bad">{err}</p>}
         <div className="flex flex-wrap items-center gap-3">
-          <Btn type="submit" disabled={busy || !f.term.trim() || LANGS.some((l) => !f[l].trim())}>{t("g.save")}</Btn>
+          <Btn type="submit" disabled={busy || !f.term.trim() || CORE_LANGS.some((l) => !f[l].trim())}>{t("g.save")}</Btn>
           <button type="button" className={`${linkBtn} text-muted`} onClick={() => { setEdit(false); setF({ term: x.term, ...x.meanings }); }}>{t("g.cancel")}</button>
         </div>
       </form>

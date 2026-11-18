@@ -4,17 +4,23 @@
 import { google } from "@ai-sdk/google";
 import { generateText } from "ai";
 import { z } from "zod";
-import { ExtractionSchema, LangSchema, type Extraction, type Lang, type TaskDraft } from "../types.ts";
+import { ExtractionSchema, LangSchema, inLang, isBeta, type CoreLang, type Extraction, type Labels, type Lang, type TaskDraft } from "../types.ts";
 import { resolveTime } from "../compare.ts";
 
-export type LabelledItem = { id: string; labels: Record<Lang, string> };
+export type LabelledItem = { id: string; labels: Labels };
 export type CrewLists = { places: LabelledItem[]; actions: LabelledItem[] };
 export type ModelRequest = { system: string; prompt: string; maxTokens: number };
 /** Injectable model call: returns the raw text answer, throws when the service fails. */
 export type Runner = (req: ModelRequest) => Promise<string>;
 
 export const AI_MODEL = process.env.AI_MODEL || "google/gemini-3.5-flash-lite";
-const NAME: Record<Lang, string> = { en: "English", hi: "Hindi", ta: "Tamil" };
+const NAME: Record<Lang, string> = { en: "English", hi: "Hindi", ta: "Tamil", bn: "Bengali", te: "Telugu", mr: "Marathi" };
+
+/**
+ * Languages worth an AI call for stored text: English (the comparison code reads it), what the crew's
+ * members read, and `always`. Readers of any other language fall back to English.
+ */
+export const translationTargets = (members: Lang[], always: readonly Lang[] = []): Lang[] => [...new Set<Lang>(["en", ...always, ...members])];
 
 /**
  * Vercel AI Gateway via a plain model string (auth: VERCEL_OIDC_TOKEN or AI_GATEWAY_API_KEY).
@@ -57,26 +63,26 @@ let dflt: Runner | undefined;
 const defaultRunner = () => (dflt ??= gatewayRunner());
 
 // ---------- very short replies: answered from a fixed list, no AI call ----------
-const QUICK: { out: Record<Lang, string>; say: Record<Lang, string[]> }[] = [
-  { out: { en: "OK", hi: "ठीक है", ta: "சரி" }, say: {
+const QUICK: { out: Record<Lang, string>; say: Record<CoreLang, string[]> }[] = [
+  { out: { en: "OK", hi: "ठीक है", ta: "சரி", bn: "ঠিক আছে", te: "సరే", mr: "ठीक आहे" }, say: {
     en: ["ok", "okay", "okk", "k", "fine", "alright", "sure"],
     hi: ["theek hai", "thik hai", "theek h", "thik h", "tik hai", "acha", "achha", "accha", "ठीक है", "ठीक", "अच्छा", "ओके"],
     ta: ["sari", "seri", "saringa", "சரி", "சரிங்க"] } },
-  { out: { en: "Yes", hi: "हाँ", ta: "ஆமா" }, say: {
+  { out: { en: "Yes", hi: "हाँ", ta: "ஆமா", bn: "হ্যাঁ", te: "అవును", mr: "हो" }, say: {
     en: ["yes", "yeah", "yep", "ya"],
     hi: ["haan", "han", "haa", "haan ji", "haanji", "ji", "ji haan", "हाँ", "हां", "जी", "जी हाँ"],
     ta: ["aama", "aamaa", "aam", "ஆமா", "ஆம்", "ஆமாம்"] } },
-  { out: { en: "No", hi: "नहीं", ta: "இல்லை" }, say: {
+  { out: { en: "No", hi: "नहीं", ta: "இல்லை", bn: "না", te: "కాదు", mr: "नाही" }, say: {
     en: ["no", "nope"], hi: ["nahi", "nahin", "nai", "na", "नहीं", "ना"], ta: ["illa", "illai", "இல்லை", "இல்ல"] } },
-  { out: { en: "Thank you", hi: "धन्यवाद", ta: "நன்றி" }, say: {
+  { out: { en: "Thank you", hi: "धन्यवाद", ta: "நன்றி", bn: "ধন্যবাদ", te: "ధన్యవాదాలు", mr: "धन्यवाद" }, say: {
     en: ["thanks", "thank you", "thx", "ty"], hi: ["dhanyavad", "dhanyawad", "shukriya", "धन्यवाद", "शुक्रिया"], ta: ["nandri", "nanri", "நன்றி"] } },
-  { out: { en: "Done", hi: "हो गया", ta: "முடிஞ்சது" }, say: {
+  { out: { en: "Done", hi: "हो गया", ta: "முடிஞ்சது", bn: "হয়ে গেছে", te: "అయిపోయింది", mr: "झालं" }, say: {
     en: ["done"], hi: ["ho gaya", "hogaya", "ho gya", "हो गया"], ta: ["mudinjathu", "mudinjidhu", "முடிஞ்சது", "முடிந்தது"] } },
-  { out: { en: "Coming", hi: "आ रहा हूँ", ta: "வர்றேன்" }, say: {
+  { out: { en: "Coming", hi: "आ रहा हूँ", ta: "வர்றேன்", bn: "আসছি", te: "వస్తున్నాను", mr: "येत आहे" }, say: {
     en: ["coming", "on my way"], hi: ["aa raha hoon", "aa raha hu", "aa rha hu", "आ रहा हूँ", "आ रहा हूं"], ta: ["varen", "varren", "வர்றேன்", "வருகிறேன்"] } },
 ];
 const QUICK_INDEX = new Map<string, { out: Record<Lang, string>; lang: Lang }>();
-for (const q of QUICK) for (const lang of ["en", "hi", "ta"] as Lang[]) for (const s of q.say[lang]) QUICK_INDEX.set(s, { out: q.out, lang });
+for (const q of QUICK) for (const lang of ["en", "hi", "ta"] as const) for (const s of q.say[lang]) QUICK_INDEX.set(s, { out: q.out, lang });
 
 const normalize = (s: string) => s.toLowerCase().replace(/[.!?,।]+/g, " ").replace(/\s+/g, " ").trim();
 
@@ -92,7 +98,9 @@ export function quickTranslate(text: string, target: Lang): Translation | null |
 // ---------- numbers must survive translation ----------
 export const asciiDigits = (s: string) => s
   .replace(/[०-९]/g, (c) => String(c.charCodeAt(0) - 0x966))
-  .replace(/[௦-௯]/g, (c) => String(c.charCodeAt(0) - 0xbe6));
+  .replace(/[௦-௯]/g, (c) => String(c.charCodeAt(0) - 0xbe6))
+  .replace(/[০-৯]/g, (c) => String(c.charCodeAt(0) - 0x9e6))
+  .replace(/[౦-౯]/g, (c) => String(c.charCodeAt(0) - 0xc66));
 /** Digit runs in `src` that do not appear as a whole run in `out`. */
 export function missingNumbers(src: string, out: string): string[] {
   const have = new Set(asciiDigits(out).match(/\d+/g) ?? []);
@@ -106,7 +114,7 @@ export function missingNumbers(src: string, out: string): string[] {
  */
 export function glossary(lists: CrewLists, target: Lang): string {
   const line = (it: CrewLists["places"][number]) =>
-    `${[...new Set(Object.values(it.labels))].map((x) => `"${x}"`).join(" or ")} is written "${it.labels[target]}"`;
+    `${[...new Set(Object.values(it.labels))].map((x) => `"${x}"`).join(" or ")} is written "${inLang(it.labels, target)}"`;
   return `Place names (use the exact label):\n${lists.places.map(line).join("\n")}\n\n` +
     `Task words (prefer this wording, conjugated naturally, normal capitalisation):\n${lists.actions.map(line).join("\n")}`;
 }
@@ -130,15 +138,18 @@ export function parseJsonObject(raw: string): unknown {
  * Is the translation actually written in the reader's language? Catches a model that hands the source
  * back with only a place name swapped. @mentions and digits are ignored; names may stay in Latin letters.
  */
+const SCRIPT: Record<Lang, RegExp> = {   // Marathi is written in Devanagari, like Hindi
+  en: /[A-Za-z]/, hi: /[\u0900-\u097F]/, mr: /[\u0900-\u097F]/, ta: /[\u0B80-\u0BFF]/, bn: /[\u0980-\u09FF]/, te: /[\u0C00-\u0C7F]/,
+};
 export function inScript(out: string, target: Lang): boolean {
   const letters = out.replace(/@\S+/g, " ").match(/\p{L}/gu) ?? [];
   if (letters.length < 4) return true;
-  const want = target === "hi" ? /[\u0900-\u097F]/ : target === "ta" ? /[\u0B80-\u0BFF]/ : /[A-Za-z]/;
+  const want = SCRIPT[target];
   return letters.filter((c) => want.test(c)).length / letters.length >= (target === "en" ? 0.6 : 0.45);
 }
 
 // ---------- site words: the crew's own glossary ----------
-export type SiteTerm = { term: string; meanings: Record<Lang, string> };
+export type SiteTerm = { term: string; meanings: Labels };
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 /**
  * The site words that occur in `text`, case-insensitively. A word must start at a word edge in every script.
@@ -158,7 +169,7 @@ export function siteWordsBlock(terms: SiteTerm[], target: Lang): string {
   if (!terms.length) return "";
   return "Site words (this crew's own words; when the message uses one, it means what is given here: translate accordingly, " +
     "and keep the word itself recognisable where natural):\n" +
-    terms.map((t) => `"${t.term}" means "${t.meanings[target]}"`).join("\n");
+    terms.map((t) => `"${t.term}" means "${inLang(t.meanings, target)}"`).join("\n");
 }
 
 const TranslationOut = z.object({ source_lang: LangSchema, text: z.string().min(1) });
@@ -174,12 +185,12 @@ export async function translateText(text: string, target: Lang, lists: CrewLists
   if (quick !== undefined) return quick;
   const system = [
     "You translate short work-chat messages between a construction-site supervisor and workers.",
-    'Languages: "en" English, "hi" Hindi, "ta" Tamil. Hindi typed in Roman letters (Hinglish, e.g. "2 baje tak aa jaana") is Hindi: "hi". Tamil typed in Roman letters is "ta".',
+    'Languages: "en" English, "hi" Hindi, "ta" Tamil. Hindi typed in Roman letters (Hinglish, e.g. "2 baje tak aa jaana") is Hindi: "hi". Tamil typed in Roman letters is "ta". Also "bn" Bengali, "te" Telugu, "mr" Marathi, in their own script or in Roman letters.',
     `Translate the message into ${NAME[target]} in its normal script. Keep it short, plain and in the same tone.`,
     "Keep every number, time and quantity exactly as written, using the digits 0-9. Keep people's names unchanged.",
     "When the message names a place from the list, write exactly its label. Never copy list notation into the translation.",
     `If the message is already in ${NAME[target]}, return it unchanged.`,
-    'Answer with JSON only: {"source_lang":"en|hi|ta","text":"<translation>"}',
+    'Answer with JSON only: {"source_lang":"en|hi|ta|bn|te|mr","text":"<translation>"}',
   ].join("\n");
   const site = siteWordsBlock(matchTerms(text, terms), target);
   const prompt = `${glossary(lists, target)}\n\n${site ? `${site}\n\n` : ""}Message:\n${text}`;
@@ -203,13 +214,15 @@ export async function translateText(text: string, target: Lang, lists: CrewLists
  * the supervisor's text, before any reply exists, so the comparison itself stays plain code.
  * Returns [] when the AI is unavailable: the check then falls back to the literal comparison.
  */
-export async function objectAliases(objectEn: string, runner: Runner = defaultRunner(), terms: SiteTerm[] = []): Promise<string[]> {
+export async function objectAliases(objectEn: string, runner: Runner = defaultRunner(), terms: SiteTerm[] = [], crewLangs: Lang[] = []): Promise<string[]> {
+  const more = crewLangs.filter(isBeta).map((l) => NAME[l]);
   const site = matchTerms(objectEn, terms).map((t) => `On this site "${t.term}" means "${t.meanings.en}": give names for that, not for the everyday meaning of the word.`);
   const system = [
     "A construction-site supervisor names a thing in a task. List other names a worker might use for exactly the same thing.",
     "Include: English synonyms and trade names, the usual Hindi word in Devanagari, the same Hindi word in Roman letters (Hinglish), and the usual Tamil word in Tamil script.",
     "Also include loose everyday names workers really use for it even when technically imprecise (for steel rods: \"iron rods\", \"sariya\").",
     "Only names for the SAME thing: never a different material, a different size class, or a broader category (not \"material\", \"stuff\", \"items\").",
+    ...(more.length ? [`Also include the usual ${more.join(" and ")} word, in its own script.`] : []),
     ...site,
     'Answer with JSON only: {"names":["..."]} with at most 12 short names, lower-case where the script has case.',
   ].join("\n");
@@ -238,6 +251,9 @@ export function parseExtraction(raw: string, actionCodes: Map<string, string>, p
   return ExtractionSchema.parse({ ...o, action: pick(o.action, actionCodes), place: pick(o.place, placeCodes) });
 }
 
+/** A beta-language worker's own language leads the list; for the three core languages the prompt is unchanged. */
+const alsoWrites = (l: Lang) => (isBeta(l) ? `${NAME[l]}, ${NAME[l]} in Roman letters, ` : "");
+
 const listing = (items: LabelledItem[], prefix: string) => {
   const codes = new Map<string, string>();
   const lines = items.map((it, i) => {
@@ -255,7 +271,7 @@ export async function extractFields(text: string, language: Lang, actions: Label
   const A = listing(actions, "A"), P = listing(places, "P");
   const system = [
     "You read a construction worker's restatement of an instruction and write down only what the worker said. Never guess or fill in missing parts.",
-    "The worker may write Hindi, Hinglish (Hindi in Roman letters), Tamil, Tamil in Roman letters, or English.",
+    `The worker may write ${alsoWrites(language)}Hindi, Hinglish (Hindi in Roman letters), Tamil, Tamil in Roman letters, or English.`,
     "Return JSON only, with exactly these keys:",
     '- action: the code from ACTIONS that matches the work the worker said, or "unknown".',
     '- object: a short English phrase for the thing being worked on ("cement bags", "bricks", "sand"), or null if not said. When it is counted in containers (bori, bag, katta, மூட்டை) phrase it as "<material> bags": "40 bori cement" => "cement bags".',
@@ -322,7 +338,7 @@ export async function extractSafetyPoints(text: string, language: Lang, points: 
   const S = listing(points, "S");
   const system = [
     "A construction worker was told some site safety points and now says them back in their own words. Write down which of the listed safety points the worker clearly said.",
-    "The worker may write Hindi, Hinglish (Hindi in Roman letters), Tamil, Tamil in Roman letters, or English, and may use very different words for the same point (\"topi\" or \"sar ki suraksha\" for the helmet, \"belt\" for the harness).",
+    `The worker may write ${alsoWrites(language)}Hindi, Hinglish (Hindi in Roman letters), Tamil, Tamil in Roman letters, or English, and may use very different words for the same point ("topi" or "sar ki suraksha" for the helmet, "belt" for the harness).`,
     "A point counts only when the worker clearly expressed its meaning. Do not count a point that is only hinted at, half said, or contradicted (\"no need for gloves\"). Never guess or fill in.",
     "Ignore anything the worker said that is not in the list.",
     'Return JSON only: {"said":["S1",...],"gloss_en":"<one plain English sentence of what the worker said>"}. "said" lists codes from SAFETY POINTS only, and may be empty.',

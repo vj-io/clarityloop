@@ -1,4 +1,4 @@
-import { objectAliases } from "@/lib/server/ai";
+import { objectAliases, translationTargets } from "@/lib/server/ai";
 import { z } from "zod";
 import { CARD, type BroadcastSummary } from "@/lib/types";
 import { requireMe, type ProfileRow } from "@/lib/server/auth";
@@ -6,12 +6,12 @@ import { broadcastDTO, type BroadcastRowDb } from "@/lib/server/broadcasts";
 import { isUnderstood } from "@/lib/server/board";
 import { postCard } from "@/lib/server/cards";
 import { ensureConversation, ensureCrewConversation } from "@/lib/server/conversations";
-import { crewLists } from "@/lib/server/crew";
+import { crewLangs, crewLists } from "@/lib/server/crew";
 import { audit, db, ok, overLimit } from "@/lib/server/db";
 import { body, fail, json, notFound, route } from "@/lib/server/http";
 import { type TaskRow } from "@/lib/server/tasks";
 import { crewTerms, i18nSite, siteTerm } from "@/lib/server/terms";
-import type { TaskState } from "@/lib/types";
+import { inLang, type TaskState } from "@/lib/types";
 
 export const runtime = "nodejs";
 
@@ -51,10 +51,12 @@ export const POST = route(async (req) => {
   const [crewConv, ...pairs] = await Promise.all([ensureCrewConversation(crewId), ...workers.map((w) => ensureConversation(me, w))]);
   const note = b.note || null;
   const terms = (await crewTerms(crewId)).rows.map(siteTerm);   // site words steer the object and note, as in pair tasks
-  const object_i18n = await i18nSite(b.object_text, me.language, lists, terms);
+  const langs = await crewLangs(crewId);
+  const to = translationTargets(langs);
+  const object_i18n = await i18nSite(b.object_text, me.language, lists, terms, to);
   const [object_aliases, note_i18n] = await Promise.all([
-    objectAliases(object_i18n.en, undefined, terms),
-    note ? i18nSite(note, me.language, lists, terms) : Promise.resolve({}),
+    objectAliases(object_i18n.en, undefined, terms, langs),
+    note ? i18nSite(note, me.language, lists, terms, to) : Promise.resolve({}),
   ]);
   const fields = {
     action_id: b.action_id, object_text: b.object_text, object_i18n, object_aliases, place_id: b.place_id, due_time: b.due_time,
@@ -85,7 +87,7 @@ export const GET = route(async (req) => {
   const kids = ok(await db().from("tasks").select("broadcast_id, state").in("broadcast_id", bs.map((x) => x.id))) as { broadcast_id: string; state: TaskState }[];
   const lists = await crewLists(bs[0].crew_id);
   const lang = me.language;
-  const lab = (kind: "places" | "actions", id: string) => lists[kind].find((x) => x.id === id)?.labels[lang] ?? id;
+  const lab = (kind: "places" | "actions", id: string) => { const it = lists[kind].find((x) => x.id === id); return it ? inLang(it.labels, lang) : id; };
   const broadcasts: BroadcastSummary[] = bs.map((x) => {
     const mine = kids.filter((k) => k.broadcast_id === x.id);
     return {

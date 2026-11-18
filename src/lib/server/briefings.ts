@@ -1,9 +1,9 @@
 // Safety briefing check: loading and the DTO in the reader's language (redacted for workers).
 import { compareBriefing, rollCallView, type RollItem } from "../briefing.ts";
-import type { BriefingDTO, BriefingReplyDTO, BriefingState, I18n, Lang } from "../types.ts";
+import { inLang, type BriefingDTO, type BriefingReplyDTO, type BriefingState, type I18n, type Lang } from "../types.ts";
 import type { ProfileRow } from "./auth.ts";
 import { memberConversation } from "./conversations.ts";
-import { safetyPoints } from "./crew.ts";
+import { labelsOf, safetyPoints, type LabelCols } from "./crew.ts";
 import { db, ok } from "./db.ts";
 import { notFound } from "./http.ts";
 import { pickI18n } from "./tasks.ts";
@@ -38,14 +38,14 @@ export async function briefingDTO(b: BriefingRowDb, reader: ProfileRow): Promise
   const [points, reps, place] = await Promise.all([
     safetyPoints(b.crew_id, true),
     db().from("briefing_replies").select("*").eq("briefing_id", b.id),
-    b.place_id ? db().from("site_places").select("label_en, label_hi, label_ta").eq("id", b.place_id).maybeSingle() : Promise.resolve(null),
+    b.place_id ? db().from("site_places").select("label_en, label_hi, label_ta, labels_beta").eq("id", b.place_id).maybeSingle() : Promise.resolve(null),
   ]);
   const replies = ok(reps) as ReplyRowDb[];
   const ppl = ok(await db().from("profiles").select("id, display_name, language").in("id", [b.supervisor_id, ...replies.map((r) => r.worker_id)])) as Person[];
   const people = new Map(ppl.map((p) => [p.id, p]));
   const who = (id: string) => { const p = people.get(id); return { id, name: p?.display_name ?? "", language: p?.language ?? ("en" as Lang) }; };
   const byId = new Map(points.map((p) => [p.id, p]));
-  const labelOf = (id: string) => byId.get(id)?.labels[lang] ?? "";
+  const labelOf = (id: string) => inLang(byId.get(id)?.labels ?? { en: "", hi: "", ta: "" }, lang);
 
   const items: RollItem[] = replies.map((r) => {
     const c = compareBriefing(b.point_ids, r.said_point_ids);
@@ -66,14 +66,14 @@ export async function briefingDTO(b: BriefingRowDb, reader: ProfileRow): Promise
   }).sort((x, y) => x.worker.name.localeCompare(y.worker.name));
   const picked = new Set(b.point_ids);
   const others = [...new Set(visible.flatMap((r) => [...r.said_point_ids, ...(r.attempts ?? []).flatMap((a) => a.said)]))].filter((id) => !picked.has(id));
-  const pl = place ? (ok(place) as { label_en: string; label_hi: string; label_ta: string } | null) : null;
+  const pl = place ? (ok(place) as LabelCols | null) : null;
   const sup = who(b.supervisor_id);
   return {
     id: b.id, conversation_id: b.conversation_id, created_at: b.created_at, is_sandbox: b.is_sandbox,
     supervisor: sup,
     points: b.point_ids.map((id) => ({ id, label: labelOf(id), labels: byId.get(id)?.labels ?? { en: "", hi: "", ta: "" } })),
     other_points: others.map((id) => ({ id, label: labelOf(id) })),
-    place: pl ? pl[`label_${lang}`] : null,
+    place: pl ? inLang(labelsOf(pl), lang) : null,
     note: b.note == null ? null : pickI18n(b.note_i18n, lang, b.note),
     ...view,
     replies: dtoReplies,

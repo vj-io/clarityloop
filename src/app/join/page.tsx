@@ -3,7 +3,7 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ApiError, adoptGrant, api } from "@/lib/client/session";
-import { LANGS, LANG_NAME } from "@/lib/types";
+import { LanguageGrid } from "@/components/shell/LanguagePicker";
 import { Field, Input, Screen } from "@/components/ui";
 import { usePublicLang } from "@/components/shell/lang";
 import { Btn, PublicHeader, cx, errMsg } from "@/components/shell/Common";
@@ -68,14 +68,7 @@ function Inner() {
           {!back && (
             <fieldset>
               <legend className="font-hand text-lg leading-tight">{t("join.lang")}</legend>
-              <div className="mt-1 grid grid-cols-3 gap-2">
-                {LANGS.map((l) => (
-                  <button key={l} type="button" lang={l} aria-pressed={lang === l} onClick={() => setLang(l)}
-                    className={cx("doodle doodle-flat min-h-14 px-1 text-lg font-bold", lang === l ? "bg-hi!" : "bg-card")}>
-                    {lang === l && <span aria-hidden="true">&#10003; </span>}{LANG_NAME[l]}
-                  </button>
-                ))}
-              </div>
+              <LanguageGrid value={lang} onChange={setLang} t={t} />
             </fieldset>
           )}
           <Field label={t("join.pin")} hint={t(back ? "join.pinHintBack" : "join.pinHint")} error={err}>

@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { LangSchema } from "@/lib/types";
+import { isBeta, LangSchema } from "@/lib/types";
 import { requireMe, requireUser, toMe, type ProfileRow } from "@/lib/server/auth";
+import { ensureBetaLabels } from "@/lib/server/crew";
 import { db, ok } from "@/lib/server/db";
 import { body, fail, json, route } from "@/lib/server/http";
 
@@ -23,5 +24,6 @@ export const PATCH = route(async (req) => {
     if (taken.length) return fail(409, "conflict", "name already used in this crew");
   }
   const p = ok(await db().from("profiles").update(b).eq("id", me.id).select("*").single()) as ProfileRow;
+  if (b.language && isBeta(b.language) && p.crew_id) await ensureBetaLabels(p.crew_id).catch((e) => console.error("[me] beta labels", e));   // English labels until it works
   return json({ me: toMe(p) });
 });

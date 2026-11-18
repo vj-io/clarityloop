@@ -43,7 +43,7 @@ function ListEditor({ kind, items, t, onCrew, sandbox }: { kind: "place" | "acti
           <li key={it.id} className="flex items-center justify-between gap-2 py-1">
             <span className="min-w-0">
               <span className="block font-semibold leading-tight">{it.label}</span>
-              <span className="block break-words text-sm leading-tight text-muted">{LANGS.map((l) => it.labels[l]).join(" · ")}</span>
+              <span className="block break-words text-sm leading-tight text-muted">{LANGS.flatMap((l) => it.labels[l] ?? []).join(" · ")}</span>
             </span>
             {!locked.has(it.id) && <button type="button" onClick={() => del(it.id)} aria-label={`${t("crew.remove")}: ${it.label}`}
               className="inline-flex min-h-12 shrink-0 items-center gap-1 px-2 font-semibold text-bad underline underline-offset-4">

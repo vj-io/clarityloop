@@ -1,10 +1,20 @@
 // Shared contracts. Everything the server, the AI layer and the UI agree on lives here.
 import { z } from "zod";
 
-export const LANGS = ["en", "hi", "ta"] as const;
+export const CORE_LANGS = ["en", "hi", "ta"] as const;
+/** Beta: interface text is machine-written and not yet checked by a native speaker (src/i18n/beta/). */
+export const BETA_LANGS = ["bn", "te", "mr"] as const;
+export const LANGS = [...CORE_LANGS, ...BETA_LANGS] as const;
+export type CoreLang = (typeof CORE_LANGS)[number];
+export type BetaLang = (typeof BETA_LANGS)[number];
 export type Lang = (typeof LANGS)[number];
 export const LangSchema = z.enum(LANGS);
-export const LANG_NAME: Record<Lang, string> = { en: "English", hi: "हिन्दी", ta: "தமிழ்" };
+export const LANG_NAME: Record<Lang, string> = { en: "English", hi: "हिन्दी", ta: "தமிழ்", bn: "বাংলা", te: "తెలుగు", mr: "मराठी" };
+export const isBeta = (l: Lang): l is BetaLang => (BETA_LANGS as readonly string[]).includes(l);
+/** Text per language: always the three core languages, a beta language only where it has been written. */
+export type Labels = Record<CoreLang, string> & Partial<Record<BetaLang, string>>;
+/** The reader's text, or English where their (beta) language has none. */
+export const inLang = (v: Labels, l: Lang): string => v[l] || v.en;
 
 export type Role = "supervisor" | "worker";
 export type I18n = Partial<Record<Lang, string>>;
@@ -102,7 +112,7 @@ export type Me = {
   id: string; display_name: string; role: Role; language: Lang;
   crew_id: string | null; nexconn_user_id: string; is_sandbox: boolean;
 };
-export type ListItem = { id: string; label: string; labels: Record<Lang, string> };
+export type ListItem = { id: string; label: string; labels: Labels };
 export type CrewDTO = {
   id: string; name: string; site_name: string; join_code: string;
   members: { id: string; display_name: string; role: Role; language: Lang }[];
@@ -185,7 +195,7 @@ export type BriefingReplyDTO = {
 export type BriefingDTO = {
   id: string; conversation_id: string; created_at: string; is_sandbox: boolean;
   supervisor: { id: string; name: string; language: Lang };
-  points: { id: string; label: string; labels: Record<Lang, string> }[];   // picked, in order
+  points: { id: string; label: string; labels: Labels }[];   // picked, in order
   /** every listed point a reply mentioned that is not in `points` (for "also mentioned") */
   other_points: { id: string; label: string }[];
   place: string | null; note: string | null;
@@ -202,7 +212,7 @@ export type TranslationDTO = {
   source_lang: Lang | null; flagged: boolean; error?: boolean;
 };
 /** A site word: how people on this site write a thing, and what it means in each language. */
-export type TermDTO = { id: string; term: string; meanings: Record<Lang, string>; note: string | null; source: "manual" | "flag"; created_at: string };
+export type TermDTO = { id: string; term: string; meanings: Labels; note: string | null; source: "manual" | "flag"; created_at: string };
 export type SuggestionDTO = { id: string; word: string; meaning: string | null; lang: Lang; by: string; created_at: string };
 /** "Make this a task": fields read from a chat message. null = not found. Never saved by the server. */
 export type TaskDraft = {

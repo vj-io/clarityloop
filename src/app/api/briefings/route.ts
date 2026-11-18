@@ -1,12 +1,13 @@
 import { z } from "zod";
-import { CARD, type BriefingSummary } from "@/lib/types";
+import { CARD, inLang, type BriefingSummary } from "@/lib/types";
+import { translationTargets } from "@/lib/server/ai";
 import { MAX_POINTS, MIN_POINTS } from "@/lib/briefing";
 import { requireMe, type ProfileRow } from "@/lib/server/auth";
 import { briefingDTO, type BriefingRowDb, type ReplyRowDb } from "@/lib/server/briefings";
 import { postCard } from "@/lib/server/cards";
 import { ensureConversation, ensureCrewConversation } from "@/lib/server/conversations";
-import { crewLists, safetyPoints } from "@/lib/server/crew";
-import { audit, db, ok } from "@/lib/server/db";
+import { crewLangs, crewLists, safetyPoints } from "@/lib/server/crew";
+import { audit, db, ok, overLimit } from "@/lib/server/db";
 import { body, fail, json, notFound, route } from "@/lib/server/http";
 import { i18nAll } from "@/lib/server/tasks";
 
@@ -26,6 +27,7 @@ export const POST = route(async (req) => {
   const me = await requireMe(req, "supervisor");
   const b = await body(req, Body);
   if (!me.crew_id) return notFound();
+  if (await overLimit(me.id, "briefing", 6)) return fail(429, "rate_limited");
   const crewId = me.crew_id;
   const [points, lists, crew, ws] = await Promise.all([
     safetyPoints(crewId),
@@ -44,7 +46,7 @@ export const POST = route(async (req) => {
   // Channels first (Nexconn can fail): nothing is written until every conversation exists.
   const [crewConv, ...pairs] = await Promise.all([ensureCrewConversation(crewId), ...workers.map((w) => ensureConversation(me, w))]);
   const note = b.note || null;
-  const note_i18n = note ? await i18nAll(note, me.language, lists) : {};
+  const note_i18n = note ? await i18nAll(note, me.language, lists, translationTargets(await crewLangs(crewId))) : {};
   const br = ok(await db().from("briefings").insert({
     crew_id: crewId, conversation_id: crewConv.id, supervisor_id: me.id, point_ids: b.point_ids,
     place_id: b.place_id ?? null, note, note_i18n, is_sandbox: c.is_sandbox,
@@ -75,7 +77,7 @@ export const GET = route(async (req) => {
     const mine = rs.filter((r) => r.briefing_id === x.id);
     return {
       id: x.id, conversation_id: x.conversation_id, created_at: x.created_at,
-      points: x.point_ids.map((id) => ({ id, label: byId.get(id)?.labels[me.language] ?? "", labels: byId.get(id)?.labels ?? { en: "", hi: "", ta: "" } })),
+      points: x.point_ids.map((id) => ({ id, label: inLang(byId.get(id)?.labels ?? { en: "", hi: "", ta: "" }, me.language), labels: byId.get(id)?.labels ?? { en: "", hi: "", ta: "" } })),
       progress: { understood: mine.filter((r) => r.state === "understood").length, total: mine.length },
     };
   });

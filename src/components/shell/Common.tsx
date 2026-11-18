@@ -6,7 +6,7 @@ import type { T } from "@/lib/i18n";
 import type { Lang } from "@/lib/types";
 import { Button, Spinner } from "@/components/ui";
 import type { ComponentProps } from "react";
-import { LanguagePicker } from "./LanguagePicker";
+import { BetaNote, LanguagePicker } from "./LanguagePicker";
 
 // .doodle in globals.css is unlayered, so it beats Tailwind's bg-* utilities; "!" restores the tone background.
 const BG = { ink: "bg-ink! text-paper", hi: "bg-hi! text-ink", pen: "bg-pen! text-white", ghost: "bg-card! text-ink", ok: "bg-ok! text-white", bad: "bg-bad! text-white" } as const;
@@ -38,12 +38,15 @@ export function Brand({ href = "/" }: { href?: string }) {
 /** Header for signed-out pages. */
 export function PublicHeader({ lang, setLang, t }: { lang: Lang; setLang: (l: Lang) => void; t: T }) {
   return (
-    <header className="border-b-[2.5px] border-ink bg-card">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-4 py-1">
-        <Brand />
-        <LanguagePicker value={lang} onChange={setLang} label={t("nav.language")} />
-      </div>
-    </header>
+    <>
+      <header className="border-b-[2.5px] border-ink bg-card">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-4 py-1">
+          <Brand />
+          <LanguagePicker value={lang} onChange={setLang} label={t("nav.language")} />
+        </div>
+      </header>
+      <BetaNote lang={lang} t={t} />
+    </>
   );
 }
 
@@ -120,5 +123,5 @@ export function ago(iso: string, t: T, lang: Lang): string {
   if (m < 1) return t("time.now");
   if (m < 60) return t("time.min", { n: m });
   if (m < 1440) return t("time.hour", { n: Math.round(m / 60) });
-  return new Date(iso).toLocaleDateString(lang === "en" ? "en-IN" : lang === "hi" ? "hi-IN" : "ta-IN", { day: "numeric", month: "short" });
+  return new Date(iso).toLocaleDateString(`${lang}-IN`, { day: "numeric", month: "short" });
 }

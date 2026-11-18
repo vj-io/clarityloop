@@ -459,3 +459,18 @@ revoke execute on function pin_try(uuid, int, int) from public, anon, authentica
 
 -- A cached translation remembers which text it was made from (see /api/translate). Null on rows made before this.
 alter table message_translations add column if not exists source_hash text;
+
+-- ---------- Beta languages: Bengali (bn), Telugu (te), Marathi (mr) ----------
+-- Additive only. The three core languages keep their own columns; a beta language's text for a list item
+-- or site word lives in one jsonb map {bn,te,mr} and is read as English where it has no entry.
+alter table site_places add column if not exists labels_beta jsonb not null default '{}'::jsonb;
+alter table site_actions add column if not exists labels_beta jsonb not null default '{}'::jsonb;
+alter table site_safety_points add column if not exists labels_beta jsonb not null default '{}'::jsonb;
+alter table crew_terms add column if not exists meanings_beta jsonb not null default '{}'::jsonb;
+
+alter table profiles drop constraint if exists profiles_language_check;
+alter table profiles add constraint profiles_language_check check (language in ('en','hi','ta','bn','te','mr'));
+alter table message_translations drop constraint if exists message_translations_target_lang_check;
+alter table message_translations add constraint message_translations_target_lang_check check (target_lang in ('en','hi','ta','bn','te','mr'));
+alter table term_suggestions drop constraint if exists term_suggestions_lang_check;
+alter table term_suggestions add constraint term_suggestions_lang_check check (lang in ('en','hi','ta','bn','te','mr'));

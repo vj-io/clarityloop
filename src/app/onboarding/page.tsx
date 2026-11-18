@@ -2,10 +2,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, useMe } from "@/lib/client/session";
-import { LANGS, LANG_NAME } from "@/lib/types";
+import { LanguageGrid } from "@/components/shell/LanguagePicker";
 import { Field, Input, Screen } from "@/components/ui";
 import { usePublicLang } from "@/components/shell/lang";
-import { Btn, PageLoading, PublicHeader, cx, errMsg } from "@/components/shell/Common";
+import { Btn, PageLoading, PublicHeader, errMsg } from "@/components/shell/Common";
 
 export default function OnboardingPage() {
   const { lang, setLang, t } = usePublicLang();
@@ -43,14 +43,7 @@ export default function OnboardingPage() {
           <Field label={t("onb.name")}><Input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" maxLength={40} /></Field>
           <fieldset>
             <legend className="font-hand text-lg leading-tight">{t("onb.lang")}</legend>
-            <div className="mt-1 grid grid-cols-3 gap-2">
-              {LANGS.map((l) => (
-                <button key={l} type="button" lang={l} aria-pressed={lang === l} onClick={() => setLang(l)}
-                  className={cx("doodle doodle-flat min-h-14 px-1 text-lg font-bold", lang === l ? "bg-hi!" : "bg-card")}>
-                  {lang === l && <span aria-hidden="true">&#10003; </span>}{LANG_NAME[l]}
-                </button>
-              ))}
-            </div>
+            <LanguageGrid value={lang} onChange={setLang} t={t} />
           </fieldset>
           <Field label={t("onb.crew")} hint={t("onb.crewHint")}><Input value={crew} onChange={(e) => setCrew(e.target.value)} maxLength={60} /></Field>
           <Field label={t("onb.site")} hint={t("onb.siteHint")} error={err}><Input value={site} onChange={(e) => setSite(e.target.value)} maxLength={60} /></Field>

@@ -12,7 +12,7 @@ import { draftKey, type StoredDraft } from "@/components/chat/Bubble";
 import { ClipboardDoodle } from "@/components/chat/doodles";
 import { api, ApiError } from "@/lib/client/session";
 import { makeT, type T } from "@/lib/i18n";
-import { LANG_NAME, LANGS, type Api, type CrewDTO, type Lang, type ListItem, type RecentTask } from "@/lib/types";
+import { inLang, LANG_NAME, LANGS, type Api, type CrewDTO, type Lang, type ListItem, type RecentTask } from "@/lib/types";
 
 type Conv = Api["GET /api/conversations/:id"]["res"];
 
@@ -81,7 +81,7 @@ export default function NewTaskPage() {
   const crewLangs = LANGS.filter((l) => workers.some((w) => w.language === l));
   const workerLang = isCrew ? pick ?? crewLangs[0] ?? me?.language ?? "en" : conv?.conversation.other.language ?? me?.language ?? "en";
   const wt = makeT(workerLang);
-  const label = (list: ListItem[] | undefined, id: string) => list?.find((x) => x.id === id)?.labels[workerLang] ?? "";
+  const label = (list: ListItem[] | undefined, id: string) => inLang(list?.find((x) => x.id === id)?.labels ?? { en: "", hi: "", ta: "" }, workerLang);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

@@ -1,9 +1,9 @@
 // Read-only numbers for /insights and the task record for /record/:id. Nothing here writes or calls AI.
 import { compareBriefing } from "../briefing.ts";
-import { FIELDS, type BriefingInsights, type CheckRow, type FieldKey, type FieldMarks, type InsightsDTO, type Lang, type Overall, type RecordDTO, type TaskState } from "../types.ts";
+import { FIELDS, inLang, LANGS, type BriefingInsights, type CheckRow, type FieldKey, type FieldMarks, type InsightsDTO, type Lang, type Overall, type RecordDTO, type TaskState } from "../types.ts";
 import { localUnit } from "../units.ts";
 import type { ProfileRow } from "./auth.ts";
-import { crewLists } from "./crew.ts";
+import { crewLists, labelsOf, type LabelCols } from "./crew.ts";
 import { db, ok } from "./db.ts";
 import { forbidden } from "./http.ts";
 import type { CheckDbRow, TaskRow } from "./tasks.ts";
@@ -95,7 +95,7 @@ export function computeInsights(
     return { field, checked, mismatch, unclear };
   });
 
-  const languages = (["en", "hi", "ta"] as Lang[]).flatMap((language) => {
+  const languages = LANGS.flatMap((language) => {
     const own = tasks.filter((t) => person.get(t.worker_id)?.language === language);
     if (own.length === 0) return [];
     const retried = own.filter((t) => rc(t) >= 2).length;
@@ -163,7 +163,7 @@ async function crewData(me: ProfileRow) {
   return { crewId, crew, tasks, restatements, checks, workers };
 }
 
-type LabelRow = { id: string; label_en: string; label_hi: string; label_ta: string };
+type LabelRow = LabelCols & { id: string };
 
 async function briefingInsights(crewId: string, lang: Lang): Promise<BriefingInsights> {
   const briefings = await pages<InBriefing>((a, b) => db().from("briefings").select("id, point_ids").eq("crew_id", crewId).order("created_at").range(a, b));
@@ -172,9 +172,9 @@ async function briefingInsights(crewId: string, lang: Lang): Promise<BriefingIns
   const r = computeBriefingInsights(briefings, replies);
   // labels straight from the table (removed points included), so this page never seeds or writes anything
   const labels = r.missed.length
-    ? ok(await db().from("site_safety_points").select("id, label_en, label_hi, label_ta").in("id", r.missed.map((m) => m.id))) as LabelRow[]
+    ? (ok(await db().from("site_safety_points").select("id, label_en, label_hi, label_ta, labels_beta").in("id", r.missed.map((m) => m.id))) as LabelRow[]).map((l) => ({ id: l.id, labels: labelsOf(l) }))
     : [];
-  return { ...r, missed: r.missed.map((m) => ({ ...m, label: labels.find((l) => l.id === m.id)?.[`label_${lang}`] ?? "" })) };
+  return { ...r, missed: r.missed.map((m) => ({ ...m, label: inLang(labels.find((l) => l.id === m.id)?.labels ?? { en: "", hi: "", ta: "" }, lang) })) };
 }
 
 export async function loadInsights(me: ProfileRow): Promise<InsightsDTO> {
@@ -198,7 +198,7 @@ export async function loadExport(me: ProfileRow): Promise<ExportRow[]> {
   const lists = await crewLists(d.crewId);
   const t = tally(d.restatements, d.checks);
   const lang = me.language;
-  const lab = (kind: "actions" | "places", id: string) => lists[kind].find((x) => x.id === id)?.labels[lang] ?? "";
+  const lab = (kind: "actions" | "places", id: string) => { const it = lists[kind].find((x) => x.id === id); return it ? inLang(it.labels, lang) : ""; };
   const name = new Map(d.workers.map((w) => [w.id, w.display_name]));
   return d.tasks.map((x) => ({
     created_at: x.created_at, worker: name.get(x.worker_id) ?? "", action: lab("actions", x.action_id),
@@ -234,7 +234,7 @@ export async function loadRecord(task: TaskRow, crewId: string, reader: ProfileR
   const lang = reader.language;
   const srcLang = sup?.language ?? "en";
 
-  const lab = (kind: "actions" | "places", id: string | null, l: Lang) => (id == null ? "" : lists[kind].find((x) => x.id === id)?.labels[l] ?? id);
+  const lab = (kind: "actions" | "places", id: string | null, l: Lang) => { const it = id == null ? undefined : lists[kind].find((x) => x.id === id); return it ? inLang(it.labels, l) : id ?? ""; };
   const pick = (v: Partial<Record<Lang, string>>, l: Lang, fb: string) => v[l] ?? v.en ?? fb;
   const rows = (c: CheckDbRow): CheckRow[] => FIELDS.map((field) => {
     const m = c.field_marks[field];
