@@ -216,7 +216,7 @@ export async function translateText(text: string, target: Lang, lists: CrewLists
  */
 export async function objectAliases(objectEn: string, runner: Runner = defaultRunner(), terms: SiteTerm[] = [], crewLangs: Lang[] = []): Promise<string[]> {
   const more = crewLangs.filter(isBeta).map((l) => NAME[l]);
-  const site = matchTerms(objectEn, terms).map((t) => `On this site "${t.term}" means "${t.meanings.en}": give names for that, not for the everyday meaning of the word.`);
+  const site = matchTerms(objectEn, terms).filter((t) => t.meanings.en.trim().toLowerCase() !== t.term.trim().toLowerCase()).map((t) => `On this site "${t.term}" means "${t.meanings.en}": give names for that, not for the everyday meaning of the word.`);
   const system = [
     "A construction-site supervisor names a thing in a task. List other names a worker might use for exactly the same thing.",
     "Include: English synonyms and trade names, the usual Hindi word in Devanagari, the same Hindi word in Roman letters (Hinglish), and the usual Tamil word in Tamil script.",
@@ -289,7 +289,7 @@ export async function extractFields(text: string, language: Lang, actions: Label
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       return parseExtraction(await runner({ system, prompt, maxTokens: 400 }), A.codes, P.codes);
-    } catch { /* invalid answer or AI down: one retry, then null */ }
+    } catch { if (!attempt) await new Promise((r) => setTimeout(r, 1500)); /* invalid answer or AI busy: wait, one retry, then null */ }
   }
   return null;
 }

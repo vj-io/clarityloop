@@ -52,7 +52,9 @@ export function resolveTime(time: string, ambiguous: boolean): { settled: string
 }
 
 // Units that mean the same on a site. Only plain Latin words are compared: a unit typed in another script is left alone.
-const UNIT_SAME = [["bag", "sack", "bori"], ["piece", "pc", "no", "number", "unit"]];
+const UNIT_SAME = [["bag", "sack", "bori"]];
+// Counting words that fit anything ("20 pieces" of rods): never a different unit.
+const UNIT_ANY = new Set(["piece", "pc", "no", "number", "unit", "item", "count"]);
 const unitKey = (u: string | null) => {
   const w = u?.trim().toLowerCase() ?? "";
   if (!/^[a-z]+$/.test(w)) return null;
@@ -60,7 +62,10 @@ const unitKey = (u: string | null) => {
   return UNIT_SAME.find((g) => g.includes(s))?.[0] ?? s;
 };
 /** Both units given, both readable, and they differ ("40 helmets" / "40 bags"). */
-export const unitsDiffer = (a: string | null, b: string | null) => { const x = unitKey(a), y = unitKey(b); return !!x && !!y && x !== y; };
+export const unitsDiffer = (a: string | null, b: string | null) => {
+  const x = unitKey(a), y = unitKey(b);
+  return !!x && !!y && x !== y && !UNIT_ANY.has(x) && !UNIT_ANY.has(y);
+};
 
 export const fmtQty = (q: number | null, unit: string | null) =>
   q == null ? null : `${q}${unit ? " " + unit : ""}`;

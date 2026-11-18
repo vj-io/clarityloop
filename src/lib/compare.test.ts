@@ -96,6 +96,7 @@ test("quantity: same number with a different unit is amber, never green", async 
   assert.equal(unitsDiffer("helmets", "bags"), true);
   assert.equal(unitsDiffer("bags", "sacks"), false);   // same thing on a site
   assert.equal(unitsDiffer("bags", "bag"), false);
+  assert.equal(unitsDiffer("rods", "pieces"), false);  // a generic counting word fits anything
   assert.equal(unitsDiffer("bags", null), false);      // unit not said: the number decides
   assert.equal(unitsDiffer("बोरी", "bags"), false);    // other scripts are not judged
 });
