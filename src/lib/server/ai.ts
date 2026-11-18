@@ -47,10 +47,19 @@ export function quotaRestMs(msg: string): number {
 export function gatewayRunner(model: string = AI_MODEL): Runner {
   const chain = [model, ...FALLBACKS.filter((m) => m !== model)];
   return async ({ system, prompt, maxTokens }) => {
-    const now = Date.now();
-    const order = chain.filter((m) => (restingUntil.get(m) ?? 0) <= now);
     let last: unknown = new Error("every AI model is resting after a quota error");
-    for (const m of order.length ? order : chain.slice(0, 1)) {
+    // Two passes: when every model is resting but one wakes within 25 s (a per-minute limit), wait for it
+    // instead of failing. A slow answer is better than "couldn't check".
+    for (let pass = 0; pass < 2; pass++) {
+    let now = Date.now();
+    let order = chain.filter((m) => (restingUntil.get(m) ?? 0) <= now);
+    if (!order.length) {
+      const soon = chain.reduce((x, y) => ((restingUntil.get(x) ?? 0) <= (restingUntil.get(y) ?? 0) ? x : y));
+      const wait = (restingUntil.get(soon) ?? 0) - now;
+      if (wait > 25_000) { if (pass) break; order = chain.slice(0, 1); }
+      else { await new Promise((r) => setTimeout(r, wait + 200)); now = Date.now(); order = [soon]; }
+    }
+    for (const m of order) {
       try {
         const r = await generateText({
           model: process.env.GOOGLE_GENERATIVE_AI_API_KEY && m.startsWith("google/") ? google(m.slice("google/".length)) : m,
@@ -65,6 +74,7 @@ export function gatewayRunner(model: string = AI_MODEL): Runner {
         else if (BUSY.test(msg)) restingUntil.set(m, now + 60_000);
         else throw e;                                                     // a real error: do not hide it behind another model
       }
+    }
     }
     throw last;
   };
