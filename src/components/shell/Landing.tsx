@@ -18,7 +18,7 @@ const BUYERS = [1, 2, 3, 4] as const;
 const PHASES = ["now", "pilot", "site", "scale"] as const;
 const PLANS = ["free", "pro", "ent"] as const;
 const WHO = [["ravi", false], ["murugan", true], ["manager", false]] as const;
-const TODAY = [1, 2, 3, 4, 5, 6] as const;
+const TODAY = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 const NEXCONN_KEY = "qd46yzrfq1obf";
 const linkCls = "inline-flex min-h-12 items-center font-semibold text-pen underline underline-offset-4";
 
@@ -67,7 +67,7 @@ export function Landing() {
         </div>
 
         <Section title={t("land.todayTitle")}>
-          <ul className="grid grid-cols-2 gap-3 md:grid-cols-6">
+          <ul className="grid grid-cols-2 gap-3 md:grid-cols-5">
             {TODAY.map((n) => (
               <li key={n} className="doodle doodle-flat flex min-h-12 items-center gap-2 bg-card px-3 py-2 font-display text-base font-extrabold leading-tight">
                 <span aria-hidden="true" className="text-ok">&#x2713;</span>{t(`land.today${n}`)}

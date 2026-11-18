@@ -1,9 +1,9 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><title>ClarityLoop — write-up</title>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=Patrick+Hand&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  @page { size: A4; margin: 16mm 15mm; }
+  @page { size: A4; margin: 13mm 14mm; }
   * { box-sizing: border-box; }
-  body { font-family: Archivo, system-ui, sans-serif; color: #0a0a0a; font-size: 10.6pt; line-height: 1.42; margin: 0; }
+  body { font-family: Archivo, system-ui, sans-serif; color: #0a0a0a; font-size: 10.2pt; line-height: 1.38; margin: 0; }
   h1 { font-size: 30pt; font-weight: 800; margin: 0 0 2mm; line-height: 1.05; }
   h2 { font-size: 14pt; font-weight: 800; margin: 6mm 0 2mm; }
   h2 span { background: linear-gradient(transparent 55%, #c8ff00 55%, #c8ff00 92%, transparent 92%); padding: 0 1mm; }
@@ -46,6 +46,14 @@
   <p>The supervisor sends a task: action, object, place, time, quantity. There is no OK button. The worker says it back in their own words. A card compares each field side by side and blocks Confirm while anything differs or is unclear.</p></div>
 </div>
 
+<div class="cols">
+  <div class="box"><p class="hand pen">At crew scale</p>
+  <p>One task can go to the <b>whole crew</b>: every worker gets it in their own language and says it back separately. A live <b>roll-call board</b> in the crew chat shows who understood; only the supervisor sees which field a worker got wrong, and can press Confirm on the row. Nobody is shown up in front of the crew.</p></div>
+  <div class="box"><p class="hand pen">Safety briefing check</p>
+  <p>The supervisor picks 2–5 points from the crew's safety list (or a preset such as work at height). Each worker says them back in one reply. AI maps the words onto the list; code checks every picked point was said. The roll-call shows what is not said yet, and a printable record is kept. An extra check, not a guarantee.</p></div>
+</div>
+<p>Also built: <b>voice</b> input (browser speech recognition; the words land in the box to read first) and read-aloud; <b>site words</b>, a crew glossary used in translation that the supervisor approves; <b>Make this a task</b> from a chat message (AI pre-fills the form, the supervisor still sends); <b>Remind</b> for a worker who has not said a task back (supervisor-triggered, at most once per 10 minutes); an <b>insights</b> page for the supervisor's crew; and printable task and briefing <b>records</b>. Messages typed offline are queued and sent once.</p>
+
 <p class="hand">The demo case, as it runs on the live app:</p>
 <p>Supervisor sends <b>Unload · cement bags · Gate 3 · 14:00 · 40 bags</b>. Worker replies in Hinglish: <i>"40 bori cement Gate 2 pe utaarna hai, 2 baje tak."</i></p>
 <table>
@@ -61,23 +69,22 @@
 <h2><span>How it uses the Nexconn SDK</span></h2>
 <table>
   <tr><th>Feature</th><th>Where the app uses it</th></tr>
-  <tr><td>Chat SDK for Web<br><span class="mono">@nexconn/chat 26.2.1</span></td><td><span class="mono">NCEngine.initialize</span> + <span class="mono">connect</span> with a server-issued token. Every conversation screen runs on it.</td></tr>
-  <tr><td>Connection status handler</td><td>The "live / connecting / offline" chip; on a drop the app fetches a fresh token, reconnects and re-reads history, so nothing is missed or doubled.</td></tr>
-  <tr><td>Group channels</td><td>One group channel per supervisor–worker pair carries both everyday chat and task cards.</td></tr>
-  <tr><td>Send text message</td><td>The composer: <span class="mono">GroupChannel.sendMessage(SendTextMessageParams)</span>.</td></tr>
-  <tr><td>Receive messages</td><td>A message handler puts chat bubbles and cards into the other person's window live.</td></tr>
-  <tr><td>Message history</td><td><span class="mono">createMessagesQuery</span> loads the conversation on open and after a reconnect.</td></tr>
-  <tr><td>Server API: access tokens</td><td><span class="mono">/v4/auth/access-token/issue</span>, signed on our server; each browser only ever gets a token for its own user.</td></tr>
-  <tr><td>Server API: groups + messages</td><td>The server creates and joins the pair's group and posts every card (task, comparison, Understood, Done) as a bot user. Cards are plain Nexconn text with a prefix, so state changes reach both people through the same live channel. A card typed by a user is ignored.</td></tr>
-  <tr><td>Message id</td><td>Nexconn's message id is the cache key for each translation, so a message is translated once per language.</td></tr>
+  <tr><td>Chat SDK for Web<br><span class="mono">@nexconn/chat 26.2.1</span></td><td><span class="mono">NCEngine.initialize</span>, <span class="mono">addConnectionStatusHandler</span>, <span class="mono">connect</span> with a server-issued token; retry with a fresh token. Every conversation screen runs on it.</td></tr>
+  <tr><td>Group channels</td><td>One per supervisor–worker pair and one per crew. <span class="mono">GroupChannel.sendMessage(SendTextMessageParams)</span> from the composer.</td></tr>
+  <tr><td>Receive and history</td><td><span class="mono">addMessageHandler</span> puts bubbles and cards into the other window live; <span class="mono">createMessagesQuery</span> loads history on open and after a reconnect, de-duplicated by message id.</td></tr>
+  <tr><td>Read receipts</td><td><span class="mono">needReceipt</span>, <span class="mono">sendReadReceiptResponse</span>, <span class="mono">getMessageReadReceiptInfo</span>, <span class="mono">onMessageReceiptResponse</span>: "Read 14:02", "Read by 2 of 3". The task card says "Seen · not yet understood".</td></tr>
+  <tr><td>Unread, channel list, mentions</td><td><span class="mono">createChannelsQuery</span>, <span class="mono">clearUnreadCount</span>, <span class="mono">createUnreadMentionMeChannelsQuery</span>; <span class="mono">mentionedInfo</span> for @mentions in crew chat.</td></tr>
+  <tr><td>Server REST API</td><td>Signed headers from our server: <span class="mono">/v4/auth/access-token/issue</span>, <span class="mono">/v4/group-channel/create</span>, <span class="mono">/join</span>, <span class="mono">/message/send</span> as a bot user.</td></tr>
+  <tr><td>Cards and live pings</td><td>Task, comparison, roll-call board, safety-briefing and state cards are plain text with a prefix (<span class="mono">[[CL:TASK]]</span>, <span class="mono">CHECK</span>, <span class="mono">STATE</span>, <span class="mono">BOARD</span>, <span class="mono">BRIEF</span>), posted only by the server; a card typed by a user is ignored. Silent, non-stored messages (<span class="mono">shouldPersist 0</span>) refresh open windows without touching history or unread counts.</td></tr>
 </table>
 
 <h2><span>How it is built</span></h2>
 <ul>
-  <li><b>Next.js (App Router) on Vercel</b> — interface and server routes. <b>Supabase</b> — auth and Postgres with row-level security on every table. <b>Nexconn</b> — live conversations. <b>AI model</b> (<span class="mono">google/gemini-3.5-flash-lite</span>) — three narrow jobs: translate chat, translate task text, read the worker's reply into fixed fields.</li>
-  <li><b>The AI never decides.</b> It only reads the worker's words into a schema checked by code, and it never sees the supervisor's values. Plain code compares the fields (work-hours rule: a bare hour 1–6 is read as afternoon and shown, so either person can correct it). An unreadable reply turns the card amber instead of guessing. Only the two people can confirm.</li>
-  <li><b>Record keeping.</b> Tasks, restatements, checks, acceptances and every state change are stored in our database with who and when; Nexconn is never the only copy.</li>
-  <li><b>Security and privacy.</b> App Secret, database service key and AI key are server-side only. Workers join with a crew code and a hashed 4-digit PIN with lockout. Translation is limited to members of a conversation and rate-limited. No location, no photos of people, no attendance; workers see everything the supervisor sees.</li>
+  <li><b>Next.js (App Router) on Vercel</b>; <b>Supabase</b> Auth and Postgres with row-level security on every table; <b>Nexconn</b> for live conversations. If Nexconn keys are absent the app falls back to a labelled local transport for development.</li>
+  <li><b>AI: four narrow jobs</b> (<span class="mono">google/gemini-3.5-flash-lite</span>, with a fallback chain of other models when one is out of quota): translate text; make alternative names for a task's object; read a worker's reply into fixed fields (also used to pre-fill "Make this a task"); say which listed safety points a reply mentioned. Outputs are checked with zod and code.</li>
+  <li><b>The AI never decides.</b> The AI reader never sees the supervisor's values; plain code compares the fields and the safety points (work-hours rule: a bare hour 1–6 is read as afternoon and shown, so either person can correct it). An unreadable reply gives "could not check", not a guess. Only people confirm.</li>
+  <li><b>Record keeping.</b> Tasks, restatements, checks and state changes are stored with who and when; Nexconn is never the only copy.</li>
+  <li><b>Security and privacy.</b> Secrets are server-side only. Workers join with a crew code and a hashed 4-digit PIN with lockout. Translation is limited to conversation members and rate-limited. Only message text and the crew's lists go to the AI. No location, no photos of people, no attendance.</li>
 </ul>
 
 <h2><span>What we measured</span></h2>
@@ -86,14 +93,15 @@
   <tr><th>Check</th><th>Result</th><th>Our target</th></tr>
   <tr><td>Planted mismatches caught (wrong gate, morning vs afternoon, wrong quantity, wrong action, missing field, Hinglish reply)</td><td><b>6 of 6</b></td><td>all</td></tr>
   <tr><td>False alarms on correct restatements</td><td><b>0 of 9</b></td><td>at most 1</td></tr>
-  <tr><td>Translation runs completed, with every number and place name kept</td><td><b>99 of 100</b> (1 flagged by our strict label check: correct Tamil that inflects the place name)</td><td>all numbers and places kept</td></tr>
+  <tr><td>Translation runs completed, with every number and place name kept</td><td><b>100 of 100</b></td><td>all numbers and places kept</td></tr>
   <tr><td>Median translation time / field-reading time</td><td><b>1.95 s</b> / <b>2.25 s</b> (measured from India)</td><td>under 1.5 s / under 5 s — translation speed is not met yet on a free-tier model key; the app shows the original at once and swaps the translation in</td></tr>
 </table>
-<p class="muted">What these numbers are not: a native speaker has not yet rated translation quality, the test sets are small and written by us, and no pilot with real workers has run yet. We report only what was measured.</p>
+<div class="box"><p class="hand pen">What we know is not done</p>
+<ul><li>No pilot with real workers has run.</li><li>No native speaker has rated the translations; the test sets are small and written by us.</li><li>The translation speed target (median under 1.5 s) is not met on the current free-tier model key.</li></ul></div>
 
 <h2><span>Where it goes next</span></h2>
 <div class="cols">
-  <div><p><b>Roadmap.</b> Pilot-ready: voice messages and read-aloud, crew chat, a site glossary learned from "Translation looks wrong" flags. Site product: daily safety-briefing checks, shift handover checks, a site dashboard and audit export. Scale: multi-site admin, SMS and WhatsApp reach, data controls.</p></div>
+  <div><p><b>Not built yet.</b> Voice messages (recorded audio), phone-number sign-in, scheduled reminders, photos, a shift-handover check, a dashboard across crews and multi-site admin, audit export beyond the printable pages, more languages, SMS and WhatsApp reach, single sign-on, API and webhooks, billing, native apps. Next step: a pilot with one real crew.</p></div>
   <div><p><b>Business (a plan to test).</b> The employer pays, workers use it free: per active worker per month, with a free tier for one small crew. First buyers: mid-size contractors, facility-management firms, warehouses. What compounds: crew glossaries, misunderstanding data, and a trusted record of what was agreed.</p></div>
 </div>
 

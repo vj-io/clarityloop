@@ -35,6 +35,13 @@ const STEPS: Step[] = [
       { who: "lakshmi", tag: "j.tagRight", text: "காலை 9:30 மணிக்கு கேட் 1-க்கு 20 ஸ்டீல் கம்பிகளை நகர்த்த வேண்டும்." },
     ],
   },
+  {
+    k: "j.s8", after: "j.s8x",
+    lines: [
+      { who: "murugan", tag: "j.tagTwo", text: "Helmet pehenna hai aur chadhne se pehle scaffolding ka tag dekhna hai" },
+      { who: "murugan", tag: "j.tagThird", text: "Do meter se upar kaam karte waqt safety belt bhi lagaunga" },
+    ],
+  },
   { k: "j.s7" },
 ];
 

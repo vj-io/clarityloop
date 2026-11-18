@@ -109,7 +109,7 @@ export const biz: Dict = {
   "b.land.draftPriced": d("draft, to be priced after pilots", "मसौदा, पायलट के बाद दाम तय होंगे", "வரைவு, பைலட்டுக்குப் பிறகு விலை"),
   "b.land.growTitle": d("What gets stronger the longer a site uses it", "साइट जितना ज़्यादा इस्तेमाल करे, उतना क्या मज़बूत होता है", "ஒரு தளம் எவ்வளவு நாள் பயன்படுத்துகிறதோ, எது வலுப்பெறுகிறது"),
   "b.land.grow1": d("Crew glossaries", "टीम की शब्दावली", "குழு சொற்களஞ்சியம்"),
-  "b.land.grow1b": d("Each site's own words, learned from corrections, so translation improves with use.", "हर साइट के अपने शब्द, सुधारों से सीखे हुए, इसलिए इस्तेमाल से अनुवाद बेहतर होता है।", "ஒவ்வொரு தளத்தின் சொந்தச் சொற்கள், திருத்தங்களிலிருந்து கற்றவை; பயன்படுத்தப் பயன்படுத்த மொழிபெயர்ப்பு மேம்படும்."),
+  "b.land.grow1b": d("Each site's own words, added from readers' corrections once the supervisor approves, so translation improves with use.", "हर साइट के अपने शब्द, पढ़ने वालों के सुधारों से और सुपरवाइज़र की मंज़ूरी के बाद जुड़ते हैं, इसलिए इस्तेमाल से अनुवाद बेहतर होता है।", "ஒவ்வொரு தளத்தின் சொந்தச் சொற்கள், படிப்பவர்களின் திருத்தங்களிலிருந்து மேற்பார்வையாளர் ஒப்புதலுக்குப் பின் சேர்க்கப்படுகின்றன; அதனால் பயன்படுத்தப் பயன்படுத்த மொழிபெயர்ப்பு மேம்படுகிறது."),
   "b.land.grow2": d("Misunderstanding data", "गलतफ़हमी का डेटा", "தவறான புரிதல் தரவு"),
   "b.land.grow2b": d("Which instructions, fields and language pairs go wrong most. Plain translation apps don't have it.", "कौन से निर्देश, बातें और भाषा-जोड़ियाँ सबसे ज़्यादा गलत होती हैं। सादे अनुवाद ऐप में यह नहीं होता।", "எந்த அறிவுறுத்தல்கள், விவரங்கள், மொழி ஜோடிகள் அதிகம் தவறுகின்றன. சாதாரண மொழிபெயர்ப்பு செயலிகளில் இது இல்லை."),
   "b.land.grow3": d("The record", "रिकॉர்ड", "பதிவு"),
